@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X, Calendar, GripVertical, AlignLeft, Clock, Trash2, CheckSquare, Square, CalendarPlus, CornerDownLeft, Palette, ZoomIn, ArrowRight, RotateCcw, RotateCw, Flag, LayoutGrid, ListTodo, Repeat, Save, Search, Bell, ChevronDown, AlertCircle, ChevronRight as ChevronRightIcon } from 'lucide-react';
-
+import { supabase } from './supabaseClient';
 // --- DESIGN SYSTEM: Apple-inspired Pastel Palette ---
 const COLORS = [
   { name: 'Classic Gray', value: 'bg-gray-50 border-gray-200', text: 'text-gray-700', ring: 'ring-gray-400' },

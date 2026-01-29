@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 
-[cite_start]// [cite: 17, 18, 19, 20, 21, 22]
+
 export const useUndoableState = (initialValue) => {
     const [history, setHistory] = useState([]);
     const [future, setFuture] = useState([]);

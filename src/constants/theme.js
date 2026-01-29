@@ -7,6 +7,17 @@ export const COLORS = [
   { name: 'Lavender', value: 'bg-violet-50 border-violet-200', text: 'text-violet-700', ring: 'ring-violet-400' },
   { name: 'Peach', value: 'bg-orange-50 border-orange-200', text: 'text-orange-700', ring: 'ring-orange-400' },
   { name: 'Blush Pink', value: 'bg-pink-50 border-pink-200', text: 'text-pink-700', ring: 'ring-pink-400' },
+  // --- 4 MÀU MỚI THÊM ---
+  { name: 'Fresh Teal', value: 'bg-teal-50 border-teal-200', text: 'text-teal-700', ring: 'ring-teal-400' },
+  { name: 'Sky Blue', value: 'bg-sky-50 border-sky-200', text: 'text-sky-700', ring: 'ring-sky-400' },
+  { name: 'Lime Zest', value: 'bg-lime-50 border-lime-200', text: 'text-lime-700', ring: 'ring-lime-400' },
+  { name: 'Fuchsia Dream', value: 'bg-fuchsia-50 border-fuchsia-200', text: 'text-fuchsia-700', ring: 'ring-fuchsia-400' },
 ];
 
-export const ZOOM_LEVELS = [120, 160, 200, 240, 280];
+// ĐÃ SỬA: Rút gọn còn 3 cấp độ (Nhỏ - Trung bình - Lớn)
+export const ZOOM_LEVELS = [160, 220, 280];
+
+export const INITIAL_DATA = {
+  categories: [],
+  tasks: []
+};

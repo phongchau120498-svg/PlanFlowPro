@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Thay thế bằng thông tin Project thật của anh
-const supabaseUrl = 'https://kivzurhuxsxwvdugujjg.supabase.co';
-const supabaseKey = 'sb_publishable_9ttt_Pw081eSgfISoUcFYA_e1RABNWY';
+// Vercel sẽ tự điền 2 thông tin này vào lúc chạy web
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseKey);

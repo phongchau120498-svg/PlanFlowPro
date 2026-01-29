@@ -1,0 +1,2119 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+eslint.config.js
+index.html
+package.json
+postcss.config.js
+public/vite.svg
+README.md
+src/App.css
+src/App.jsx
+src/assets/react.svg
+src/components/common/ToastContainer.jsx
+src/components/layout/Header.jsx
+src/components/tasks/AddTaskModal.jsx
+src/components/tasks/CategoryModal.jsx
+src/components/tasks/QuickAddInput.jsx
+src/components/tasks/RecurringUpdateModal.jsx
+src/components/tasks/TaskCard.jsx
+src/components/tasks/TaskModal.jsx
+src/components/views/TodoView.jsx
+src/constants/theme.js
+src/hooks/useUndoableState.js
+src/index.css
+src/lib/supabaseClient.js
+src/main.jsx
+src/utils/dateHelpers.js
+tailwind.config.js
+vite.config.js
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="src/components/tasks/CategoryModal.jsx">
+import React, { useState, useEffect } from 'react';
+import { X, Check, Trash2, Palette } from 'lucide-react';
+import { COLORS } from '../../constants/theme';
+
+const CategoryModal = ({ category, onClose, onUpdate, onDelete }) => {
+    const [title, setTitle] = useState(category.title);
+    const [selectedColor, setSelectedColor] = useState(category.color);
+
+    const handleSave = () => {
+        if (!title.trim()) return;
+        onUpdate({ ...category, title: title.trim(), color: selectedColor });
+        onClose();
+    };
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') onClose();
+            if (e.key === 'Enter') handleSave();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [title, selectedColor]);
+
+    return (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-[2px] transition-opacity" onClick={onClose} />
+            
+            <div className="relative bg-white w-full max-w-sm rounded-[32px] shadow-2xl p-6 animate-in zoom-in-95 duration-300 ease-apple border border-white/50 ring-1 ring-black/5">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <Palette size={20} className="text-indigo-500"/>
+                        Sửa hạng mục
+                    </h3>
+                    <button onClick={onClose} className="p-2 text-gray-400 hover:bg-gray-100 rounded-full transition-colors"><X size={20}/></button>
+                </div>
+
+                <div className="space-y-6">
+                    {/* Input Name */}
+                    <div className="bg-gray-50 rounded-2xl px-4 py-2 border border-gray-100 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500/50 transition-all">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tên hiển thị</label>
+                        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-transparent border-none p-0 focus:ring-0 text-slate-800 font-bold text-lg" autoFocus />
+                    </div>
+
+                    {/* Color Picker (Circles) */}
+                    <div>
+                        <label className="block text-[10px] font-bold text-gray-400 mb-3 uppercase tracking-widest px-1">Màu sắc chủ đạo</label>
+                        <div className="grid grid-cols-6 gap-3">
+                            {COLORS.map((color, index) => (
+                                <button 
+                                    key={index} 
+                                    onClick={() => setSelectedColor(color)} 
+                                    className={`w-8 h-8 rounded-full transition-all duration-200 relative flex items-center justify-center 
+                                    ${color.value.split(' ')[0]} 
+                                    ${selectedColor.name === color.name ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110 shadow-md' : 'hover:scale-110 hover:shadow-sm'}`} 
+                                    title={color.name}
+                                >
+                                    {selectedColor.name === color.name && <Check size={12} className={color.text} strokeWidth={3} />}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-8 flex gap-3 pt-6 border-t border-gray-100">
+                    <button onClick={() => { onDelete(category.id); }} className="p-3 text-red-500 bg-red-50 hover:bg-red-100 rounded-2xl transition-colors" title="Xóa"><Trash2 size={20} /></button>
+                    <button onClick={handleSave} className="flex-1 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 shadow-lg shadow-slate-200 transition-all active:scale-95">Lưu thay đổi</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+export default CategoryModal;
+</file>
+
+<file path=".gitignore">
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+</file>
+
+<file path="eslint.config.js">
+import js from '@eslint/js'
+import globals from 'globals'
+import reactHooks from 'eslint-plugin-react-hooks'
+import reactRefresh from 'eslint-plugin-react-refresh'
+import { defineConfig, globalIgnores } from 'eslint/config'
+
+export default defineConfig([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{js,jsx}'],
+    extends: [
+      js.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      reactRefresh.configs.vite,
+    ],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.browser,
+      parserOptions: {
+        ecmaVersion: 'latest',
+        ecmaFeatures: { jsx: true },
+        sourceType: 'module',
+      },
+    },
+    rules: {
+      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+    },
+  },
+])
+</file>
+
+<file path="index.html">
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <title>PlanFlow Pro</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+</file>
+
+<file path="postcss.config.js">
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+</file>
+
+<file path="public/vite.svg">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="31.88" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 257"><defs><linearGradient id="IconifyId1813088fe1fbc01fb466" x1="-.828%" x2="57.636%" y1="7.652%" y2="78.411%"><stop offset="0%" stop-color="#41D1FF"></stop><stop offset="100%" stop-color="#BD34FE"></stop></linearGradient><linearGradient id="IconifyId1813088fe1fbc01fb467" x1="43.376%" x2="50.316%" y1="2.242%" y2="89.03%"><stop offset="0%" stop-color="#FFEA83"></stop><stop offset="8.333%" stop-color="#FFDD35"></stop><stop offset="100%" stop-color="#FFA800"></stop></linearGradient></defs><path fill="url(#IconifyId1813088fe1fbc01fb466)" d="M255.153 37.938L134.897 252.976c-2.483 4.44-8.862 4.466-11.382.048L.875 37.958c-2.746-4.814 1.371-10.646 6.827-9.67l120.385 21.517a6.537 6.537 0 0 0 2.322-.004l117.867-21.483c5.438-.991 9.574 4.796 6.877 9.62Z"></path><path fill="url(#IconifyId1813088fe1fbc01fb467)" d="M185.432.063L96.44 17.501a3.268 3.268 0 0 0-2.634 3.014l-5.474 92.456a3.268 3.268 0 0 0 3.997 3.378l24.777-5.718c2.318-.535 4.413 1.507 3.936 3.838l-7.361 36.047c-.495 2.426 1.782 4.5 4.151 3.78l15.304-4.649c2.372-.72 4.652 1.36 4.15 3.788l-11.698 56.621c-.732 3.542 3.979 5.473 5.943 2.437l1.313-2.028l72.516-144.72c1.215-2.423-.88-5.186-3.54-4.672l-25.505 4.922c-2.396.462-4.435-1.77-3.759-4.114l16.646-57.705c.677-2.35-1.37-4.583-3.769-4.113Z"></path></svg>
+</file>
+
+<file path="README.md">
+# React + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+
+Currently, two official plugins are available:
+
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+
+## React Compiler
+
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+
+## Expanding the ESLint configuration
+
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+</file>
+
+<file path="src/App.css">
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+</file>
+
+<file path="src/assets/react.svg">
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
+</file>
+
+<file path="src/components/common/ToastContainer.jsx">
+import React from 'react';
+import { CheckSquare, Bell } from 'lucide-react';
+
+
+const ToastContainer = ({ toasts }) => {
+    return (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 flex flex-col gap-2 z-[100] pointer-events-none">
+            {toasts.map(toast => (
+                <div key={toast.id} className="bg-gray-900/90 backdrop-blur-md text-white px-5 py-3 rounded-2xl shadow-xl flex items-center gap-3 animate-in slide-in-from-bottom-5 fade-in duration-300">
+                    {toast.type === 'success' && <CheckSquare size={18} className="text-emerald-400" />}
+                    {toast.type === 'info' && <Bell size={18} className="text-blue-400" />}
+                    <span className="text-sm font-medium tracking-wide">{toast.message}</span>
+                </div>
+            ))}
+        </div>
+    );
+};
+export default ToastContainer;
+</file>
+
+<file path="src/components/layout/Header.jsx">
+import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { Calendar, LayoutGrid, ListTodo, ChevronLeft, ChevronRight, Search, X, ZoomIn, Clock, CalendarDays } from 'lucide-react';
+import { getMonday, formatDateKey } from '../../utils/dateHelpers';
+import { ZOOM_LEVELS } from '../../constants/theme';
+
+const Header = ({ 
+    currentDate, prevWeek, nextWeek, goToToday, onDateSelect, zoomIndex, onZoomChange, 
+    viewMode, setViewMode, onOpenAddTask, 
+    searchQuery, setSearchQuery, tasks, onNavigateToTask,
+    categories 
+}) => {
+    const startOfWeek = getMonday(currentDate);
+    const [showDropdown, setShowDropdown] = useState(false);
+    const searchRef = useRef(null);
+    const searchInputRef = useRef(null); 
+
+    // GLOBAL SHORTCUT: CTRL + K
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                searchInputRef.current?.focus(); 
+                setShowDropdown(true);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    const overdueCount = useMemo(() => {
+        if (!tasks || !Array.isArray(tasks)) return 0;
+        const todayStr = formatDateKey(new Date());
+        return tasks.filter(t => t.date && t.date < todayStr && !t.isCompleted).length;
+    }, [tasks]);
+
+    const searchResults = useMemo(() => {
+        if (!searchQuery.trim() || !tasks) return [];
+        return tasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
+    }, [tasks, searchQuery]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    return (
+      <header className="flex items-center justify-between px-6 py-3 bg-white/70 backdrop-blur-2xl border-b border-gray-200/60 sticky top-0 z-50 h-[68px] transition-all supports-[backdrop-filter]:bg-white/60">
+        
+        {/* --- KHU VỰC 1: TRÁI (Logo & View Switcher) --- */}
+        <div className="flex items-center gap-6 flex-1">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5 group cursor-pointer">
+              <div className="p-2 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl shadow-md shadow-indigo-200 text-white group-hover:scale-105 transition-transform">
+                <CalendarDays size={18} strokeWidth={2.5} />
+              </div>
+              <h1 className="text-lg font-bold text-gray-800 tracking-tight hidden lg:block group-hover:text-indigo-600 transition-colors">PlanFlow</h1>
+          </div>
+          
+          {/* Divider */}
+          <div className="h-6 w-px bg-gray-200 hidden md:block"></div>
+
+          {/* View Switcher (Segmented Control Style) */}
+          <div className="bg-gray-100/80 p-1 rounded-xl flex items-center border border-gray-200/50">
+              <button onClick={() => setViewMode('matrix')} className={`px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all duration-300 ${viewMode === 'matrix' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}>
+                  <LayoutGrid size={14} /> Lịch biểu
+              </button>
+              <button onClick={() => setViewMode('list')} className={`relative px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all duration-300 ${viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}>
+                  <ListTodo size={14} /> To-Do
+                  {overdueCount > 0 && (
+                      <span className="flex h-2 w-2 relative">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                      </span>
+                  )}
+              </button>
+          </div>
+        </div>
+
+        {/* --- KHU VỰC 2: GIỮA (Điều hướng thời gian) --- */}
+        <div className="flex-1 flex justify-center">
+             {viewMode === 'matrix' ? (
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1 shadow-sm hover:shadow-md transition-all duration-300">
+                        <button onClick={prevWeek} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-50 text-gray-500 hover:text-indigo-600 transition-colors"><ChevronLeft size={18} /></button>
+                        
+                        <div className="relative group px-2 flex items-center justify-center min-w-[140px]">
+                            <span className="font-bold text-gray-700 text-sm cursor-pointer hover:text-indigo-600 transition-colors flex flex-col items-center leading-tight">
+                                <span>Tháng {startOfWeek.getMonth() + 1}, {startOfWeek.getFullYear()}</span>
+                            </span>
+                            <input type="date" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" value={formatDateKey(currentDate)} onChange={(e) => e.target.value && onDateSelect(new Date(e.target.value))} />
+                        </div>
+
+                        <button onClick={nextWeek} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-50 text-gray-500 hover:text-indigo-600 transition-colors"><ChevronRight size={18} /></button>
+                    </div>
+                    
+                    {/* NÚT HÔM NAY (ĐÃ LÀM NỔI BẬT) */}
+                    <button onClick={goToToday} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-200 transition-all transform active:scale-95 flex items-center gap-1.5" title="Về hôm nay">
+                        <Clock size={14} className="text-indigo-100"/> Hôm nay
+                    </button>
+                </div>
+             ) : (
+                 <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-400 text-xs font-bold uppercase tracking-widest">
+                     <ListTodo size={14} /> Danh sách công việc
+                 </div>
+             )}
+        </div>
+        
+        {/* --- KHU VỰC 3: PHẢI (Công cụ Search & Zoom) --- */}
+        <div className="flex items-center gap-4 flex-1 justify-end">
+            <div className="relative group z-[60]" ref={searchRef}>
+                <div className={`flex items-center bg-gray-100 hover:bg-white border border-transparent hover:border-gray-200 rounded-xl px-3 py-2 transition-all w-48 focus-within:w-64 focus-within:bg-white focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100`}>
+                    <Search size={16} className="text-gray-400 group-focus-within:text-indigo-500 mr-2 transition-colors" />
+                    <input ref={searchInputRef} type="text" placeholder="Tìm kiếm..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); }} onFocus={() => setShowDropdown(true)} className="bg-transparent text-sm outline-none w-full placeholder-gray-400 text-gray-700 font-medium" />
+                    {!searchQuery && <div className="text-[10px] text-gray-400 border border-gray-200 rounded px-1.5 py-0.5 ml-2 hidden lg:block">⌘K</div>}
+                    {searchQuery && (<button onClick={() => { setSearchQuery(''); setShowDropdown(false); }} className="text-gray-300 hover:text-gray-500"><X size={14} /></button>)}
+                </div>
+                
+                {/* Search Dropdown Results */}
+                {showDropdown && searchQuery && (
+                    <div className="absolute top-full right-0 mt-3 w-80 bg-white/95 backdrop-blur-xl border border-gray-100 rounded-2xl shadow-2xl max-h-96 overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-200 p-2">
+                        {searchResults.length > 0 ? (
+                            searchResults.map(task => (
+                                <div key={task.id} onClick={() => { onNavigateToTask(task); setShowDropdown(false); }} className="px-3 py-3 hover:bg-indigo-50 rounded-xl cursor-pointer transition-colors group/item border-b border-gray-50 last:border-0">
+                                    <div className="font-semibold text-sm text-gray-800 group-hover/item:text-indigo-700 truncate">{task.title}</div>
+                                    <div className="text-xs text-gray-400 flex items-center gap-2 mt-1">
+                                        <span className={`w-2 h-2 rounded-full ${categories.find(c => c.id === task.categoryId)?.color?.value.split(' ')[0] || 'bg-gray-300'}`}></span>
+                                        <span>{task.date.split('-').reverse().join('/')}</span>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (<div className="px-4 py-8 text-center text-gray-400 text-sm">Không tìm thấy kết quả</div>)}
+                     </div>
+                )}
+            </div>
+            
+            {viewMode === 'matrix' && (
+                <div className="flex items-center gap-3 pl-4 border-l border-gray-200 hidden lg:flex">
+                     <ZoomIn size={16} className="text-gray-400" />
+                    <input type="range" min="0" max={ZOOM_LEVELS.length - 1} step="1" value={zoomIndex} onChange={onZoomChange} className="w-20 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 hover:accent-indigo-500" />
+                </div>
+            )}
+        </div>
+      </header>
+    );
+};
+export default Header;
+</file>
+
+<file path="src/components/tasks/AddTaskModal.jsx">
+import React, { useState, useEffect } from 'react';
+import { X, ChevronDown, Calendar, Tag, Type, AlignLeft } from 'lucide-react';
+import { formatDateKey } from '../../utils/dateHelpers';
+
+const AddTaskModal = ({ onClose, onSave, categories, initialDate, initialCategoryId }) => {
+    const [title, setTitle] = useState('');
+    const [categoryId, setCategoryId] = useState(initialCategoryId || categories[0]?.id);
+    const [date, setDate] = useState(initialDate || formatDateKey(new Date()));
+    const [isNewCategory, setIsNewCategory] = useState(false);
+    const [newCategoryTitle, setNewCategoryTitle] = useState('');
+
+    const handleSave = () => {
+        if (!title.trim()) return;
+        onSave({ 
+            title, 
+            date, 
+            categoryId: isNewCategory ? null : categoryId, 
+            newCategoryTitle: isNewCategory ? newCategoryTitle : null 
+        });
+    };
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') onClose();
+            if (e.key === 'Enter') handleSave();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [title, date, categoryId, newCategoryTitle, isNewCategory]);
+
+    // Apple Style Input Component
+    const InputField = ({ icon: Icon, children, className = "" }) => (
+        <div className={`group flex items-center gap-3 bg-gray-100/80 hover:bg-gray-100 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:shadow-lg transition-all duration-300 ease-out rounded-2xl px-4 py-3.5 ${className}`}>
+            <Icon size={18} className="text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+            {children}
+        </div>
+    );
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:px-4">
+            {/* Backdrop Blur tối dần */}
+            <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-[2px] transition-opacity duration-300" onClick={onClose} />
+            
+            {/* Modal Content - iOS Sheet Animation */}
+            <div className="relative bg-white w-full max-w-[500px] sm:rounded-[32px] rounded-t-[32px] shadow-2xl transform transition-all animate-in slide-in-from-bottom-10 fade-in duration-300 overflow-hidden flex flex-col">
+                
+                {/* Drag Handle (Visual cue cho mobile/tablet) */}
+                <div className="w-full flex justify-center pt-3 pb-1 sm:hidden">
+                    <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
+                </div>
+
+                <div className="flex items-center justify-between px-8 pt-6 pb-2">
+                    <h2 className="text-2xl font-bold text-slate-800 tracking-tight">Việc mới</h2>
+                    <button onClick={onClose} className="bg-gray-100 hover:bg-gray-200 text-gray-500 p-2 rounded-full transition-all active:scale-90"><X size={20} /></button>
+                </div>
+
+                <div className="px-8 py-6 space-y-5">
+                    {/* Tên công việc - Input lớn nhất */}
+                    <div className="relative">
+                        <input 
+                            type="text" 
+                            placeholder="Bạn cần làm gì?" 
+                            value={title} 
+                            onChange={(e) => setTitle(e.target.value)} 
+                            className="w-full text-2xl font-semibold placeholder-gray-300 text-slate-800 bg-transparent border-none focus:ring-0 p-0"
+                            autoFocus={!isNewCategory} 
+                        />
+                    </div>
+
+                    <div className="h-px w-full bg-gray-100"></div>
+
+                    {/* Các trường chọn - Style Filled Input */}
+                    <InputField icon={Tag}>
+                        {!isNewCategory ? (
+                            <div className="relative w-full">
+                                <select value={categoryId} onChange={(e) => e.target.value === 'NEW' ? setIsNewCategory(true) : setCategoryId(e.target.value)} className="w-full bg-transparent border-none text-slate-700 font-medium appearance-none focus:ring-0 cursor-pointer py-0">
+                                    {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.title}</option>)}
+                                    <option disabled>──────────</option>
+                                    <option value="NEW">+ Tạo hạng mục mới...</option>
+                                </select>
+                                <ChevronDown size={16} className="absolute right-0 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            </div>
+                        ) : (
+                            <div className="flex gap-2 w-full animate-in fade-in slide-in-from-left-2">
+                                <input type="text" placeholder="Tên hạng mục..." value={newCategoryTitle} onChange={(e) => setNewCategoryTitle(e.target.value)} className="flex-1 bg-transparent border-none focus:ring-0 p-0 font-medium" autoFocus />
+                                <button onClick={() => setIsNewCategory(false)} className="text-xs font-bold text-gray-400 hover:text-gray-600 bg-white px-2 py-1 rounded-md shadow-sm">Hủy</button>
+                            </div>
+                        )}
+                    </InputField>
+
+                    <InputField icon={Calendar}>
+                        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-transparent border-none text-slate-700 font-medium focus:ring-0 p-0 cursor-pointer" />
+                    </InputField>
+                </div>
+
+                <div className="px-8 pb-8 pt-4 flex justify-end items-center gap-3 bg-gray-50/50 border-t border-gray-100">
+                    <button onClick={handleSave} className="w-full sm:w-auto px-8 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-sm shadow-xl shadow-slate-200 transform active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
+                        Lưu công việc
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+export default AddTaskModal;
+</file>
+
+<file path="src/components/tasks/QuickAddInput.jsx">
+import React, { useState, useRef, useEffect } from 'react';
+import { CornerDownLeft } from 'lucide-react';
+
+const QuickAddInput = ({ dateStr, onConfirm, onCancel, categoryColor }) => {
+    const inputRef = useRef(null);
+    const [title, setTitle] = useState('');
+    
+    useEffect(() => { if (inputRef.current) inputRef.current.focus(); }, []);
+    
+    const handleKeyDown = (e) => { 
+        if (e.key === 'Enter') onConfirm(title); 
+        else if (e.key === 'Escape') onCancel(); 
+    };
+
+    return (
+        <div className={`p-1 bg-white rounded-2xl shadow-xl ring-4 ring-indigo-500/10 animate-in fade-in zoom-in-95 duration-200 z-50 relative min-w-[220px]`}>
+            <div className={`p-3 rounded-xl ${categoryColor.value.split(' ')[0]} bg-opacity-30`}>
+                <input 
+                    ref={inputRef} 
+                    type="text" 
+                    value={title} 
+                    onChange={(e) => setTitle(e.target.value)} 
+                    className="w-full text-sm font-semibold text-slate-800 placeholder-slate-400 border-none p-0 bg-transparent focus:ring-0 leading-tight" 
+                    placeholder="Nhập việc cần làm..." 
+                    onKeyDown={handleKeyDown} 
+                />
+            </div>
+             <div className="flex items-center justify-between px-2 pt-2 pb-1">
+                 <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                     <CornerDownLeft size={10} /> Enter
+                 </div>
+                 <button onClick={() => onConfirm(title)} className="text-[10px] font-bold bg-slate-800 text-white px-2.5 py-1 rounded-lg hover:bg-slate-700 shadow-md transition-all">Thêm</button>
+            </div>
+        </div>
+    );
+};
+export default QuickAddInput;
+</file>
+
+<file path="src/components/tasks/RecurringUpdateModal.jsx">
+import React from 'react';
+import { Repeat } from 'lucide-react';
+
+const RecurringUpdateModal = ({ onClose, onConfirm }) => {
+    return (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm transition-opacity" onClick={onClose} />
+            
+            <div className="relative bg-white w-full max-w-sm rounded-[32px] shadow-2xl p-6 animate-in zoom-in-95 duration-300 ease-apple border border-white/50 text-center">
+                <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 shadow-sm">
+                    <Repeat size={28} />
+                </div>
+                
+                <h3 className="text-xl font-bold text-slate-800 mb-2">Cập nhật chuỗi lặp lại?</h3>
+                <p className="text-sm text-gray-500 mb-8 px-4 leading-relaxed">Bạn đang thay đổi một công việc có tính lặp lại. Bạn muốn áp dụng thay đổi này như thế nào?</p>
+                
+                <div className="space-y-3 font-semibold">
+                    <button onClick={() => onConfirm('single')} className="w-full py-3.5 bg-white border-2 border-gray-100 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl text-slate-600 transition-all">
+                        Chỉ công việc này
+                    </button>
+                    <button onClick={() => onConfirm('future')} className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-lg shadow-indigo-200 transition-all active:scale-95">
+                        Tất cả các việc sau này
+                    </button>
+                </div>
+
+                <button onClick={onClose} className="mt-6 text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors">
+                    Hủy bỏ
+                </button>
+            </div>
+        </div>
+    );
+};
+export default RecurringUpdateModal;
+</file>
+
+<file path="src/components/tasks/TaskCard.jsx">
+import React, { useState } from 'react';
+import { Square, CheckSquare, AlignLeft, Repeat } from 'lucide-react';
+
+const TaskCard = ({ task, categoryColor, isSelected, isHighlighted, onSelect, onUpdate, onDragStart, onDragEnd, setEditingTask }) => {
+    
+    const [dropPosition, setDropPosition] = useState(null);
+
+    const handleToggleComplete = (e) => {
+        e.stopPropagation();
+        onUpdate({ ...task, isCompleted: !task.isCompleted });
+    };
+
+    const handleDragOver = (e) => {
+        e.preventDefault();
+        e.stopPropagation(); 
+        
+        const rect = e.currentTarget.getBoundingClientRect();
+        const midpoint = rect.height / 2;
+        const hoverY = e.clientY - rect.top; 
+
+        if (hoverY < midpoint) {
+            setDropPosition('top');
+        } else {
+            setDropPosition('bottom');
+        }
+    };
+
+    const handleDragLeave = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDropPosition(null); 
+    };
+
+    const handleDrop = (e) => {
+        setDropPosition(null);
+    };
+
+    return (
+        <div 
+            draggable 
+            onDragStart={(e) => onDragStart(e, task)}
+            onDragEnd={onDragEnd} 
+            onClick={(e) => { e.stopPropagation(); onSelect(task.id); }}
+            onDoubleClick={(e) => { e.stopPropagation(); setEditingTask(task); }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+
+            className={`
+                group relative px-3.5 py-3 mb-2 rounded-2xl border transition-all duration-300 ease-out select-none
+                cursor-grab active:cursor-grabbing
+                
+                ${/* Hiệu ứng hover: Nhấc nhẹ thẻ lên + Bóng đổ đậm hơn */ 'hover:-translate-y-0.5 hover:shadow-md'}
+                
+                ${task.isCompleted 
+                    // Task hoàn thành: Chìm vào nền, trong suốt hơn
+                    ? 'bg-gray-50/80 border-transparent opacity-60 grayscale' 
+                    // Task thường: Dùng màu nền nhẹ, border trong suốt để shadow nổi bật
+                    : `${categoryColor.value} border-transparent shadow-sm`
+                }
+                
+                ${/* Viền khi chọn */ isSelected ? `ring-2 ring-indigo-500 ring-offset-2 z-10` : ''}
+                ${/* Viền khi highlight (tìm kiếm/di chuyển) */ isHighlighted ? 'ring-4 ring-yellow-400 ring-offset-2 z-20 scale-105 shadow-xl bg-yellow-50' : ''}
+                
+                ${dropPosition === 'top' ? 'border-t-2 border-t-indigo-500 pt-[12px] mt-0' : ''}
+                ${dropPosition === 'bottom' ? 'border-b-2 border-b-indigo-500 pb-[12px] mb-0' : ''}
+                transition-[border,padding,margin,transform,box-shadow]
+            `}
+        >
+            <div className="flex items-start gap-3 pointer-events-none">
+                <button 
+                    onClick={handleToggleComplete} 
+                    className={`
+                        mt-0.5 min-w-[18px] h-[18px] flex items-center justify-center transition-transform duration-300 pointer-events-auto
+                        ${task.isCompleted ? 'text-gray-400' : `${categoryColor.text} hover:scale-110 active:scale-75`}
+                    `}
+                >
+                    {task.isCompleted 
+                        ? <CheckSquare size={18} className="animate-in zoom-in spin-in-180 duration-300" /> 
+                        : <Square size={18} />
+                    }
+                </button>
+                
+                <div className="flex-1 min-w-0 flex flex-col gap-1">
+                    <span className={`text-sm font-semibold leading-snug transition-all duration-300 ${task.isCompleted ? 'text-gray-500 line-through decoration-gray-300 decoration-2' : 'text-gray-700'}`}>
+                        {task.title}
+                    </span>
+                    
+                    {(task.description || task.repeat !== 'none') && (
+                         <div className="flex items-center gap-2 opacity-60">
+                            {task.repeat !== 'none' && <Repeat size={10} className="text-indigo-500" />}
+                            {task.description && <AlignLeft size={10} />}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default TaskCard;
+</file>
+
+<file path="src/components/tasks/TaskModal.jsx">
+import React, { useState, useEffect } from 'react';
+import { CalendarPlus, Trash2, X, CheckSquare, Square, Repeat, Clock, AlignLeft, Save, Calendar } from 'lucide-react';
+import { generateGoogleCalendarLink } from '../../utils/dateHelpers';
+import { COLORS } from '../../constants/theme';
+
+const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRepeats }) => {
+  if (!task) return null;
+  const [localTask, setLocalTask] = useState(task);
+  const category = categories.find(c => c.id === localTask.categoryId);
+  const currentCategoryColor = category ? category.color : COLORS[0];
+
+  useEffect(() => { setLocalTask(task); }, [task.id]);
+
+  const handleSaveAndClose = () => {
+      if (localTask.repeat !== task.repeat && localTask.repeat !== 'none') {
+           onGenerateRepeats(localTask, localTask.repeat);
+      }
+      onUpdate(localTask);
+      onClose();
+  };
+
+  useEffect(() => {
+      const handleKeyDown = (e) => {
+          if (e.key === 'Escape') onClose();
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveAndClose();
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [localTask]);
+
+  const handleAddToGoogleCalendar = () => {
+    const url = generateGoogleCalendarLink(localTask);
+    window.open(url, '_blank');
+  };
+
+  const handleRepeatChange = (e) => {
+      setLocalTask(prev => ({ ...prev, repeat: e.target.value }));
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
+      {/* Backdrop Blur chuẩn iOS */}
+      <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-300" />
+
+      {/* Modal Container */}
+      <div 
+        className="relative bg-[#FBFBFD] w-full max-w-2xl h-[85vh] rounded-[32px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 ease-apple border border-white/50 ring-1 ring-black/5" 
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* --- HEADER (Glass Effect) --- */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50 bg-white/60 backdrop-blur-xl sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+              <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest ${currentCategoryColor.value} border border-black/5 shadow-sm`}>
+                  {category?.title}
+              </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={handleAddToGoogleCalendar} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all" title="Add to Calendar"><CalendarPlus size={20} /></button>
+             <button onClick={() => { onDelete(localTask.id); onClose(); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all" title="Delete"><Trash2 size={20} /></button>
+            <button onClick={onClose} className="ml-2 p-2 bg-gray-200/50 hover:bg-gray-300/50 text-gray-500 rounded-full transition-all"><X size={20} /></button>
+          </div>
+        </div>
+
+        {/* --- BODY --- */}
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar space-y-6">
+           
+           {/* Status & Repeat Row */}
+           <div className="flex flex-wrap items-center gap-3">
+                <button 
+                    onClick={() => setLocalTask(prev => ({...prev, isCompleted: !prev.isCompleted}))} 
+                    className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-sm font-bold transition-all border shadow-sm active:scale-95 duration-200
+                    ${localTask.isCompleted 
+                        ? 'bg-gray-100 text-gray-500 border-transparent' 
+                        : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'}`}
+                >
+                    {localTask.isCompleted ? <CheckSquare size={18}/> : <Square size={18}/>}
+                    {localTask.isCompleted ? 'Đã xong' : 'Đánh dấu xong'}
+                </button>
+
+                <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border border-gray-200/60 shadow-sm group hover:border-indigo-200 transition-colors">
+                    <Repeat size={16} className="text-indigo-500" />
+                    <select value={localTask.repeat || 'none'} onChange={handleRepeatChange} className="text-sm bg-transparent border-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0 pl-0 pr-8">
+                        <option value="none">Không lặp lại</option>
+                        <option value="daily">Mỗi ngày</option>
+                        <option value="weekly">Mỗi tuần</option>
+                        <option value="monthly">Mỗi tháng</option>
+                    </select>
+                </div>
+           </div>
+
+          {/* Title Input (Big & Bold) */}
+          <textarea 
+            value={localTask.title} 
+            onChange={(e) => setLocalTask(prev => ({...prev, title: e.target.value}))} 
+            className={`w-full text-3xl sm:text-4xl font-bold border-none focus:ring-0 placeholder-gray-300 p-0 bg-transparent tracking-tight resize-none overflow-hidden ${localTask.isCompleted ? 'text-gray-400 line-through' : 'text-slate-900'}`} 
+            placeholder="Tên công việc..." 
+            rows={1}
+            onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
+          />
+
+          {/* Date Picker (Filled Style) */}
+          <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
+                    <Calendar size={20} />
+                </div>
+                <div className="flex-1">
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hạn chót</label>
+                    <input type="date" value={localTask.date} onChange={(e) => setLocalTask(prev => ({...prev, date: e.target.value}))} className="bg-transparent border-none focus:ring-0 p-0 text-slate-700 font-bold text-lg cursor-pointer font-sans" />
+                </div>
+          </div>
+
+          {/* Description (Filled Box Style - giống Note) */}
+          <div className="space-y-3">
+              <div className="flex items-center gap-2 text-gray-400">
+                  <AlignLeft size={16} />
+                  <span className="text-xs font-bold uppercase tracking-wider">Ghi chú</span>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500/50 transition-all p-4">
+                 <textarea 
+                    value={localTask.description} 
+                    onChange={(e) => setLocalTask(prev => ({...prev, description: e.target.value}))} 
+                    className="w-full min-h-[200px] p-0 text-slate-700 bg-transparent border-none focus:ring-0 text-base leading-relaxed placeholder-gray-300 resize-none" 
+                    placeholder="Nhập chi tiết công việc..." 
+                 />
+              </div>
+          </div>
+        </div>
+
+        {/* --- FOOTER --- */}
+        <div className="p-6 border-t border-gray-200/50 bg-white/80 backdrop-blur-md flex justify-end">
+           <button onClick={handleSaveAndClose} className="flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 font-bold shadow-lg shadow-slate-200 transition-all transform active:scale-[0.98]">
+               <Save size={18}/> Lưu thay đổi
+           </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+export default TaskModal;
+</file>
+
+<file path="src/components/views/TodoView.jsx">
+import React, { useMemo, useEffect } from 'react';
+import { CheckCircle2, Circle, Clock, Trash2, Plus, Calendar as CalendarIcon, AlertCircle, ArrowRight, CalendarDays } from 'lucide-react';
+
+// Import các hàm xử lý ngày tháng
+import { formatDateKey, getDayName } from '../../utils/dateHelpers.js';
+
+export default function TodoView({ 
+  tasks, 
+  categories, 
+  currentDate, 
+  onUpdateTask, 
+  setEditingTask, 
+  onDeleteTask, 
+  onOpenAddTask,
+  searchQuery 
+}) {
+  
+  // --- 1. PHÍM TẮT NGẦM (Hidden Feature): Nhấn 'N' để thêm nhanh task ---
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+      if (e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        onOpenAddTask({ date: formatDateKey(currentDate) });
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentDate, onOpenAddTask]);
+
+  // --- 2. LOGIC TÍNH TOÁN & PHÂN LOẠI ---
+  const { dailyTasks, overdueTasks, progress, completedCount, totalCount } = useMemo(() => {
+    const dateKey = formatDateKey(currentDate);
+    const todayKey = formatDateKey(new Date());
+    const isViewingToday = dateKey === todayKey;
+    const validCategoryIds = new Set(categories.map(c => c.id));
+
+    // Lọc công việc trong ngày
+    let current = tasks.filter(t => {
+      return t.date === dateKey && validCategoryIds.has(t.categoryId);
+    });
+
+    // Lọc công việc quá hạn (Chỉ lấy khi đang xem Hôm nay)
+    let overdue = [];
+    if (isViewingToday) {
+        overdue = tasks.filter(t => {
+            return t.date < todayKey && !t.isCompleted && validCategoryIds.has(t.categoryId);
+        });
+    }
+    
+    // Áp dụng Search
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      current = current.filter(t => t.title.toLowerCase().includes(lowerQuery));
+      overdue = overdue.filter(t => t.title.toLowerCase().includes(lowerQuery));
+    }
+
+    // Tính toán tiến độ (Chỉ tính trên công việc của ngày hiện tại để đỡ áp lực)
+    const total = current.length;
+    const completed = current.filter(t => t.isCompleted).length;
+    const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+    return { 
+        dailyTasks: current, 
+        overdueTasks: overdue,
+        progress: percent, 
+        completedCount: completed, 
+        totalCount: total 
+    };
+  }, [tasks, categories, currentDate, searchQuery]);
+
+  // --- 3. NHÓM TASK THEO CATEGORY (Cho Daily Tasks) ---
+  const tasksByCategory = useMemo(() => {
+    const grouped = {};
+    categories.forEach(cat => {
+      grouped[cat.id] = dailyTasks.filter(t => t.categoryId === cat.id);
+    });
+    return grouped;
+  }, [dailyTasks, categories]);
+
+  const handleToggleComplete = (task) => {
+    onUpdateTask({ ...task, isCompleted: !task.isCompleted });
+  };
+
+  // Hàm chuyển việc quá hạn sang hôm nay
+  const handleMoveToToday = (e, task) => {
+      e.stopPropagation();
+      const todayStr = formatDateKey(new Date());
+      onUpdateTask({ ...task, date: todayStr });
+  };
+
+  // --- COMPONENT CON: RENDER NHÓM TASK ---
+  const TaskGroup = ({ tasks, categoryInfo }) => {
+    if (!tasks || tasks.length === 0) return null;
+
+    return (
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 mb-6">
+        <div className="flex items-center gap-3 mb-3 pl-2">
+           <div className={`w-3 h-3 rounded-full ${categoryInfo.color?.value?.split(' ')[0] || 'bg-gray-300'} ring-2 ring-white shadow-sm`}></div>
+           <h3 className="font-bold text-gray-700 text-lg">{categoryInfo.title}</h3>
+           <span className="bg-gray-200 text-gray-600 text-xs font-bold px-2 py-0.5 rounded-full min-w-[24px] text-center">
+             {tasks.length}
+           </span>
+        </div>
+
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          {tasks.map((task, index) => (
+            <div 
+              key={task.id}
+              onClick={() => setEditingTask(task)}
+              className={`group flex items-start gap-4 p-4 cursor-pointer transition-all duration-200 hover:bg-gray-50 
+                ${index !== tasks.length - 1 ? 'border-b border-gray-100' : ''}
+                ${task.isCompleted ? 'bg-gray-50/50' : ''}
+              `}
+            >
+              <button 
+                onClick={(e) => { e.stopPropagation(); handleToggleComplete(task); }}
+                className="mt-1 flex-shrink-0 transition-transform active:scale-90"
+              >
+                {task.isCompleted ? (
+                  <CheckCircle2 className="w-6 h-6 text-green-500 fill-green-50" />
+                ) : (
+                  <Circle className="w-6 h-6 text-gray-300 group-hover:text-indigo-500 transition-colors" />
+                )}
+              </button>
+
+              <div className="flex-1 min-w-0 pt-0.5">
+                <p className={`text-base font-medium leading-snug transition-all duration-300 
+                  ${task.isCompleted ? 'text-gray-400 line-through decoration-gray-300' : 'text-slate-700'}`}>
+                  {task.title}
+                </p>
+                {(task.description || task.time) && (
+                  <div className="flex items-center gap-3 mt-1.5">
+                    {task.time && (
+                      <div className="flex items-center gap-1 text-xs text-indigo-500 font-medium bg-indigo-50 px-2 py-0.5 rounded">
+                        <Clock size={12} /> {task.time}
+                      </div>
+                    )}
+                    {task.description && (
+                      <p className="text-xs text-gray-400 truncate max-w-[200px]">{task.description}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* NÚT XOÁ (TRASH ICON) */}
+              <button 
+                onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }}
+                className="opacity-0 group-hover:opacity-100 p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                title="Xóa công việc"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-8 custom-scrollbar relative">
+      <div className="max-w-3xl mx-auto space-y-8 min-h-screen pb-32">
+        
+        {/* --- KHU VỰC CẢNH BÁO QUÁ HẠN (MỚI) --- */}
+        {overdueTasks.length > 0 && (
+            <div className="bg-rose-50 border border-rose-100 rounded-3xl p-6 animate-in slide-in-from-top-5 duration-500">
+                <div className="flex items-center gap-2 mb-4 text-rose-700">
+                    <AlertCircle size={20} />
+                    <h3 className="font-bold text-lg">Cần xử lý gấp ({overdueTasks.length})</h3>
+                </div>
+                <div className="space-y-2">
+                    {overdueTasks.map(task => {
+                        const catColor = categories.find(c => c.id === task.categoryId)?.color || {};
+                        return (
+                            <div key={task.id} onClick={() => setEditingTask(task)} className="bg-white p-3.5 rounded-2xl shadow-sm border border-rose-100/50 flex items-center justify-between gap-3 group cursor-pointer hover:shadow-md transition-all">
+                                <div className="flex items-center gap-3 overflow-hidden">
+                                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${catColor.value?.split(' ')[0] || 'bg-gray-400'}`} />
+                                    <div className="min-w-0">
+                                        <p className="text-slate-700 font-medium truncate">{task.title}</p>
+                                        <p className="text-xs text-rose-500 font-medium mt-0.5 flex items-center gap-1">
+                                            <CalendarIcon size={10} /> Quá hạn: {task.date.split('-').reverse().slice(0, 2).join('/')}
+                                        </p>
+                                    </div>
+                                </div>
+                                <button 
+                                    onClick={(e) => handleMoveToToday(e, task)}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-100 hover:bg-rose-200 text-rose-700 text-xs font-bold rounded-lg transition-colors flex-shrink-0"
+                                    title="Dời lịch sang hôm nay"
+                                >
+                                    <CalendarDays size={14} /> Hôm nay <ArrowRight size={12}/>
+                                </button>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        )}
+
+        {/* --- HEADER TIẾN ĐỘ --- */}
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
+          <div className="flex justify-between items-end mb-4">
+            <div>
+              <div className="text-sm font-semibold text-indigo-500 tracking-wider uppercase mb-1">Tổng quan hôm nay</div>
+              <h2 className="text-3xl font-bold text-slate-800 flex items-center gap-2 capitalize">
+                {getDayName(currentDate)}, {currentDate.getDate()}/{currentDate.getMonth() + 1}
+              </h2>
+              <div className="text-gray-500 mt-1 font-medium">
+                  Đã hoàn thành {completedCount}/{totalCount} công việc
+              </div>
+            </div>
+            <div className="text-right">
+              <span className="text-4xl font-black text-slate-800">{progress}%</span>
+              <div className="text-xs text-gray-400 font-medium mt-1">HOÀN THÀNH</div>
+            </div>
+          </div>
+
+          <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-indigo-500 to-purple-600 transition-all duration-700 ease-out shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+        </div>
+
+        {/* --- DANH SÁCH DAILY --- */}
+        <div>
+          {categories.map(category => (
+            <TaskGroup 
+              key={category.id} 
+              tasks={tasksByCategory[category.id]} 
+              categoryInfo={category} 
+            />
+          ))}
+          
+          {totalCount === 0 && (
+            <div className="text-center py-12 animate-in zoom-in duration-300">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                <CalendarIcon size={32} />
+              </div>
+              <p className="text-gray-500 font-medium">Hôm nay chưa có công việc nào</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* --- FLOATING ACTION BUTTON --- */}
+      <div className="sticky bottom-10 left-0 right-0 flex justify-center z-30 pointer-events-none">
+           <button 
+              onClick={() => onOpenAddTask({ date: formatDateKey(currentDate) })}
+              className="
+                pointer-events-auto
+                group relative flex items-center gap-3 pl-4 pr-6 py-3
+                bg-gradient-to-b from-white/80 to-white/40
+                backdrop-blur-2xl
+                border-t border-white/80 border-b border-white/20 border-x border-white/40
+                shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]
+                rounded-full transition-all duration-500 ease-out
+                hover:-translate-y-1.5 hover:shadow-[0_20px_50px_rgba(99,102,241,0.3)] hover:bg-white/90
+                active:scale-95 active:translate-y-0
+              "
+           >
+              <div className="
+                flex items-center justify-center w-10 h-10 rounded-full 
+                bg-gradient-to-tr from-indigo-600 to-purple-600 text-white
+                shadow-lg shadow-indigo-500/30
+                transition-transform duration-500 ease-in-out group-hover:rotate-90 group-hover:scale-110
+              ">
+                <Plus size={20} strokeWidth={2.5} />
+              </div>
+
+              <span className="text-slate-700/80 font-bold tracking-wide text-sm group-hover:text-slate-900 transition-colors">
+                Thêm công việc
+              </span>
+           </button>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/constants/theme.js">
+export const COLORS = [
+  { name: 'Classic Gray', value: 'bg-gray-50 border-gray-200', text: 'text-gray-700', ring: 'ring-gray-400' },
+  { name: 'Ocean Blue', value: 'bg-blue-50 border-blue-200', text: 'text-blue-700', ring: 'ring-blue-400' },
+  { name: 'Sage Green', value: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', ring: 'ring-emerald-400' },
+  { name: 'Sunny Yellow', value: 'bg-amber-50 border-amber-200', text: 'text-amber-700', ring: 'ring-amber-400' },
+  { name: 'Rose Red', value: 'bg-rose-50 border-rose-200', text: 'text-rose-700', ring: 'ring-rose-400' },
+  { name: 'Lavender', value: 'bg-violet-50 border-violet-200', text: 'text-violet-700', ring: 'ring-violet-400' },
+  { name: 'Peach', value: 'bg-orange-50 border-orange-200', text: 'text-orange-700', ring: 'ring-orange-400' },
+  { name: 'Blush Pink', value: 'bg-pink-50 border-pink-200', text: 'text-pink-700', ring: 'ring-pink-400' },
+  // --- 4 MÀU MỚI THÊM ---
+  { name: 'Fresh Teal', value: 'bg-teal-50 border-teal-200', text: 'text-teal-700', ring: 'ring-teal-400' },
+  { name: 'Sky Blue', value: 'bg-sky-50 border-sky-200', text: 'text-sky-700', ring: 'ring-sky-400' },
+  { name: 'Lime Zest', value: 'bg-lime-50 border-lime-200', text: 'text-lime-700', ring: 'ring-lime-400' },
+  { name: 'Fuchsia Dream', value: 'bg-fuchsia-50 border-fuchsia-200', text: 'text-fuchsia-700', ring: 'ring-fuchsia-400' },
+];
+
+// ĐÃ SỬA: Rút gọn còn 3 cấp độ (Nhỏ - Trung bình - Lớn)
+export const ZOOM_LEVELS = [160, 220, 280];
+
+export const INITIAL_DATA = {
+  categories: [],
+  tasks: []
+};
+</file>
+
+<file path="src/hooks/useUndoableState.js">
+import { useState, useCallback } from 'react';
+
+
+export const useUndoableState = (initialValue) => {
+    const [history, setHistory] = useState([]);
+    const [future, setFuture] = useState([]);
+    const [state, setState] = useState(initialValue);
+
+    const setStateWithHistory = useCallback((newStateOrUpdater) => {
+        setHistory((prev) => [...prev, state]);
+        setFuture([]); 
+        setState((prev) => typeof newStateOrUpdater === 'function' ? newStateOrUpdater(prev) : newStateOrUpdater);
+    }, [state]);
+
+    const undo = useCallback(() => {
+        if (history.length === 0) return;
+        const previousState = history[history.length - 1];
+        const newHistory = history.slice(0, -1);
+        setFuture((prev) => [state, ...prev]); 
+        setHistory(newHistory);
+        setState(previousState);
+    }, [history, state]);
+
+    const redo = useCallback(() => {
+        if (future.length === 0) return;
+        const nextState = future[0];
+        const newFuture = future.slice(1);
+        setHistory((prev) => [...prev, state]); 
+        setFuture(newFuture);
+        setState(nextState);
+    }, [future, state]);
+
+    return [state, setStateWithHistory, undo, redo, history.length > 0, future.length > 0];
+};
+</file>
+
+<file path="src/index.css">
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    /* Dùng Slate-900 thay vì đen tuyền, font chữ render sắc nét hơn */
+    @apply font-sans bg-[#F5F5F7] text-slate-900 antialiased; 
+    /* #F5F5F7 là màu nền chuẩn của iOS Settings */
+  }
+  
+  /* Hiệu ứng bôi đen chữ màu xanh Apple */
+  ::selection {
+    @apply bg-blue-500/20 text-blue-700;
+  }
+}
+
+/* Custom Scrollbar giống MacOS (Ẩn khi không cuộn - Chrome/Webkit) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.0); /* Ẩn mặc định */
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  transition: background-color 0.3s;
+}
+
+/* Chỉ hiện scrollbar khi hover vào vùng chứa */
+*:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Animation chuẩn Apple (Spring Physics giả lập) */
+.ease-apple {
+  transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+}
+</file>
+
+<file path="src/lib/supabaseClient.js">
+import { createClient } from '@supabase/supabase-js';
+
+// Thay thế bằng thông tin Project thật của anh
+const supabaseUrl = 'https://kivzurhuxsxwvdugujjg.supabase.co';
+const supabaseKey = 'sb_publishable_9ttt_Pw081eSgfISoUcFYA_e1RABNWY';
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
+</file>
+
+<file path="src/main.jsx">
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App.jsx'
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+</file>
+
+<file path="src/utils/dateHelpers.js">
+export const formatDateKey = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+export const getMonday = (d) => {
+    d = new Date(d);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+};
+
+export const getInfiniteWeekWindow = (currentDate) => {
+    const currentMonday = getMonday(currentDate);
+    const startDate = new Date(currentMonday);
+    startDate.setDate(startDate.getDate() - 7); 
+    const days = [];
+    for (let i = 0; i < 21; i++) {
+        const d = new Date(startDate);
+        d.setDate(startDate.getDate() + i);
+        days.push(d);
+    }
+    return days;
+};
+
+export const formatDateDisplay = (date) => date.getDate();
+
+export const getDayName = (date) => {
+    const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+    return days[date.getDay()];
+};
+
+export const getFullDateDisplay = (date) => {
+    return `Thứ ${date.getDay() === 0 ? 'CN' : date.getDay() + 1}, ${date.getDate()}/${date.getMonth() + 1}`;
+};
+
+export const generateGoogleCalendarLink = (task) => {
+    const startTime = task.date.replace(/-/g, '') + 'T090000';
+    const endTime = task.date.replace(/-/g, '') + 'T100000';
+    const details = encodeURIComponent(`${task.description || ''} \n\n[PlanFlow App]`);
+    const title = encodeURIComponent(`DEADLINE: ${task.title}`);
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTime}/${endTime}&details=${details}`;
+};
+</file>
+
+<file path="tailwind.config.js">
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      fontFamily: {
+        // Thay thế font sans mặc định bằng Be Vietnam Pro
+        sans: ['"Be Vietnam Pro"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+      },
+      // Giữ nguyên các cấu hình mở rộng khác nếu có (ví dụ màu sắc)
+    },
+  },
+  plugins: [
+    require("tailwindcss-animate"), // Nếu anh có dùng plugin animation
+  ],
+}
+</file>
+
+<file path="vite.config.js">
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  base: '/PlanFlowPro/',
+})
+// update
+</file>
+
+<file path="package.json">
+{
+  "name": "PlanFlowPro",
+  "homepage": "https://phongchau120498-svg.github.io/PlanFlowPro",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.89.0",
+    "lucide-react": "^0.562.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.23",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "eslint": "^9.39.1",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.4.24",
+    "gh-pages": "^6.3.0",
+    "globals": "^16.5.0",
+    "postcss": "^8.5.6",
+    "tailwind-merge": "^3.4.0",
+    "tailwindcss": "^3.4.17",
+    "tailwindcss-animate": "^1.0.7",
+    "vite": "^7.2.4"
+  }
+}
+</file>
+
+<file path="src/App.jsx">
+import React, { useState, useMemo, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
+import { Plus, GripVertical, CornerDownLeft, Trash2, Palette, ChevronRight as ChevronRightIcon, X, Check } from 'lucide-react';
+import { supabase } from './lib/supabaseClient';
+import { COLORS, ZOOM_LEVELS, INITIAL_DATA } from './constants/theme';
+import { formatDateKey, getMonday, getInfiniteWeekWindow, getDayName, formatDateDisplay } from './utils/dateHelpers';
+import { useUndoableState } from './hooks/useUndoableState';
+
+// Components
+import Header from './components/layout/Header';
+import ToastContainer from './components/common/ToastContainer';
+import TodoView from './components/views/TodoView';
+import TaskCard from './components/tasks/TaskCard';
+import TaskModal from './components/tasks/TaskModal';
+import AddTaskModal from './components/tasks/AddTaskModal';
+import RecurringUpdateModal from './components/tasks/RecurringUpdateModal';
+import CategoryModal from './components/tasks/CategoryModal';
+
+export default function App() {
+  // --- 1. STATE & CONFIG ---
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState('matrix');
+  const [boardData, setBoardData, undo, redo, canUndo, canRedo] = useUndoableState(INITIAL_DATA);
+  const { categories, tasks } = boardData;
+  
+  // Giao diện Matrix
+  const [zoomIndex, setZoomIndex] = useState(2); 
+  const [sidebarWidth, setSidebarWidth] = useState(320);
+  const dayWidth = ZOOM_LEVELS[zoomIndex];
+  
+  // Drag & Drop State
+  const [draggedTask, setDraggedTask] = useState(null);
+  const [draggedCategoryIndex, setDraggedCategoryIndex] = useState(null); 
+
+  // Copy/Paste State
+  const [copiedTask, setCopiedTask] = useState(null);
+
+  // Modal & Interaction State
+  const [editingTask, setEditingTask] = useState(null);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [quickAddCell, setQuickAddCell] = useState(null);
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [newTaskDefaults, setNewTaskDefaults] = useState({}); 
+  const [pendingUpdate, setPendingUpdate] = useState(null);
+  const [showRecurringModal, setShowRecurringModal] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [hoveredCell, setHoveredCell] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [toasts, setToasts] = useState([]); 
+  const [highlightedTaskId, setHighlightedTaskId] = useState(null);
+
+  // Category Creation State
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  // Refs
+  const scrollContainerRef = useRef(null);
+  const previousDateRef = useRef(currentDate);
+  const viewCenterDayIndexRef = useRef(null);
+  const scrollActionRef = useRef('jump');
+  const isProgrammaticScroll = useRef(false);
+  const lastScrollTimeRef = useRef(0);
+
+  // --- 2. HÀM TIỆN ÍCH ---
+  const addToast = (message, type = 'info') => {
+      const id = Date.now();
+      setToasts(prev => [...prev, { id, message, type }]);
+      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+  };
+
+  // --- 3. FETCH DỮ LIỆU ---
+  useEffect(() => {
+    const fetchData = async () => {
+        const { data: catData, error: catError } = await supabase.from('categories').select('*').order('position', { ascending: true });
+        const { data: taskData, error: taskError } = await supabase.from('tasks').select('*');
+
+        if (catError || taskError) {
+            console.error('Lỗi tải dữ liệu:', catError || taskError);
+            addToast('Lỗi tải dữ liệu từ server', 'error');
+        } else {
+            const mappedTasks = (taskData || []).map(t => ({
+                id: t.id,
+                title: t.title,
+                description: t.description,
+                date: t.date,
+                isCompleted: t.is_completed,
+                categoryId: t.category_id,
+                repeat: t.repeat,
+                seriesId: t.series_id,
+                time: t.time
+            }));
+
+            const mappedCategories = (catData || []).map(c => ({
+                id: c.id,
+                title: c.title,
+                color: c.color,
+                collapsed: c.collapsed,
+                position: c.position || 0
+            }));
+
+            setBoardData({ categories: mappedCategories, tasks: mappedTasks });
+        }
+    };
+    fetchData();
+  }, []);
+
+  // --- 4. PHÍM TẮT ---
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+        if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
+        if (showAddTaskModal || showRecurringModal || editingTask || editingCategory) return;
+
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); if (canUndo) { undo(); addToast('Đã hoàn tác ↩️'); } }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); if (canRedo) { redo(); addToast('Đã làm lại ↪️'); } }
+        if (e.key === 'Delete' && selectedTaskId) { e.preventDefault(); handleDeleteTask(selectedTaskId); }
+        if (e.key === 'Escape') setSelectedTaskId(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [canUndo, canRedo, selectedTaskId, showAddTaskModal, showRecurringModal, editingTask, editingCategory, undo, redo]);
+
+  // Copy Paste Logic (Giữ nguyên)
+  useEffect(() => {
+      const handleCopyPaste = async (e) => {
+          if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
+          if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
+              if (selectedTaskId) {
+                  const taskToCopy = tasks.find(t => t.id === selectedTaskId);
+                  if (taskToCopy) {
+                      setCopiedTask(taskToCopy);
+                      addToast('Đã sao chép công việc 📋', 'info');
+                      navigator.clipboard.writeText(taskToCopy.title).catch(() => {});
+                  }
+              }
+          }
+          if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
+              if (!hoveredCell) return; 
+              try {
+                  const text = await navigator.clipboard.readText();
+                  if (text && (text.includes('\n') || (copiedTask && text !== copiedTask.title) || !copiedTask)) {
+                      e.preventDefault();
+                      handleBatchPaste(text, hoveredCell);
+                      return;
+                  }
+              } catch (err) {}
+              if (copiedTask) {
+                  e.preventDefault();
+                  handlePasteInternalTask(copiedTask, hoveredCell);
+              }
+          }
+      };
+      window.addEventListener('keydown', handleCopyPaste);
+      return () => window.removeEventListener('keydown', handleCopyPaste);
+  }, [selectedTaskId, hoveredCell, copiedTask, tasks]);
+
+  const handleBatchPaste = async (text, targetCell) => {
+      const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+      if (lines.length === 0) return;
+      const newTasks = [];
+      const { categoryId, dateStr } = targetCell;
+      lines.forEach((line, index) => {
+          newTasks.push({
+              id: `paste-${Date.now()}-${index}`,
+              category_id: categoryId,
+              date: dateStr,
+              title: line.trim(),
+              description: '',
+              is_completed: false,
+              repeat: 'none',
+              series_id: null
+          });
+      });
+      const mappedNewTasks = newTasks.map(t => ({ ...t, id: t.id, categoryId: t.category_id, isCompleted: t.is_completed, seriesId: t.series_id }));
+      setBoardData(prev => ({ ...prev, tasks: [...prev.tasks, ...mappedNewTasks] }));
+      const { error } = await supabase.from('tasks').insert(newTasks);
+      if (error) { console.error(error); addToast('Lỗi dán dữ liệu', 'error'); } else { addToast(`Đã dán ${lines.length} công việc mới`, 'success'); }
+  };
+
+  const handlePasteInternalTask = async (originalTask, targetCell) => {
+      const { categoryId, dateStr } = targetCell;
+      const newId = `paste-internal-${Date.now()}`;
+      const newTask = { ...originalTask, id: newId, categoryId: categoryId, date: dateStr, isCompleted: false, seriesId: null };
+      setBoardData(prev => ({ ...prev, tasks: [...prev.tasks, newTask] }));
+      const dbTask = { id: newId, category_id: categoryId, date: dateStr, title: newTask.title, description: newTask.description, is_completed: false, repeat: newTask.repeat, series_id: null };
+      await supabase.from('tasks').insert([dbTask]);
+      addToast('Đã dán công việc', 'success');
+  };
+
+  // --- 5. LOGIC SCROLL & VIEW ---
+  useEffect(() => {
+      if (viewMode === 'matrix') {
+          const today = new Date();
+          setCurrentDate(today);
+          previousDateRef.current = today;
+          scrollActionRef.current = 'jump';
+          setTimeout(() => { if (scrollContainerRef.current) scrollContainerRef.current.scrollLeft = 7 * dayWidth; }, 10);
+      }
+  }, [viewMode, dayWidth]);
+
+  const handleZoomChange = (e) => {
+      const newIndex = parseInt(e.target.value);
+      if (scrollContainerRef.current) {
+          const { scrollLeft, clientWidth } = scrollContainerRef.current;
+          const centerPixel = scrollLeft + clientWidth / 2;
+          viewCenterDayIndexRef.current = centerPixel / dayWidth; 
+      }
+      setZoomIndex(newIndex);
+  };
+
+  useLayoutEffect(() => {
+      if (scrollContainerRef.current && viewCenterDayIndexRef.current !== null) {
+          const { clientWidth } = scrollContainerRef.current;
+          const newScrollLeft = (viewCenterDayIndexRef.current * dayWidth) - (clientWidth / 2);
+          scrollContainerRef.current.scrollLeft = newScrollLeft;
+          viewCenterDayIndexRef.current = null;
+      }
+  }, [dayWidth]);
+
+  const visibleDays = useMemo(() => getInfiniteWeekWindow(currentDate), [currentDate]);
+
+  const handleScroll = useCallback(() => {
+      if (!scrollContainerRef.current || isProgrammaticScroll.current) return;
+      const now = Date.now();
+      if (now - lastScrollTimeRef.current < 50) return;
+      lastScrollTimeRef.current = now;
+      const { scrollLeft, clientWidth } = scrollContainerRef.current;
+      const scrollCenter = scrollLeft + clientWidth / 2;
+      const dayIndex = Math.floor(scrollCenter / dayWidth);
+      if (dayIndex >= 0 && dayIndex < visibleDays.length) {
+          const currentMonday = getMonday(currentDate);
+          if (dayIndex < 7) {
+              const prevMonday = new Date(currentMonday); prevMonday.setDate(prevMonday.getDate() - 7);
+              if (previousDateRef.current.getTime() === currentDate.getTime()) { previousDateRef.current = currentDate; scrollActionRef.current = 'maintain'; setCurrentDate(prevMonday); }
+          } else if (dayIndex >= 14) {
+              const nextMonday = new Date(currentMonday); nextMonday.setDate(nextMonday.getDate() + 7);
+              if (previousDateRef.current.getTime() === currentDate.getTime()) { previousDateRef.current = currentDate; scrollActionRef.current = 'maintain'; setCurrentDate(nextMonday); }
+          }
+      }
+  }, [currentDate, visibleDays, dayWidth]);
+
+  useLayoutEffect(() => {
+      if (!scrollContainerRef.current) return;
+      const prevDate = previousDateRef.current;
+      const action = scrollActionRef.current;
+      isProgrammaticScroll.current = true;
+      if (action === 'jump') { scrollContainerRef.current.scrollLeft = 7 * dayWidth; previousDateRef.current = currentDate; } 
+      else if (action === 'maintain') {
+          if (currentDate > prevDate) scrollContainerRef.current.scrollLeft -= 7 * dayWidth;
+          else scrollContainerRef.current.scrollLeft += 7 * dayWidth;
+          previousDateRef.current = currentDate;
+      }
+      setTimeout(() => { isProgrammaticScroll.current = false; scrollActionRef.current = 'maintain'; }, 100); 
+  }, [currentDate, dayWidth]);
+
+  useEffect(() => { if (scrollContainerRef.current) scrollContainerRef.current.scrollLeft = 7 * dayWidth; }, []);
+
+  // --- 6. LOGIC TASK (OPTIMISTIC UPDATES) ---
+  const handleGenerateRepeats = async (baseTask, repeatType) => {
+      if (!baseTask || !repeatType || repeatType === 'none') return;
+      const seriesId = baseTask.seriesId || `series-${Date.now()}`;
+      const newTasks = [];
+      const startDate = new Date(baseTask.date);
+      const count = 12;
+      for (let i = 1; i <= count; i++) {
+          const nextDate = new Date(startDate);
+          if (repeatType === 'daily') nextDate.setDate(startDate.getDate() + i);
+          else if (repeatType === 'weekly') nextDate.setDate(startDate.getDate() + (i * 7));
+          else if (repeatType === 'monthly') nextDate.setMonth(startDate.getMonth() + i);
+          
+          newTasks.push({ 
+              id: `${baseTask.id}-rep-${Date.now()}-${i}`,
+              category_id: baseTask.categoryId,
+              date: formatDateKey(nextDate), 
+              title: baseTask.title,
+              description: baseTask.description,
+              is_completed: false,
+              repeat: repeatType, 
+              series_id: seriesId, 
+          });
+      }
+      const mappedNewTasks = newTasks.map(t => ({ ...t, isCompleted: false, categoryId: t.category_id, seriesId: t.series_id }));
+      const updatedBase = { ...baseTask, seriesId, repeat: repeatType };
+      setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === baseTask.id ? updatedBase : t).concat(mappedNewTasks) }));
+      addToast('Đã tạo lịch trình lặp lại', 'success');
+
+      await supabase.from('tasks').insert(newTasks);
+      await supabase.from('tasks').update({ series_id: seriesId, repeat: repeatType }).eq('id', baseTask.id);
+  };
+
+  const handleUpdateTask = async (updatedTask) => {
+      const originalTask = tasks.find(t => t.id === updatedTask.id);
+      if (!originalTask) return;
+      
+      const hasSeries = !!originalTask.seriesId || (originalTask.repeat && originalTask.repeat !== 'none');
+      const isContentChanged = originalTask.title !== updatedTask.title || 
+                               originalTask.description !== updatedTask.description || 
+                               originalTask.date !== updatedTask.date || 
+                               originalTask.repeat !== updatedTask.repeat ||
+                               originalTask.categoryId !== updatedTask.categoryId;
+
+      if (hasSeries && isContentChanged) {
+          setPendingUpdate({ originalTask, updatedTask });
+          setShowRecurringModal(true);
+      } else {
+          setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === updatedTask.id ? updatedTask : t) }));
+          const { error } = await supabase.from('tasks').update({
+              title: updatedTask.title, description: updatedTask.description, date: updatedTask.date, is_completed: updatedTask.isCompleted, repeat: updatedTask.repeat, category_id: updatedTask.categoryId 
+          }).eq('id', updatedTask.id);
+          if (error) {
+               console.error('Sync Error:', error);
+               setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === updatedTask.id ? originalTask : t) }));
+               addToast('Lỗi đồng bộ, đã hoàn tác', 'error');
+          }
+      }
+  };
+
+  const handleConfirmRecurringUpdate = async (mode) => {
+      if (!pendingUpdate) return;
+      const { originalTask, updatedTask } = pendingUpdate;
+      setShowRecurringModal(false);
+      setPendingUpdate(null);
+      if (mode === 'single') {
+           setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === updatedTask.id ? updatedTask : t) }));
+           addToast('Đã cập nhật', 'success');
+           await supabase.from('tasks').update({
+               title: updatedTask.title, description: updatedTask.description, date: updatedTask.date, is_completed: updatedTask.isCompleted, repeat: updatedTask.repeat, category_id: updatedTask.categoryId 
+           }).eq('id', updatedTask.id);
+      } else if (mode === 'future') {
+          const dateDiff = new Date(updatedTask.date) - new Date(originalTask.date);
+          const dayDiff = Math.round(dateDiff / (1000 * 60 * 60 * 24));
+          setBoardData(prev => ({
+              ...prev,
+              tasks: prev.tasks.map(t => {
+                  if (t.seriesId !== originalTask.seriesId) return t;
+                  if (t.date < originalTask.date) return t;
+                  let newDate = t.date;
+                  if (dayDiff !== 0) { const d = new Date(t.date); d.setDate(d.getDate() + dayDiff); newDate = formatDateKey(d); }
+                  return { ...t, title: updatedTask.title, description: updatedTask.description, date: newDate };
+              })
+          }));
+          addToast('Đã cập nhật chuỗi công việc', 'success');
+      }
+  };
+
+  const handleSaveNewTask = async ({ title, date, categoryId, newCategoryTitle }) => {
+      let finalCategoryId = categoryId;
+      let newCategories = [...categories];
+      let newCategoryObj = null;
+      if (newCategoryTitle) {
+          const newCatId = `cat-${Date.now()}`;
+          newCategoryObj = { id: newCatId, title: newCategoryTitle, color: COLORS[Math.floor(Math.random() * COLORS.length)], collapsed: false, position: categories.length };
+          newCategories.push(newCategoryObj);
+          finalCategoryId = newCatId;
+      }
+      const newId = `new-${Date.now()}`; 
+      const localTask = { id: newId, categoryId: finalCategoryId, date: date, title: title, description: '', isCompleted: false, repeat: 'none', seriesId: null };
+      setBoardData(prev => ({ categories: newCategories, tasks: [...prev.tasks, localTask] }));
+      setShowAddTaskModal(false);
+      addToast('Đã lưu công việc!', 'success');
+      try {
+          if (newCategoryObj) await supabase.from('categories').insert([newCategoryObj]);
+          const dbTask = { id: newId, category_id: finalCategoryId, date: date, title: title, description: '', is_completed: false, repeat: 'none', series_id: null };
+          const { error } = await supabase.from('tasks').insert([dbTask]);
+          if (error) throw error;
+      } catch (error) {
+          console.error("Lỗi lưu:", error);
+          setBoardData(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== newId), categories: newCategoryObj ? prev.categories.filter(c => c.id !== newCategoryObj.id) : prev.categories }));
+          addToast('Lỗi lưu dữ liệu - Đã hoàn tác', 'error');
+      }
+  };
+
+  const handleDeleteTask = async (taskId) => { 
+      const originalTasks = [...tasks];
+      setBoardData(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== taskId) })); 
+      setEditingTask(null);
+      addToast('Đã xóa công việc 🗑️');
+      const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+      if (error) {
+        setBoardData(prev => ({ ...prev, tasks: originalTasks }));
+        addToast('Lỗi xóa công việc - Đã khôi phục', 'error'); 
+      }
+  };
+
+  const handleSaveCategory = async () => {
+    if (newCategoryName && newCategoryName.trim()) {
+        const newCat = { id: `cat-${Date.now()}`, title: newCategoryName.trim(), color: COLORS[Math.floor(Math.random() * COLORS.length)], collapsed: false, position: categories.length };
+        setBoardData(prev => ({ ...prev, categories: [...prev.categories, newCat] }));
+        setNewCategoryName(''); 
+        setIsCreatingCategory(false);
+        addToast('Đã thêm hạng mục', 'success');
+        const { error } = await supabase.from('categories').insert([newCat]);
+        if (error) {
+              console.error(error);
+              setBoardData(prev => ({ ...prev, categories: prev.categories.filter(c => c.id !== newCat.id) })); 
+              addToast('Lỗi server', 'error');
+        }
+    }
+  };
+
+  const handleDeleteCategory = async (catId) => { 
+        const originalData = { ...boardData };
+        setBoardData(prev => ({ tasks: prev.tasks.filter(t => t.categoryId !== catId), categories: prev.categories.filter(c => c.id !== catId) }));
+        setEditingCategory(null); 
+        addToast('Đã xóa hạng mục');
+        const { error } = await supabase.from('categories').delete().eq('id', catId);
+        if (error) { setBoardData(originalData); addToast('Lỗi xóa hạng mục - Đã khôi phục', 'error'); }
+  };
+
+  const handleUpdateCategory = async (updatedCat) => { 
+      setBoardData(prev => ({ ...prev, categories: prev.categories.map(c => c.id === updatedCat.id ? updatedCat : c) }));
+      await supabase.from('categories').update({ title: updatedCat.title, color: updatedCat.color }).eq('id', updatedCat.id);
+  };
+
+  const toggleCategoryCollapse = async (catId) => {
+      const cat = categories.find(c => c.id === catId);
+      if (cat) {
+          const newCollapsedState = !cat.collapsed;
+          setBoardData(prev => ({ ...prev, categories: prev.categories.map(c => c.id === catId ? { ...c, collapsed: newCollapsedState } : c) }));
+          await supabase.from('categories').update({ collapsed: newCollapsedState }).eq('id', catId);
+      }
+  };
+
+  const handleCategoryDragStart = (e, index) => { setDraggedCategoryIndex(index); e.dataTransfer.effectAllowed = "move"; };
+  const handleCategoryDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; };
+  
+  const handleCategoryDrop = async (e, dropIndex) => {
+      e.preventDefault();
+      if (draggedCategoryIndex === null || draggedCategoryIndex === dropIndex) return;
+      const newCategories = [...categories];
+      const [movedCategory] = newCategories.splice(draggedCategoryIndex, 1);
+      newCategories.splice(dropIndex, 0, movedCategory);
+      const orderedCategories = newCategories.map((cat, index) => ({ ...cat, position: index }));
+      setBoardData(prev => ({ ...prev, categories: orderedCategories }));
+      setDraggedCategoryIndex(null);
+      addToast('Đã sắp xếp lại thứ tự hạng mục', 'success');
+      const updates = orderedCategories.map(c => ({ id: c.id, title: c.title, color: c.color, collapsed: c.collapsed, position: c.position }));
+      await supabase.from('categories').upsert(updates);
+  };
+
+  const startResizingSidebar = (e) => { e.preventDefault(); const startX = e.clientX; const startWidth = sidebarWidth;
+    const onMouseMove = (ev) => setSidebarWidth(Math.max(150, Math.min(500, startWidth + (ev.clientX - startX)))); const onMouseUp = () => { document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp); }; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); };
+  
+  const handleDragStart = (e, task) => { e.stopPropagation(); setDraggedTask(task); e.dataTransfer.effectAllowed = 'move'; e.target.style.opacity = '0.5'; };
+  const handleDragEnd = (e) => { e.target.style.opacity = '1'; setDraggedTask(null); };
+  const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
+  
+  const handleDrop = (e, categoryId, dateStr) => { e.preventDefault();
+      if (draggedTask) { const draggedEl = document.querySelector(`[draggable="true"][style*="opacity: 0.5"]`); if (draggedEl) draggedEl.style.opacity = '1'; }
+      if (!draggedTask) return; 
+      handleUpdateTask({ ...draggedTask, categoryId, date: dateStr });
+      setDraggedTask(null); 
+  };
+
+  const handleConfirmQuickAdd = (title) => { if (!title || !title.trim()) { setQuickAddCell(null); return; } 
+    handleSaveNewTask({ title: title.trim(), date: quickAddCell.dateStr, categoryId: quickAddCell.categoryId });
+    setQuickAddCell(null); 
+  };
+  const prevWeek = () => { const d = new Date(currentDate); d.setDate(d.getDate() - 7); previousDateRef.current = currentDate; scrollActionRef.current = 'jump'; setCurrentDate(d); };
+  const nextWeek = () => { const d = new Date(currentDate); d.setDate(d.getDate() + 7); previousDateRef.current = currentDate; scrollActionRef.current = 'jump'; setCurrentDate(d); };
+  const goToToday = () => { previousDateRef.current = currentDate; scrollActionRef.current = 'jump'; setCurrentDate(new Date()); };
+  const handleDateSelect = (date) => { previousDateRef.current = currentDate; scrollActionRef.current = 'jump'; setCurrentDate(date); };
+  const handleOpenAddTask = (defaults = {}) => { setNewTaskDefaults(defaults); setShowAddTaskModal(true); };
+  const handleNavigateToTask = (task) => {
+      const targetDate = new Date(task.date);
+      setCurrentDate(targetDate);
+      previousDateRef.current = targetDate;
+      scrollActionRef.current = 'jump';
+      setHighlightedTaskId(task.id);
+      setTimeout(() => setHighlightedTaskId(null), 2000); 
+      setSearchQuery(''); 
+  };
+  
+  const filteredMatrixTasks = useMemo(() => {
+      if (!searchQuery) return tasks;
+      return tasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
+  }, [tasks, searchQuery]);
+
+  return (
+    <div className="flex flex-col h-screen bg-gray-50 font-sans text-slate-800" onClick={() => setSelectedTaskId(null)}>
+      
+      <Header 
+        currentDate={currentDate} prevWeek={prevWeek} nextWeek={nextWeek} goToToday={goToToday} onDateSelect={handleDateSelect} zoomIndex={zoomIndex} onZoomChange={handleZoomChange} onUndo={undo} canUndo={canUndo} onRedo={redo} canRedo={canRedo} viewMode={viewMode} setViewMode={setViewMode} onOpenAddTask={handleOpenAddTask} searchQuery={searchQuery} setSearchQuery={setSearchQuery} tasks={tasks} onNavigateToTask={handleNavigateToTask} 
+        categories={categories} 
+      />
+      
+      {viewMode === 'list' ? (
+          <TodoView 
+            tasks={tasks} categories={categories} currentDate={currentDate} onUpdateTask={handleUpdateTask} setEditingTask={setEditingTask} onDeleteTask={handleDeleteTask} onOpenAddTask={handleOpenAddTask} quickAddCell={quickAddCell} setQuickAddCell={setQuickAddCell} onConfirmQuickAdd={handleConfirmQuickAdd} searchQuery={searchQuery} onSaveNewTask={handleSaveNewTask}
+          />
+      ) : (
+          <div className="flex-1 overflow-hidden relative flex flex-col">
+            <div ref={scrollContainerRef} className="flex-1 overflow-auto custom-scrollbar" onScroll={handleScroll}>
+              <div className="inline-block min-w-full">
+                
+                {/* --- HEADER NGÀY THÁNG --- */}
+                <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md flex border-b border-gray-200/60 shadow-sm transition-all">
+                  <div className="sticky left-0 z-50 bg-white/95 backdrop-blur-md border-r border-gray-200/60 p-4 flex items-center font-bold text-gray-500 bg-gray-50/50 box-border group" style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
+                    Hạng Mục / Deadline
+                    <div className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-indigo-500 group-hover:bg-gray-300 transition-colors z-30" onMouseDown={startResizingSidebar} />
+                  </div>
+                  {visibleDays.map((day, index) => {
+                        const dayKey = formatDateKey(day);
+                        const isTodayDate = dayKey === formatDateKey(new Date()); 
+                        const isMonday = index % 7 === 0;
+                        const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+
+                        return (
+                          <div key={dayKey} style={{ width: dayWidth, minWidth: dayWidth }} className={`flex-shrink-0 p-3 text-center flex flex-col justify-center transition-all duration-200 ease-out relative ${isTodayDate ? 'bg-indigo-50/50' : (isWeekend ? 'bg-slate-50/50' : 'bg-white')}`}>
+                            {isMonday && (<div className="absolute top-0 left-0 right-0 -mt-1 text-[10px] font-bold text-indigo-400 uppercase tracking-widest text-center">Tuần {day.getDate()} - {new Date(day.getTime() + 6*86400000).getDate()}/{day.getMonth() + 1}</div>)}
+                            <span className={`text-[10px] font-bold uppercase tracking-wider mb-1 ${isTodayDate ? 'text-indigo-600' : 'text-gray-400'}`}>{getDayName(day)}</span>
+                            <span className={`text-2xl font-light w-10 h-10 flex items-center justify-center mx-auto rounded-full transition-all ${isTodayDate ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200' : 'text-gray-700'}`}>{formatDateDisplay(day)}</span>
+                          </div>
+                        );
+                  })}
+                </div>
+
+                {/* --- ROWS --- */}
+                {categories.map((category, index) => (
+                  <div 
+                    key={category.id} 
+                    className={`flex border-b border-gray-100 group ${draggedCategoryIndex === index ? 'opacity-40 border-dashed border-indigo-400' : ''}`}
+                    onDragOver={handleCategoryDragOver}
+                    onDrop={(e) => handleCategoryDrop(e, index)}
+                  >
+                    {/* SIDEBAR CELL */}
+                    <div 
+                        draggable 
+                        onDragStart={(e) => handleCategoryDragStart(e, index)}
+                        className={`sticky left-0 z-30 bg-white/95 backdrop-blur-sm border-r border-gray-200/60 p-4 flex flex-col justify-center group-hover:bg-gray-50 transition-colors border-l-4 ${category.color.value.replace('bg-', 'border-').split(' ')[0]} shadow-[4px_0_24px_rgba(0,0,0,0.02)]`} 
+                        style={{ width: sidebarWidth, minWidth: sidebarWidth, borderLeftColor: category.color?.hex || '#ccc' }}
+                    >
+                      <div className="font-semibold text-gray-800 flex items-center justify-between group/header overflow-hidden">
+                        <div className="flex items-center gap-2 truncate pr-2 cursor-pointer" onDoubleClick={() => setEditingCategory(category)}>
+                             <button onClick={(e) => { e.stopPropagation(); toggleCategoryCollapse(category.id); }} className="text-gray-400 hover:text-indigo-600 transition-colors">
+                                 {category.collapsed ? <ChevronRightIcon size={16} /> : <CornerDownLeft size={16} className="rotate-0" />}
+                             </button>
+                             <span className="truncate hover:underline decoration-dashed underline-offset-4">{category.title}</span>
+                        </div>
+                         <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
+                            <button onClick={() => handleDeleteCategory(category.id)} className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
+                            <button onClick={() => setEditingCategory(category)} className={`p-1 rounded hover:bg-gray-200 ${category.color.text}`}><Palette size={14}/></button>
+                            <div className="text-gray-400 cursor-grab active:cursor-grabbing hover:text-gray-700" title="Kéo để sắp xếp"><GripVertical size={14}/></div>
+                        </div>
+                      </div>
+                      
+                      <div className="text-xs text-gray-400 mt-1 flex items-center gap-2 ml-6">
+                        <span className={`w-2 h-2 rounded-full ${category.color.value.split(' ')[0].replace('bg-', 'bg-')}`}></span>
+                      </div>
+                      <div className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-indigo-500 z-30" onMouseDown={startResizingSidebar} />
+                    </div>
+
+                    {/* TASK CELLS */}
+                    {!category.collapsed && visibleDays.map((day) => {
+                        const dateStr = formatDateKey(day);
+                        const cellTasks = filteredMatrixTasks.filter(t => t.categoryId === category.id && t.date === dateStr);
+                        const isToday = dateStr === formatDateKey(new Date());
+                        const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+
+                        return (
+                            <div 
+                                key={`${category.id}-${dateStr}`} 
+                                style={{ width: dayWidth, minWidth: dayWidth }} 
+                                className={`
+                                    flex-shrink-0 min-h-[120px] p-2 transition-all duration-300 group/cell relative
+                                    ${isToday ? 'bg-indigo-50/40' : (isWeekend ? 'bg-slate-50/30' : 'bg-transparent')} 
+                                    hover:bg-gray-50/80 cursor-pointer
+                                `}
+                                onDragOver={handleDragOver} 
+                                onDrop={(e) => handleDrop(e, category.id, dateStr)} 
+                                onMouseEnter={() => setHoveredCell({ categoryId: category.id, dateStr })} 
+                                onMouseLeave={() => setHoveredCell(null)} 
+                                onClick={() => setSelectedTaskId(null)} 
+                                onDoubleClick={(e) => { handleOpenAddTask({ date: dateStr, categoryId: category.id }); }}
+                            >
+                                <div className="flex flex-col gap-2 h-full relative z-10">
+                                    {cellTasks.map((task) => (
+                                        <div className="pointer-events-auto" key={task.id}>
+                                            <TaskCard 
+                                                task={task} 
+                                                categoryColor={category.color} 
+                                                dayWidth={dayWidth} 
+                                                isSelected={selectedTaskId === task.id} 
+                                                isHighlighted={highlightedTaskId === task.id} 
+                                                onSelect={setSelectedTaskId} 
+                                                onUpdate={handleUpdateTask} 
+                                                onDelete={handleDeleteTask} 
+                                                onDragStart={handleDragStart} 
+                                                onDragEnd={handleDragEnd} 
+                                                setEditingTask={setEditingTask} 
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                    {category.collapsed && <div className="flex-1 bg-gray-50/50 flex items-center justify-center text-gray-400 text-sm italic">Đã thu gọn</div>}
+                  </div>
+                ))}
+                
+                {/* Khu vực tạo Category mới */}
+                <div className="flex border-b border-gray-200 group">
+                    <div className="sticky left-0 z-30 bg-white/95 backdrop-blur-sm border-r border-gray-200/60 flex flex-col justify-center border-l-4 border-transparent shadow-[4px_0_24px_rgba(0,0,0,0.02)]" style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
+                        {isCreatingCategory ? (
+                            <div className="p-3 m-2 bg-white border border-indigo-200 rounded-xl shadow-lg animate-in zoom-in-95 duration-200">
+                                <input 
+                                    autoFocus
+                                    type="text" 
+                                    value={newCategoryName}
+                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveCategory();
+                                        if (e.key === 'Escape') setIsCreatingCategory(false);
+                                    }}
+                                    placeholder="Tên hạng mục..."
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                />
+                                <div className="flex gap-2 justify-end">
+                                    <button onClick={() => setIsCreatingCategory(false)} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"><X size={16}/></button>
+                                    <button onClick={handleSaveCategory} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors flex items-center gap-1"><Check size={14}/> Lưu</button>
+                                </div>
+                            </div>
+                        ) : (
+                            <button onClick={() => setIsCreatingCategory(true)} className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 font-bold transition-colors w-full p-4">
+                                <div className="p-1 rounded-md bg-gray-100 group-hover:bg-indigo-100 text-gray-500 group-hover:text-indigo-600 transition-colors">
+                                    <Plus size={16} />
+                                </div>
+                                <span>Thêm hạng mục mới</span>
+                            </button>
+                        )}
+                    </div>
+                    {visibleDays.map((day) => (
+                        <div key={`empty-${formatDateKey(day)}`} style={{ width: dayWidth, minWidth: dayWidth }} className="flex-shrink-0 border-r border-transparent bg-gray-50/20" />
+                    ))}
+                </div>
+
+              </div>
+            </div>
+            
+            <div className="absolute bottom-8 right-8 z-50 animate-in slide-in-from-bottom-5 duration-500">
+                 <button onClick={() => handleOpenAddTask()} className="w-14 h-14 bg-gradient-to-tr from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-full shadow-xl shadow-indigo-300 flex items-center justify-center transition-all hover:scale-110 active:scale-95" title="Thêm công việc mới">
+                      <Plus size={28} />
+                 </button>
+            </div>
+          </div>
+      )}
+
+      {editingTask && <TaskModal task={editingTask} onClose={() => setEditingTask(null)} onUpdate={handleUpdateTask} onDelete={handleDeleteTask} categories={categories} onGenerateRepeats={handleGenerateRepeats} />}
+      {showAddTaskModal && <AddTaskModal onClose={() => setShowAddTaskModal(false)} onSave={handleSaveNewTask} categories={categories} initialDate={newTaskDefaults.date} initialCategoryId={newTaskDefaults.categoryId} />}
+      {editingCategory && <CategoryModal category={editingCategory} onClose={() => setEditingCategory(null)} onUpdate={handleUpdateCategory} onDelete={handleDeleteCategory} />}
+      {showRecurringModal && <RecurringUpdateModal onClose={() => setShowRecurringModal(false)} onConfirm={handleConfirmRecurringUpdate} />}
+      <ToastContainer toasts={toasts} />
+    </div>
+  );
+}
+</file>
+
+</files>

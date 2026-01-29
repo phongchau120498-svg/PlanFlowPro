@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarPlus, Trash2, X, CheckSquare, Square, Repeat, Clock, AlignLeft, Save } from 'lucide-react';
+import { CalendarPlus, Trash2, X, CheckSquare, Square, Repeat, Clock, AlignLeft, Save, Calendar } from 'lucide-react';
 import { generateGoogleCalendarLink } from '../../utils/dateHelpers';
 import { COLORS } from '../../constants/theme';
 
-[cite_start]// [cite: 123, 140]
 const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRepeats }) => {
   if (!task) return null;
   const [localTask, setLocalTask] = useState(task);
@@ -22,8 +21,8 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
 
   useEffect(() => {
       const handleKeyDown = (e) => {
-          if (e.key === 'Escape') handleSaveAndClose();
-          if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') handleSaveAndClose();
+          if (e.key === 'Escape') onClose();
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveAndClose();
       };
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
@@ -35,64 +34,98 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
   };
 
   const handleRepeatChange = (e) => {
-      const newRepeat = e.target.value;
-      setLocalTask(prev => ({ ...prev, repeat: newRepeat }));
-      if (newRepeat !== 'none') {
-          onGenerateRepeats(localTask, newRepeat);
-      }
+      setLocalTask(prev => ({ ...prev, repeat: e.target.value }));
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={handleSaveAndClose}>
-      <div className="bg-white w-full max-w-2xl h-[85vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-white/50" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100 bg-gray-50/50">
-          <div className="flex items-center gap-3 text-sm text-gray-500">
-              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${currentCategoryColor.value} border shadow-sm`}>{category?.title}</span>
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
+      <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-300" />
+
+      <div 
+        className="relative bg-[#FBFBFD] w-full max-w-2xl h-[85vh] rounded-[32px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 ease-apple border border-white/50 ring-1 ring-black/5" 
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* --- HEADER --- */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50 bg-white/60 backdrop-blur-xl sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+              <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest ${currentCategoryColor.value} border border-black/5 shadow-sm`}>
+                  {category?.title}
+              </span>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={handleAddToGoogleCalendar} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all" title="Google Calendar"><CalendarPlus size={20} /></button>
-             <button onClick={() => { onDelete(localTask.id); onClose(); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all" title="Xóa"><Trash2 size={20} /></button>
-            <button onClick={handleSaveAndClose} className="p-2 text-gray-400 hover:text-gray-800 hover:bg-gray-200 rounded-xl transition-all"><X size={22} /></button>
+            <button onClick={handleAddToGoogleCalendar} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all" title="Add to Calendar"><CalendarPlus size={20} /></button>
+             <button onClick={() => { onDelete(localTask.id); onClose(); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all" title="Delete"><Trash2 size={20} /></button>
+            <button onClick={onClose} className="ml-2 p-2 bg-gray-200/50 hover:bg-gray-300/50 text-gray-500 rounded-full transition-all"><X size={20} /></button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar">
-           <div className="mb-6 flex items-center justify-between">
-                <button onClick={() => setLocalTask(prev => ({...prev, isCompleted: !prev.isCompleted}))} 
-                className={`flex items-center gap-3 px-5 py-2.5 rounded-2xl text-sm font-bold transition-all border shadow-sm ${localTask.isCompleted ? 'bg-gray-100 text-gray-500 border-gray-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'}`}>
-                    {localTask.isCompleted ? <CheckSquare size={20}/> : <Square size={20}/>}
-                    {localTask.isCompleted ? 'Đã hoàn thành' : 'Đánh dấu hoàn thành'}
+        {/* --- BODY --- */}
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar space-y-6">
+           
+           <div className="flex flex-wrap items-center gap-3">
+                <button 
+                    onClick={() => setLocalTask(prev => ({...prev, isCompleted: !prev.isCompleted}))} 
+                    className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-sm font-bold transition-all border shadow-sm active:scale-95 duration-200
+                    ${localTask.isCompleted 
+                        ? 'bg-gray-100 text-gray-500 border-transparent' 
+                        : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'}`}
+                >
+                    {localTask.isCompleted ? <CheckSquare size={18}/> : <Square size={18}/>}
+                    {localTask.isCompleted ? 'Đã xong' : 'Đánh dấu xong'}
                 </button>
-                <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-xl border border-gray-200">
-                    <Repeat size={16} className="text-indigo-500" />
-                    <select value={localTask.repeat || 'none'} onChange={handleRepeatChange} className="text-sm bg-transparent border-none focus:ring-0 text-gray-600 font-medium cursor-pointer">
+
+                <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border border-gray-200/60 shadow-sm group hover:border-slate-300 transition-colors">
+                    <Repeat size={16} className="text-slate-500" />
+                    <select value={localTask.repeat || 'none'} onChange={handleRepeatChange} className="text-sm bg-transparent border-none outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0 pl-0 pr-8">
                         <option value="none">Không lặp lại</option>
-                        <option value="daily">Hàng ngày</option>
-                        <option value="weekly">Hàng tuần</option>
-                        <option value="monthly">Hàng tháng</option>
+                        <option value="daily">Mỗi ngày</option>
+                        <option value="weekly">Mỗi tuần</option>
+                        <option value="monthly">Mỗi tháng</option>
                     </select>
                 </div>
            </div>
 
-          <input type="text" value={localTask.title} onChange={(e) => setLocalTask(prev => ({...prev, title: e.target.value}))} className={`w-full text-4xl font-bold border-none focus:ring-0 placeholder-gray-300 p-0 mb-8 bg-transparent tracking-tight leading-tight ${localTask.isCompleted ? 'text-gray-400 line-through decoration-2' : 'text-gray-900'}`} placeholder="Tên công việc..." autoFocus />
+          {/* Title Input: Tự nhiên, không viền */}
+          <textarea 
+            value={localTask.title} 
+            onChange={(e) => setLocalTask(prev => ({...prev, title: e.target.value}))} 
+            className={`w-full text-3xl sm:text-4xl font-bold border-none outline-none focus:ring-0 placeholder-gray-300 p-0 bg-transparent tracking-tight resize-none overflow-hidden ${localTask.isCompleted ? 'text-gray-400 line-through' : 'text-slate-900'}`} 
+            placeholder="Tên công việc..." 
+            rows={1}
+            onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
+          />
 
-          <div className="flex items-center gap-6 mb-8 text-sm border-b border-gray-100 pb-6">
-            <div className="flex items-center gap-3 text-gray-500 font-medium">
-                <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600"><Clock size={18} /></div>
-                <input type="date" value={localTask.date} onChange={(e) => setLocalTask(prev => ({...prev, date: e.target.value}))} className="bg-transparent border-none focus:ring-0 p-0 text-gray-800 font-bold" />
-           </div>
+          <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
+                    <Calendar size={20} />
+                </div>
+                <div className="flex-1">
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hạn chót</label>
+                    <input type="date" value={localTask.date} onChange={(e) => setLocalTask(prev => ({...prev, date: e.target.value}))} className="bg-transparent border-none outline-none focus:ring-0 p-0 text-slate-700 font-bold text-lg cursor-pointer font-sans" />
+                </div>
           </div>
 
-          <div className="flex items-start gap-4 text-gray-500">
-              <div className="mt-1 p-2 bg-gray-50 rounded-lg text-gray-400"><AlignLeft size={18} /></div>
-              <div className="flex-1">
-                  <span className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Chi tiết</span>
-               <textarea value={localTask.description} onChange={(e) => setLocalTask(prev => ({...prev, description: e.target.value}))} className="w-full min-h-[300px] p-0 text-gray-700 bg-transparent border-none focus:ring-0 text-base leading-relaxed placeholder-gray-300 resize-none" placeholder="Nhập chi tiết công việc, ghi chú, hoặc danh sách việc cần làm..." />
+          <div className="space-y-3">
+              <div className="flex items-center gap-2 text-gray-400">
+                  <AlignLeft size={16} />
+                  <span className="text-xs font-bold uppercase tracking-wider">Ghi chú</span>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm focus-within:ring-2 focus-within:ring-slate-200 focus-within:border-slate-400 transition-all p-4">
+                 <textarea 
+                    value={localTask.description} 
+                    onChange={(e) => setLocalTask(prev => ({...prev, description: e.target.value}))} 
+                    className="w-full min-h-[200px] p-0 text-slate-700 bg-transparent border-none outline-none focus:ring-0 text-base leading-relaxed placeholder-gray-300 resize-none" 
+                    placeholder="Nhập chi tiết công việc..." 
+                 />
               </div>
           </div>
         </div>
-        <div className="p-5 border-t border-gray-100 bg-gray-50 flex justify-end">
-           <button onClick={handleSaveAndClose} className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold shadow-lg shadow-indigo-200 transition-all transform hover:scale-[1.02] active:scale-[0.98]"><Save size={18}/> Lưu thay đổi</button>
+
+        {/* --- FOOTER (NÚT ĐEN) --- */}
+        <div className="p-6 border-t border-gray-200/50 bg-white/80 backdrop-blur-md flex justify-end">
+           <button onClick={handleSaveAndClose} className="flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white rounded-2xl hover:bg-black font-bold shadow-lg shadow-slate-300 transition-all transform active:scale-[0.98]">
+               <Save size={18}/> Lưu thay đổi
+           </button>
         </div>
       </div>
     </div>

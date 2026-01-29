@@ -1,7 +1,7 @@
 import React from 'react';
 import { CheckSquare, Bell } from 'lucide-react';
 
-[cite_start]// [cite: 23, 24, 25]
+
 const ToastContainer = ({ toasts }) => {
     return (
         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 flex flex-col gap-2 z-[100] pointer-events-none">

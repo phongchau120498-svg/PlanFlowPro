@@ -1,3 +1,45 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans bg-[#F5F5F7] text-slate-900 antialiased; 
+  }
+  
+  ::selection {
+    @apply bg-blue-500/20 text-blue-700;
+  }
+
+  /* --- MỚI: Tắt hoàn toàn khung đen mặc định của trình duyệt --- */
+  input:focus, textarea:focus, select:focus {
+    outline: none !important;
+    box-shadow: none !important; /* Tắt shadow mặc định nếu có */
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.0); 
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  transition: background-color 0.3s;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.ease-apple {
+  transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+}

@@ -1,21 +1,31 @@
 import React from 'react';
 import { Repeat } from 'lucide-react';
 
-[cite_start]// [cite: 141, 143]
 const RecurringUpdateModal = ({ onClose, onConfirm }) => {
     return (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80] flex items-center justify-center p-4 animate-in fade-in duration-200">
-            <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 animate-in zoom-in-95 duration-200">
-                <div className="flex flex-col items-center text-center mb-6">
-                    <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center mb-4 text-indigo-600"><Repeat size={24} /></div>
-                    <h3 className="text-lg font-bold text-gray-800">Cập nhật chuỗi công việc</h3>
-                    <p className="text-sm text-gray-500 mt-2">Thay đổi này áp dụng cho...</p>
+        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm transition-opacity" onClick={onClose} />
+            
+            <div className="relative bg-white w-full max-w-sm rounded-[32px] shadow-2xl p-6 animate-in zoom-in-95 duration-300 ease-apple border border-white/50 text-center">
+                <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-600 shadow-sm">
+                    <Repeat size={28} />
                 </div>
-                <div className="space-y-3">
-                    <button onClick={() => onConfirm('single')} className="w-full py-3 px-4 bg-white border border-gray-200 hover:border-indigo-500 hover:text-indigo-600 rounded-xl text-gray-700 font-medium transition-all shadow-sm flex items-center justify-center gap-2">Chỉ công việc này</button>
-                    <button onClick={() => onConfirm('future')} className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 rounded-xl text-white font-medium transition-all shadow-md flex items-center justify-center gap-2">Các công việc tiếp theo</button>
-                    <button onClick={onClose} className="w-full py-2 text-gray-400 hover:text-gray-600 text-sm">Hủy bỏ</button>
+                
+                <h3 className="text-xl font-bold text-slate-800 mb-2">Cập nhật chuỗi lặp lại?</h3>
+                <p className="text-sm text-gray-500 mb-8 px-4 leading-relaxed">Bạn đang thay đổi một công việc có tính lặp lại. Bạn muốn áp dụng thay đổi này như thế nào?</p>
+                
+                <div className="space-y-3 font-semibold">
+                    <button onClick={() => onConfirm('single')} className="w-full py-3.5 bg-white border-2 border-gray-100 hover:border-indigo-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-2xl text-slate-600 transition-all">
+                        Chỉ công việc này
+                    </button>
+                    <button onClick={() => onConfirm('future')} className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl shadow-lg shadow-indigo-200 transition-all active:scale-95">
+                        Tất cả các việc sau này
+                    </button>
                 </div>
+
+                <button onClick={onClose} className="mt-6 text-sm font-bold text-gray-400 hover:text-gray-600 transition-colors">
+                    Hủy bỏ
+                </button>
             </div>
         </div>
     );

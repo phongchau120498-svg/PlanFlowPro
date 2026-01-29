@@ -380,160 +380,6 @@ const ToastContainer = ({ toasts }) => {
 export default ToastContainer;
 </file>
 
-<file path="src/components/layout/Header.jsx">
-import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { Calendar, LayoutGrid, ListTodo, ChevronLeft, ChevronRight, Search, X, ZoomIn, Clock, CalendarDays } from 'lucide-react';
-import { getMonday, formatDateKey } from '../../utils/dateHelpers';
-import { ZOOM_LEVELS } from '../../constants/theme';
-
-const Header = ({ 
-    currentDate, prevWeek, nextWeek, goToToday, onDateSelect, zoomIndex, onZoomChange, 
-    viewMode, setViewMode, onOpenAddTask, 
-    searchQuery, setSearchQuery, tasks, onNavigateToTask,
-    categories 
-}) => {
-    const startOfWeek = getMonday(currentDate);
-    const [showDropdown, setShowDropdown] = useState(false);
-    const searchRef = useRef(null);
-    const searchInputRef = useRef(null); 
-
-    // GLOBAL SHORTCUT: CTRL + K
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                e.preventDefault();
-                searchInputRef.current?.focus(); 
-                setShowDropdown(true);
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
-
-    const overdueCount = useMemo(() => {
-        if (!tasks || !Array.isArray(tasks)) return 0;
-        const todayStr = formatDateKey(new Date());
-        return tasks.filter(t => t.date && t.date < todayStr && !t.isCompleted).length;
-    }, [tasks]);
-
-    const searchResults = useMemo(() => {
-        if (!searchQuery.trim() || !tasks) return [];
-        return tasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [tasks, searchQuery]);
-
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (searchRef.current && !searchRef.current.contains(event.target)) {
-                setShowDropdown(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    return (
-      <header className="flex items-center justify-between px-6 py-3 bg-white/70 backdrop-blur-2xl border-b border-gray-200/60 sticky top-0 z-50 h-[68px] transition-all supports-[backdrop-filter]:bg-white/60">
-        
-        {/* --- KHU VỰC 1: TRÁI (Logo & View Switcher) --- */}
-        <div className="flex items-center gap-6 flex-1">
-          {/* Logo */}
-          <div className="flex items-center gap-2.5 group cursor-pointer">
-              <div className="p-2 bg-gradient-to-br from-slate-800 to-black rounded-xl shadow-md shadow-slate-200 text-white group-hover:scale-105 transition-transform">
-                <CalendarDays size={18} strokeWidth={2.5} />
-              </div>
-              <h1 className="text-lg font-bold text-gray-900 tracking-tight hidden lg:block group-hover:text-black transition-colors">PlanFlow</h1>
-          </div>
-          
-          {/* Divider */}
-          <div className="h-6 w-px bg-gray-200 hidden md:block"></div>
-
-          {/* View Switcher */}
-          <div className="bg-gray-100/80 p-1 rounded-xl flex items-center border border-gray-200/50">
-              <button onClick={() => setViewMode('matrix')} className={`px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all duration-300 ${viewMode === 'matrix' ? 'bg-white shadow-sm text-slate-900' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}>
-                  <LayoutGrid size={14} /> Lịch biểu
-              </button>
-              <button onClick={() => setViewMode('list')} className={`relative px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all duration-300 ${viewMode === 'list' ? 'bg-white shadow-sm text-slate-900' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}>
-                  <ListTodo size={14} /> To-Do
-                  {overdueCount > 0 && (
-                      <span className="flex h-2 w-2 relative">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                      </span>
-                  )}
-              </button>
-          </div>
-        </div>
-
-        {/* --- KHU VỰC 2: GIỮA (Điều hướng thời gian) --- */}
-        <div className="flex-1 flex justify-center">
-             {viewMode === 'matrix' ? (
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1 shadow-sm hover:shadow-md transition-all duration-300">
-                        <button onClick={prevWeek} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-50 text-gray-500 hover:text-black transition-colors"><ChevronLeft size={18} /></button>
-                        
-                        <div className="relative group px-2 flex items-center justify-center min-w-[140px]">
-                            <span className="font-bold text-gray-800 text-sm cursor-pointer hover:text-black transition-colors flex flex-col items-center leading-tight">
-                                <span>Tháng {startOfWeek.getMonth() + 1}, {startOfWeek.getFullYear()}</span>
-                            </span>
-                            <input type="date" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" value={formatDateKey(currentDate)} onChange={(e) => e.target.value && onDateSelect(new Date(e.target.value))} />
-                        </div>
-
-                        <button onClick={nextWeek} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-50 text-gray-500 hover:text-black transition-colors"><ChevronRight size={18} /></button>
-                    </div>
-                    
-                    {/* NÚT HÔM NAY (Đen tối giản) */}
-                    <button onClick={goToToday} className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-lg shadow-slate-200 transition-all transform active:scale-95 flex items-center gap-1.5" title="Về hôm nay">
-                        <Clock size={14} className="text-gray-300"/> Hôm nay
-                    </button>
-                </div>
-             ) : (
-                 <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-400 text-xs font-bold uppercase tracking-widest">
-                     <ListTodo size={14} /> Danh sách công việc
-                 </div>
-             )}
-        </div>
-        
-        {/* --- KHU VỰC 3: PHẢI (Công cụ Search & Zoom) --- */}
-        <div className="flex items-center gap-4 flex-1 justify-end">
-            <div className="relative group z-[60]" ref={searchRef}>
-                <div className={`flex items-center bg-gray-100 hover:bg-white border border-transparent hover:border-gray-200 rounded-xl px-3 py-2 transition-all w-48 focus-within:w-64 focus-within:bg-white focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-100`}>
-                    <Search size={16} className="text-gray-400 group-focus-within:text-slate-800 mr-2 transition-colors" />
-                    <input ref={searchInputRef} type="text" placeholder="Tìm kiếm..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); }} onFocus={() => setShowDropdown(true)} className="bg-transparent text-sm outline-none w-full placeholder-gray-400 text-gray-700 font-medium" />
-                    {!searchQuery && <div className="text-[10px] text-gray-400 border border-gray-200 rounded px-1.5 py-0.5 ml-2 hidden lg:block">⌘K</div>}
-                    {searchQuery && (<button onClick={() => { setSearchQuery(''); setShowDropdown(false); }} className="text-gray-300 hover:text-gray-500"><X size={14} /></button>)}
-                </div>
-                
-                {/* Search Dropdown Results */}
-                {showDropdown && searchQuery && (
-                    <div className="absolute top-full right-0 mt-3 w-80 bg-white/95 backdrop-blur-xl border border-gray-100 rounded-2xl shadow-2xl max-h-96 overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-200 p-2">
-                        {searchResults.length > 0 ? (
-                            searchResults.map(task => (
-                                <div key={task.id} onClick={() => { onNavigateToTask(task); setShowDropdown(false); }} className="px-3 py-3 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors group/item border-b border-gray-50 last:border-0">
-                                    <div className="font-semibold text-sm text-gray-800 group-hover/item:text-black truncate">{task.title}</div>
-                                    <div className="text-xs text-gray-400 flex items-center gap-2 mt-1">
-                                        <span className={`w-2 h-2 rounded-full ${categories.find(c => c.id === task.categoryId)?.color?.value.split(' ')[0] || 'bg-gray-300'}`}></span>
-                                        <span>{task.date.split('-').reverse().join('/')}</span>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (<div className="px-4 py-8 text-center text-gray-400 text-sm">Không tìm thấy kết quả</div>)}
-                     </div>
-                )}
-            </div>
-            
-            {viewMode === 'matrix' && (
-                <div className="flex items-center gap-3 pl-4 border-l border-gray-200 hidden lg:flex">
-                     <ZoomIn size={16} className="text-gray-400" />
-                    <input type="range" min="0" max={ZOOM_LEVELS.length - 1} step="1" value={zoomIndex} onChange={onZoomChange} className="w-20 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-slate-800 hover:accent-black" />
-                </div>
-            )}
-        </div>
-      </header>
-    );
-};
-export default Header;
-</file>
-
 <file path="src/components/tasks/AddTaskModal.jsx">
 import React, { useState, useEffect } from 'react';
 import { X, ChevronDown, Calendar, Tag, Type, AlignLeft } from 'lucide-react';
@@ -816,143 +662,6 @@ const TaskCard = ({ task, categoryColor, isSelected, isHighlighted, onSelect, on
 };
 
 export default TaskCard;
-</file>
-
-<file path="src/components/tasks/TaskModal.jsx">
-import React, { useState, useEffect } from 'react';
-import { CalendarPlus, Trash2, X, CheckSquare, Square, Repeat, Clock, AlignLeft, Save, Calendar } from 'lucide-react';
-import { generateGoogleCalendarLink } from '../../utils/dateHelpers';
-import { COLORS } from '../../constants/theme';
-
-const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRepeats }) => {
-  if (!task) return null;
-  const [localTask, setLocalTask] = useState(task);
-  const category = categories.find(c => c.id === localTask.categoryId);
-  const currentCategoryColor = category ? category.color : COLORS[0];
-
-  useEffect(() => { setLocalTask(task); }, [task.id]);
-
-  const handleSaveAndClose = () => {
-      if (localTask.repeat !== task.repeat && localTask.repeat !== 'none') {
-           onGenerateRepeats(localTask, localTask.repeat);
-      }
-      onUpdate(localTask);
-      onClose();
-  };
-
-  useEffect(() => {
-      const handleKeyDown = (e) => {
-          if (e.key === 'Escape') onClose();
-          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveAndClose();
-      };
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [localTask]);
-
-  const handleAddToGoogleCalendar = () => {
-    const url = generateGoogleCalendarLink(localTask);
-    window.open(url, '_blank');
-  };
-
-  const handleRepeatChange = (e) => {
-      setLocalTask(prev => ({ ...prev, repeat: e.target.value }));
-  };
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
-      <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-300" />
-
-      <div 
-        className="relative bg-[#FBFBFD] w-full max-w-2xl h-[85vh] rounded-[32px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 ease-apple border border-white/50 ring-1 ring-black/5" 
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* --- HEADER --- */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50 bg-white/60 backdrop-blur-xl sticky top-0 z-10">
-          <div className="flex items-center gap-3">
-              <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest ${currentCategoryColor.value} border border-black/5 shadow-sm`}>
-                  {category?.title}
-              </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={handleAddToGoogleCalendar} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all" title="Add to Calendar"><CalendarPlus size={20} /></button>
-             <button onClick={() => { onDelete(localTask.id); onClose(); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all" title="Delete"><Trash2 size={20} /></button>
-            <button onClick={onClose} className="ml-2 p-2 bg-gray-200/50 hover:bg-gray-300/50 text-gray-500 rounded-full transition-all"><X size={20} /></button>
-          </div>
-        </div>
-
-        {/* --- BODY --- */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar space-y-6">
-           
-           <div className="flex flex-wrap items-center gap-3">
-                <button 
-                    onClick={() => setLocalTask(prev => ({...prev, isCompleted: !prev.isCompleted}))} 
-                    className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-sm font-bold transition-all border shadow-sm active:scale-95 duration-200
-                    ${localTask.isCompleted 
-                        ? 'bg-gray-100 text-gray-500 border-transparent' 
-                        : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'}`}
-                >
-                    {localTask.isCompleted ? <CheckSquare size={18}/> : <Square size={18}/>}
-                    {localTask.isCompleted ? 'Đã xong' : 'Đánh dấu xong'}
-                </button>
-
-                <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border border-gray-200/60 shadow-sm group hover:border-slate-300 transition-colors">
-                    <Repeat size={16} className="text-slate-500" />
-                    <select value={localTask.repeat || 'none'} onChange={handleRepeatChange} className="text-sm bg-transparent border-none outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0 pl-0 pr-8">
-                        <option value="none">Không lặp lại</option>
-                        <option value="daily">Mỗi ngày</option>
-                        <option value="weekly">Mỗi tuần</option>
-                        <option value="monthly">Mỗi tháng</option>
-                    </select>
-                </div>
-           </div>
-
-          {/* Title Input: Tự nhiên, không viền */}
-          <textarea 
-            value={localTask.title} 
-            onChange={(e) => setLocalTask(prev => ({...prev, title: e.target.value}))} 
-            className={`w-full text-3xl sm:text-4xl font-bold border-none outline-none focus:ring-0 placeholder-gray-300 p-0 bg-transparent tracking-tight resize-none overflow-hidden ${localTask.isCompleted ? 'text-gray-400 line-through' : 'text-slate-900'}`} 
-            placeholder="Tên công việc..." 
-            rows={1}
-            onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
-          />
-
-          <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
-                    <Calendar size={20} />
-                </div>
-                <div className="flex-1">
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hạn chót</label>
-                    <input type="date" value={localTask.date} onChange={(e) => setLocalTask(prev => ({...prev, date: e.target.value}))} className="bg-transparent border-none outline-none focus:ring-0 p-0 text-slate-700 font-bold text-lg cursor-pointer font-sans" />
-                </div>
-          </div>
-
-          <div className="space-y-3">
-              <div className="flex items-center gap-2 text-gray-400">
-                  <AlignLeft size={16} />
-                  <span className="text-xs font-bold uppercase tracking-wider">Ghi chú</span>
-              </div>
-              <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm focus-within:ring-2 focus-within:ring-slate-200 focus-within:border-slate-400 transition-all p-4">
-                 <textarea 
-                    value={localTask.description} 
-                    onChange={(e) => setLocalTask(prev => ({...prev, description: e.target.value}))} 
-                    className="w-full min-h-[200px] p-0 text-slate-700 bg-transparent border-none outline-none focus:ring-0 text-base leading-relaxed placeholder-gray-300 resize-none" 
-                    placeholder="Nhập chi tiết công việc..." 
-                 />
-              </div>
-          </div>
-        </div>
-
-        {/* --- FOOTER (NÚT ĐEN) --- */}
-        <div className="p-6 border-t border-gray-200/50 bg-white/80 backdrop-blur-md flex justify-end">
-           <button onClick={handleSaveAndClose} className="flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white rounded-2xl hover:bg-black font-bold shadow-lg shadow-slate-300 transition-all transform active:scale-[0.98]">
-               <Save size={18}/> Lưu thay đổi
-           </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-export default TaskModal;
 </file>
 
 <file path="src/components/views/TodoView.jsx">
@@ -1434,6 +1143,399 @@ export default {
     require("tailwindcss-animate"), // Nếu anh có dùng plugin animation
   ],
 }
+</file>
+
+<file path="src/components/layout/Header.jsx">
+import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { LayoutGrid, ListTodo, ChevronLeft, ChevronRight, Search, X, ZoomIn, CalendarDays } from 'lucide-react';
+import { getMonday, formatDateKey } from '../../utils/dateHelpers';
+import { ZOOM_LEVELS } from '../../constants/theme';
+
+const Header = ({ 
+    currentDate, prevWeek, nextWeek, goToToday, onDateSelect, zoomIndex, onZoomChange, 
+    viewMode, setViewMode, onOpenAddTask, 
+    searchQuery, setSearchQuery, tasks, onNavigateToTask,
+    categories 
+}) => {
+    const startOfWeek = getMonday(currentDate);
+    const [showDropdown, setShowDropdown] = useState(false);
+    const searchRef = useRef(null);
+    const searchInputRef = useRef(null); 
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                searchInputRef.current?.focus(); 
+                setShowDropdown(true);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
+    // --- LOGIC ĐẾM TASK QUÁ HẠN (GIỮ NGUYÊN TỪ BẢN TỐI ƯU TRƯỚC) ---
+    const overdueCount = useMemo(() => {
+        if (!tasks || !Array.isArray(tasks)) return 0;
+        
+        const todayStr = formatDateKey(new Date());
+        
+        // Danh sách các Hạng mục đang tồn tại (để lọc task ma)
+        const validCategoryIds = new Set(categories.map(c => c.id));
+
+        return tasks.filter(t => 
+            t.date && 
+            t.date < todayStr && 
+            !t.isCompleted &&
+            validCategoryIds.has(t.categoryId) 
+        ).length;
+    }, [tasks, categories]);
+
+    const searchResults = useMemo(() => {
+        if (!searchQuery.trim() || !tasks) return [];
+        return tasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
+    }, [tasks, searchQuery]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (searchRef.current && !searchRef.current.contains(event.target)) {
+                setShowDropdown(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Class chung cho các nút để đảm bảo chiều cao bằng nhau
+    const buttonBaseClass = "h-9 flex items-center justify-center gap-2 rounded-lg text-sm font-bold transition-all duration-300 px-4";
+
+    return (
+      <header className="flex items-center justify-between px-6 py-3 bg-white/70 backdrop-blur-2xl border-b border-gray-200/60 sticky top-0 z-50 h-[72px] transition-all supports-[backdrop-filter]:bg-white/60">
+        
+        {/* --- TRÁI: Logo & View Switcher --- */}
+        <div className="flex items-center gap-6 flex-1">
+          {/* Logo */}
+          <div className="flex items-center gap-2.5 group cursor-pointer">
+              <div className="p-2 bg-gradient-to-br from-slate-800 to-black rounded-xl shadow-md shadow-slate-200 text-white group-hover:scale-105 transition-transform">
+                <CalendarDays size={18} strokeWidth={2.5} />
+              </div>
+              <h1 className="text-lg font-bold text-gray-900 tracking-tight hidden lg:block group-hover:text-black transition-colors">PlanFlow</h1>
+          </div>
+          
+          <div className="h-6 w-px bg-gray-200 hidden md:block"></div>
+
+          {/* View Switcher: Cân đối chiều cao */}
+          <div className="bg-gray-100/80 p-1 rounded-xl flex items-center border border-gray-200/50">
+              <button 
+                  onClick={() => setViewMode('matrix')} 
+                  className={`${buttonBaseClass} ${viewMode === 'matrix' ? 'bg-white shadow-sm text-slate-900' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}
+              >
+                  <LayoutGrid size={16} /> Lịch biểu
+              </button>
+              <button 
+                  onClick={() => setViewMode('list')} 
+                  className={`relative ${buttonBaseClass} ${viewMode === 'list' ? 'bg-white shadow-sm text-slate-900' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}
+              >
+                  <ListTodo size={16} /> To-Do
+                  {overdueCount > 0 && (
+                      <span className="flex h-2 w-2 relative ml-1">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                      </span>
+                  )}
+              </button>
+          </div>
+        </div>
+
+        {/* --- GIỮA: Điều hướng --- */}
+        <div className="flex-1 flex justify-center">
+             {viewMode === 'matrix' ? (
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1 shadow-sm hover:shadow-md transition-all duration-300">
+                        {/* Nút mũi tên: size to hơn chút (w-9 h-9) để cân với chiều cao nút chữ */}
+                        <button onClick={prevWeek} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-50 text-gray-500 hover:text-black transition-colors"><ChevronLeft size={20} /></button>
+                        
+                        <div className="relative group px-2 flex items-center justify-center min-w-[150px]">
+                            <span className="font-bold text-gray-800 text-sm cursor-pointer hover:text-black transition-colors flex flex-col items-center leading-tight">
+                                <span>Tháng {startOfWeek.getMonth() + 1}, {startOfWeek.getFullYear()}</span>
+                            </span>
+                            <input type="date" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" value={formatDateKey(currentDate)} onChange={(e) => e.target.value && onDateSelect(new Date(e.target.value))} />
+                        </div>
+
+                        <button onClick={nextWeek} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-50 text-gray-500 hover:text-black transition-colors"><ChevronRight size={20} /></button>
+                    </div>
+                    
+                    {/* Nút Hôm nay: Bỏ icon đồng hồ, size chữ text-sm bằng các nút khác */}
+                    <button 
+                        onClick={goToToday} 
+                        className="h-[44px] px-6 bg-slate-900 hover:bg-black text-white text-sm font-bold rounded-xl shadow-lg shadow-slate-200 transition-all transform active:scale-95 flex items-center justify-center" 
+                        title="Về hôm nay"
+                    >
+                        Hôm nay
+                    </button>
+                </div>
+             ) : (
+                 <div className="hidden md:flex items-center gap-2 px-4 h-[44px] bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-400 text-sm font-bold uppercase tracking-widest">
+                     <ListTodo size={16} /> Danh sách công việc
+                 </div>
+             )}
+        </div>
+        
+        {/* --- PHẢI: Search --- */}
+        <div className="flex items-center gap-4 flex-1 justify-end">
+            <div className="relative group z-[60]" ref={searchRef}>
+                <div className={`flex items-center bg-gray-100 hover:bg-white border border-transparent hover:border-gray-200 rounded-xl px-3 h-[44px] transition-all w-48 focus-within:w-64 focus-within:bg-white focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-100`}>
+                    <Search size={18} className="text-gray-400 group-focus-within:text-slate-800 mr-2 transition-colors" />
+                    <input ref={searchInputRef} type="text" placeholder="Tìm kiếm..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); }} onFocus={() => setShowDropdown(true)} className="bg-transparent text-sm outline-none w-full placeholder-gray-400 text-gray-700 font-medium" />
+                    {!searchQuery && <div className="text-[10px] text-gray-400 border border-gray-200 rounded px-1.5 py-0.5 ml-2 hidden lg:block">⌘K</div>}
+                    {searchQuery && (<button onClick={() => { setSearchQuery(''); setShowDropdown(false); }} className="text-gray-300 hover:text-gray-500"><X size={16} /></button>)}
+                </div>
+                
+                {showDropdown && searchQuery && (
+                    <div className="absolute top-full right-0 mt-3 w-80 bg-white/95 backdrop-blur-xl border border-gray-100 rounded-2xl shadow-2xl max-h-96 overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-200 p-2">
+                        {searchResults.length > 0 ? (
+                            searchResults.map(task => (
+                                <div key={task.id} onClick={() => { onNavigateToTask(task); setShowDropdown(false); }} className="px-3 py-3 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors group/item border-b border-gray-50 last:border-0">
+                                    <div className="font-semibold text-sm text-gray-800 group-hover/item:text-black truncate">{task.title}</div>
+                                    <div className="text-xs text-gray-400 flex items-center gap-2 mt-1">
+                                        <span className={`w-2 h-2 rounded-full ${categories.find(c => c.id === task.categoryId)?.color?.value.split(' ')[0] || 'bg-gray-300'}`}></span>
+                                        <span>{task.date.split('-').reverse().join('/')}</span>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (<div className="px-4 py-8 text-center text-gray-400 text-sm">Không tìm thấy kết quả</div>)}
+                     </div>
+                )}
+            </div>
+            
+            {viewMode === 'matrix' && (
+                <div className="flex items-center gap-3 pl-4 border-l border-gray-200 hidden lg:flex">
+                     <ZoomIn size={18} className="text-gray-400" />
+                    <input type="range" min="0" max={ZOOM_LEVELS.length - 1} step="1" value={zoomIndex} onChange={onZoomChange} className="w-20 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-slate-800 hover:accent-black" />
+                </div>
+            )}
+        </div>
+      </header>
+    );
+};
+export default Header;
+</file>
+
+<file path="src/components/tasks/TaskModal.jsx">
+import React, { useState, useEffect, useRef } from 'react';
+import { CalendarPlus, Trash2, X, CheckSquare, Square, Repeat, Calendar, AlignLeft, Save, List, ListOrdered } from 'lucide-react';
+import { generateGoogleCalendarLink } from '../../utils/dateHelpers';
+import { COLORS } from '../../constants/theme';
+
+const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRepeats }) => {
+  if (!task) return null;
+  const [localTask, setLocalTask] = useState(task);
+  const descriptionRef = useRef(null);
+
+  const category = categories.find(c => c.id === localTask.categoryId);
+  const currentCategoryColor = category ? category.color : COLORS[0];
+
+  useEffect(() => { setLocalTask(task); }, [task.id]);
+
+  const handleSaveAndClose = () => {
+      if (localTask.repeat !== task.repeat && localTask.repeat !== 'none') {
+           onGenerateRepeats(localTask, localTask.repeat);
+      }
+      onUpdate(localTask);
+      onClose();
+  };
+
+  const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+          const textarea = descriptionRef.current;
+          if (!textarea) return;
+
+          const start = textarea.selectionStart;
+          const value = localTask.description || '';
+          
+          const lastNewLine = value.lastIndexOf('\n', start - 1);
+          const currentLineStart = lastNewLine + 1;
+          const currentLineText = value.substring(currentLineStart, start);
+
+          const match = currentLineText.match(/^(\s*)(• |\d+\. )/);
+
+          if (match) {
+              const fullPrefix = match[0]; 
+              const content = currentLineText.substring(fullPrefix.length);
+
+              if (!content.trim()) {
+                  e.preventDefault();
+                  const newValue = value.substring(0, currentLineStart) + value.substring(start);
+                  setLocalTask(prev => ({...prev, description: newValue}));
+                  setTimeout(() => {
+                      textarea.selectionStart = textarea.selectionEnd = currentLineStart;
+                  }, 0);
+                  return;
+              }
+
+              e.preventDefault();
+              let nextPrefix = match[2]; 
+              if (nextPrefix.match(/\d+\./)) {
+                  const num = parseInt(nextPrefix);
+                  nextPrefix = `${num + 1}. `;
+              }
+
+              const insertText = '\n' + match[1] + nextPrefix; 
+              const newValue = value.substring(0, start) + insertText + value.substring(textarea.selectionEnd);
+              
+              setLocalTask(prev => ({...prev, description: newValue}));
+              setTimeout(() => {
+                  textarea.selectionStart = textarea.selectionEnd = start + insertText.length;
+                  textarea.scrollTop = textarea.scrollHeight; 
+              }, 0);
+          }
+      }
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveAndClose();
+  };
+
+  const handleAddToGoogleCalendar = () => {
+    const url = generateGoogleCalendarLink(localTask);
+    window.open(url, '_blank');
+  };
+
+  const handleRepeatChange = (e) => {
+      setLocalTask(prev => ({ ...prev, repeat: e.target.value }));
+  };
+
+  const toggleLineFormat = (type) => { 
+      const textarea = descriptionRef.current;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const value = localTask.description || '';
+      const lastNewLine = value.lastIndexOf('\n', start - 1);
+      const currentLineStart = lastNewLine + 1;
+      let nextNewLine = value.indexOf('\n', start);
+      if (nextNewLine === -1) nextNewLine = value.length;
+
+      const currentLineContent = value.substring(currentLineStart, nextNewLine);
+      const match = currentLineContent.match(/^(\s*)(• |\d+\. )(.*)/);
+      
+      let newContent = currentLineContent;
+      let newPrefix = type === 'bullet' ? '• ' : '1. ';
+
+      if (match) {
+          const currentPrefix = match[2];
+          const textBody = match[3] || '';
+          if ((type === 'bullet' && currentPrefix === '• ') || (type === 'number' && currentPrefix.match(/\d+\./))) {
+               newContent = match[1] + textBody;
+          } else {
+               newContent = match[1] + newPrefix + textBody;
+          }
+      } else {
+          newContent = newPrefix + currentLineContent;
+      }
+
+      const newValue = value.substring(0, currentLineStart) + newContent + value.substring(nextNewLine);
+      setLocalTask(prev => ({...prev, description: newValue}));
+      setTimeout(() => {
+          textarea.focus();
+          textarea.selectionStart = textarea.selectionEnd = currentLineStart + newContent.length;
+      }, 0);
+  };
+
+  const ToolbarButton = ({ icon: Icon, onClick, tooltip }) => (
+      <button onClick={onClick} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title={tooltip} type="button">
+          <Icon size={16} strokeWidth={2.5} />
+      </button>
+  );
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
+      <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-300" />
+      <div className="relative bg-[#FBFBFD] w-full max-w-2xl h-auto max-h-[90vh] rounded-[32px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 ease-apple border border-white/50 ring-1 ring-black/5" onClick={(e) => e.stopPropagation()}>
+        
+        {/* HEADER */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50 bg-white/60 backdrop-blur-xl sticky top-0 z-10 shrink-0">
+          <div className="flex items-center gap-3">
+              <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest ${currentCategoryColor.value} border border-black/5 shadow-sm`}>
+                  {category?.title}
+              </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={handleAddToGoogleCalendar} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all"><CalendarPlus size={20} /></button>
+             <button onClick={() => { onDelete(localTask.id); onClose(); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all"><Trash2 size={20} /></button>
+            <button onClick={onClose} className="ml-2 p-2 bg-gray-200/50 hover:bg-gray-300/50 text-gray-500 rounded-full transition-all"><X size={20} /></button>
+          </div>
+        </div>
+
+        {/* BODY */}
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar space-y-6">
+           <div className="flex flex-wrap items-center gap-3">
+                <button onClick={() => setLocalTask(prev => ({...prev, isCompleted: !prev.isCompleted}))} className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-sm font-bold transition-all border shadow-sm active:scale-95 duration-200 ${localTask.isCompleted ? 'bg-gray-100 text-gray-500 border-transparent' : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'}`}>
+                    {localTask.isCompleted ? <CheckSquare size={18}/> : <Square size={18}/>}
+                    {localTask.isCompleted ? 'Đã xong' : 'Đánh dấu xong'}
+                </button>
+                <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border border-gray-200/60 shadow-sm group hover:border-slate-300 transition-colors">
+                    <Repeat size={16} className="text-slate-500" />
+                    <select value={localTask.repeat || 'none'} onChange={handleRepeatChange} className="text-sm bg-transparent border-none outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0 pl-0 pr-8">
+                        <option value="none">Không lặp lại</option>
+                        <option value="daily">Mỗi ngày</option>
+                        <option value="weekly">Mỗi tuần</option>
+                        <option value="monthly">Mỗi tháng</option>
+                    </select>
+                </div>
+           </div>
+
+          <textarea 
+            value={localTask.title} 
+            onChange={(e) => setLocalTask(prev => ({...prev, title: e.target.value}))} 
+            className={`w-full text-3xl sm:text-4xl font-bold border-none outline-none focus:ring-0 placeholder-gray-300 p-0 bg-transparent tracking-tight resize-none overflow-hidden ${localTask.isCompleted ? 'text-gray-400 line-through' : 'text-slate-900'}`} 
+            placeholder="Tên công việc..." 
+            rows={1}
+            onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
+          />
+
+          <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
+                    <Calendar size={20} />
+                </div>
+                <div className="flex-1">
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hạn chót</label>
+                    <input type="date" value={localTask.date} onChange={(e) => setLocalTask(prev => ({...prev, date: e.target.value}))} className="bg-transparent border-none outline-none focus:ring-0 p-0 text-slate-700 font-bold text-lg cursor-pointer font-sans" />
+                </div>
+          </div>
+
+          <div className="space-y-3">
+              <div className="flex items-center gap-2 text-gray-400">
+                  <AlignLeft size={16} />
+                  <span className="text-xs font-bold uppercase tracking-wider">Ghi chú</span>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm focus-within:ring-2 focus-within:ring-slate-200 focus-within:border-slate-400 transition-all p-4">
+                 <div className="flex items-center gap-1 pb-2 mb-2 border-b border-gray-100/80">
+                    <ToolbarButton icon={List} onClick={() => toggleLineFormat('bullet')} tooltip="Gạch đầu dòng" />
+                    <ToolbarButton icon={ListOrdered} onClick={() => toggleLineFormat('number')} tooltip="Đánh số" />
+                 </div>
+                 {/* ĐÃ BỎ FONT-MONO ĐỂ CHỮ ĐẸP NHƯ APPLE NOTES */}
+                 <textarea 
+                    ref={descriptionRef}
+                    value={localTask.description} 
+                    onChange={(e) => setLocalTask(prev => ({...prev, description: e.target.value}))} 
+                    onKeyDown={handleKeyDown}
+                    className="w-full min-h-[400px] p-0 text-slate-700 bg-transparent border-none outline-none focus:ring-0 text-base leading-relaxed placeholder-gray-300 resize-none" 
+                    placeholder="Nhập chi tiết công việc..." 
+                 />
+              </div>
+          </div>
+        </div>
+
+        {/* FOOTER */}
+        <div className="p-6 border-t border-gray-200/50 bg-white/80 backdrop-blur-md flex justify-end shrink-0">
+           <button onClick={handleSaveAndClose} className="flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white rounded-2xl hover:bg-black font-bold shadow-lg shadow-slate-300 transition-all transform active:scale-[0.98]">
+               <Save size={18}/> Lưu thay đổi
+           </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+export default TaskModal;
 </file>
 
 <file path="package.json">

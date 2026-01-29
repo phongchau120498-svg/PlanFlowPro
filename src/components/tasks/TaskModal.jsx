@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { CalendarPlus, Trash2, X, CheckSquare, Square, Repeat, Clock, AlignLeft, Save, Calendar } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { CalendarPlus, Trash2, X, CheckSquare, Square, Repeat, Calendar, AlignLeft, Save, List, ListOrdered } from 'lucide-react';
 import { generateGoogleCalendarLink } from '../../utils/dateHelpers';
 import { COLORS } from '../../constants/theme';
 
 const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRepeats }) => {
   if (!task) return null;
   const [localTask, setLocalTask] = useState(task);
+  const descriptionRef = useRef(null);
+
   const category = categories.find(c => c.id === localTask.categoryId);
   const currentCategoryColor = category ? category.color : COLORS[0];
 
@@ -19,14 +21,60 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
       onClose();
   };
 
-  useEffect(() => {
-      const handleKeyDown = (e) => {
-          if (e.key === 'Escape') onClose();
-          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveAndClose();
-      };
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [localTask]);
+  // --- LOGIC 1: XỬ LÝ ENTER THÔNG MINH ---
+  const handleKeyDown = (e) => {
+      if (e.key === 'Enter') {
+          const textarea = descriptionRef.current;
+          if (!textarea) return;
+
+          const start = textarea.selectionStart;
+          const value = localTask.description || '';
+          
+          const lastNewLine = value.lastIndexOf('\n', start - 1);
+          const currentLineStart = lastNewLine + 1;
+          const currentLineText = value.substring(currentLineStart, start);
+
+          // Regex chỉ bắt Bullet và Số (Đã bỏ checkbox)
+          const match = currentLineText.match(/^(\s*)(• |\d+\. )/);
+
+          if (match) {
+              const fullPrefix = match[0]; 
+              const content = currentLineText.substring(fullPrefix.length);
+
+              // TRƯỜNG HỢP 1: Dòng trống -> Enter để thoát
+              if (!content.trim()) {
+                  e.preventDefault();
+                  const newValue = value.substring(0, currentLineStart) + value.substring(start);
+                  setLocalTask(prev => ({...prev, description: newValue}));
+                  setTimeout(() => {
+                      textarea.selectionStart = textarea.selectionEnd = currentLineStart;
+                  }, 0);
+                  return;
+              }
+
+              // TRƯỜNG HỢP 2: Có chữ -> Enter để tiếp tục danh sách
+              e.preventDefault();
+              let nextPrefix = match[2]; 
+
+              // Tự tăng số (1. -> 2.)
+              if (nextPrefix.match(/\d+\./)) {
+                  const num = parseInt(nextPrefix);
+                  nextPrefix = `${num + 1}. `;
+              }
+
+              const insertText = '\n' + match[1] + nextPrefix; 
+              const newValue = value.substring(0, start) + insertText + value.substring(textarea.selectionEnd);
+              
+              setLocalTask(prev => ({...prev, description: newValue}));
+              setTimeout(() => {
+                  textarea.selectionStart = textarea.selectionEnd = start + insertText.length;
+                  textarea.scrollTop = textarea.scrollHeight; 
+              }, 0);
+          }
+      }
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveAndClose();
+  };
 
   const handleAddToGoogleCalendar = () => {
     const url = generateGoogleCalendarLink(localTask);
@@ -37,16 +85,84 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
       setLocalTask(prev => ({ ...prev, repeat: e.target.value }));
   };
 
+  // --- LOGIC 2: FORMAT ĐẦU DÒNG (SMART FORMAT) ---
+  const toggleLineFormat = (type) => { // type: 'bullet' | 'number'
+      const textarea = descriptionRef.current;
+      if (!textarea) return;
+
+      const start = textarea.selectionStart;
+      const value = localTask.description || '';
+      
+      // 1. Tìm phạm vi dòng hiện tại
+      const lastNewLine = value.lastIndexOf('\n', start - 1);
+      const currentLineStart = lastNewLine + 1;
+      
+      let nextNewLine = value.indexOf('\n', start);
+      if (nextNewLine === -1) nextNewLine = value.length;
+
+      const currentLineContent = value.substring(currentLineStart, nextNewLine);
+      
+      // 2. Kiểm tra xem dòng này đang có format gì
+      const match = currentLineContent.match(/^(\s*)(• |\d+\. )(.*)/);
+      
+      let newContent = currentLineContent;
+      let newPrefix = '';
+
+      if (type === 'bullet') newPrefix = '• ';
+      else if (type === 'number') newPrefix = '1. ';
+
+      if (match) {
+          // Dòng ĐÃ CÓ format
+          const currentPrefix = match[2];
+          const textBody = match[3] || '';
+          
+          if (
+              (type === 'bullet' && currentPrefix === '• ') || 
+              (type === 'number' && currentPrefix.match(/\d+\./))
+          ) {
+               // Bấm trùng loại -> XÓA FORMAT
+               newContent = match[1] + textBody;
+          } else {
+               // Khác loại -> THAY THẾ
+               newContent = match[1] + newPrefix + textBody;
+          }
+      } else {
+          // Dòng CHƯA CÓ format -> THÊM MỚI
+          newContent = newPrefix + currentLineContent;
+      }
+
+      // 3. Cập nhật Textarea
+      const newValue = value.substring(0, currentLineStart) + newContent + value.substring(nextNewLine);
+      setLocalTask(prev => ({...prev, description: newValue}));
+
+      // 4. Giữ focus
+      setTimeout(() => {
+          textarea.focus();
+          textarea.selectionStart = textarea.selectionEnd = currentLineStart + newContent.length;
+      }, 0);
+  };
+
+  const ToolbarButton = ({ icon: Icon, onClick, tooltip, active }) => (
+      <button 
+          onClick={onClick} 
+          className={`p-1.5 rounded-lg transition-all ${active ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
+          title={tooltip}
+          type="button" 
+      >
+          <Icon size={16} strokeWidth={2.5} />
+      </button>
+  );
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
       <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-300" />
 
       <div 
-        className="relative bg-[#FBFBFD] w-full max-w-2xl h-[85vh] rounded-[32px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 ease-apple border border-white/50 ring-1 ring-black/5" 
+        className="relative bg-[#FBFBFD] w-full max-w-2xl h-auto max-h-[90vh] rounded-[32px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 ease-apple border border-white/50 ring-1 ring-black/5" 
         onClick={(e) => e.stopPropagation()}
       >
         {/* --- HEADER --- */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50 bg-white/60 backdrop-blur-xl sticky top-0 z-10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50 bg-white/60 backdrop-blur-xl sticky top-0 z-10 shrink-0">
           <div className="flex items-center gap-3">
               <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest ${currentCategoryColor.value} border border-black/5 shadow-sm`}>
                   {category?.title}
@@ -85,7 +201,6 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
                 </div>
            </div>
 
-          {/* Title Input: Tự nhiên, không viền */}
           <textarea 
             value={localTask.title} 
             onChange={(e) => setLocalTask(prev => ({...prev, title: e.target.value}))} 
@@ -110,19 +225,29 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
                   <AlignLeft size={16} />
                   <span className="text-xs font-bold uppercase tracking-wider">Ghi chú</span>
               </div>
+              
               <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm focus-within:ring-2 focus-within:ring-slate-200 focus-within:border-slate-400 transition-all p-4">
+                 
+                 <div className="flex items-center gap-1 pb-2 mb-2 border-b border-gray-100/80">
+                    <ToolbarButton icon={List} onClick={() => toggleLineFormat('bullet')} tooltip="Gạch đầu dòng" />
+                    <ToolbarButton icon={ListOrdered} onClick={() => toggleLineFormat('number')} tooltip="Đánh số" />
+                    {/* ĐÃ BỎ NÚT CHECKBOX */}
+                 </div>
+
                  <textarea 
+                    ref={descriptionRef}
                     value={localTask.description} 
                     onChange={(e) => setLocalTask(prev => ({...prev, description: e.target.value}))} 
-                    className="w-full min-h-[200px] p-0 text-slate-700 bg-transparent border-none outline-none focus:ring-0 text-base leading-relaxed placeholder-gray-300 resize-none" 
+                    onKeyDown={handleKeyDown}
+                    className="w-full min-h-[400px] p-0 text-slate-700 bg-transparent border-none outline-none focus:ring-0 text-base leading-relaxed placeholder-gray-300 resize-none font-mono" 
                     placeholder="Nhập chi tiết công việc..." 
                  />
               </div>
           </div>
         </div>
 
-        {/* --- FOOTER (NÚT ĐEN) --- */}
-        <div className="p-6 border-t border-gray-200/50 bg-white/80 backdrop-blur-md flex justify-end">
+        {/* --- FOOTER --- */}
+        <div className="p-6 border-t border-gray-200/50 bg-white/80 backdrop-blur-md flex justify-end shrink-0">
            <button onClick={handleSaveAndClose} className="flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white rounded-2xl hover:bg-black font-bold shadow-lg shadow-slate-300 transition-all transform active:scale-[0.98]">
                <Save size={18}/> Lưu thay đổi
            </button>

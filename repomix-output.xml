@@ -41,6 +41,7 @@ The content is organized as follows:
 
 <directory_structure>
 .gitignore
+db_schema.sql
 eslint.config.js
 index.html
 package.json
@@ -72,81 +73,6 @@ vite.config.js
 <files>
 This section contains the contents of the repository's files.
 
-<file path="src/components/tasks/CategoryModal.jsx">
-import React, { useState, useEffect } from 'react';
-import { X, Check, Trash2, Palette } from 'lucide-react';
-import { COLORS } from '../../constants/theme';
-
-const CategoryModal = ({ category, onClose, onUpdate, onDelete }) => {
-    const [title, setTitle] = useState(category.title);
-    const [selectedColor, setSelectedColor] = useState(category.color);
-
-    const handleSave = () => {
-        if (!title.trim()) return;
-        onUpdate({ ...category, title: title.trim(), color: selectedColor });
-        onClose();
-    };
-
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (e.key === 'Escape') onClose();
-            if (e.key === 'Enter') handleSave();
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [title, selectedColor]);
-
-    return (
-        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-[2px] transition-opacity" onClick={onClose} />
-            
-            <div className="relative bg-white w-full max-w-sm rounded-[32px] shadow-2xl p-6 animate-in zoom-in-95 duration-300 ease-apple border border-white/50 ring-1 ring-black/5">
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                        <Palette size={20} className="text-indigo-500"/>
-                        Sửa hạng mục
-                    </h3>
-                    <button onClick={onClose} className="p-2 text-gray-400 hover:bg-gray-100 rounded-full transition-colors"><X size={20}/></button>
-                </div>
-
-                <div className="space-y-6">
-                    {/* Input Name */}
-                    <div className="bg-gray-50 rounded-2xl px-4 py-2 border border-gray-100 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500/50 transition-all">
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tên hiển thị</label>
-                        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-transparent border-none p-0 focus:ring-0 text-slate-800 font-bold text-lg" autoFocus />
-                    </div>
-
-                    {/* Color Picker (Circles) */}
-                    <div>
-                        <label className="block text-[10px] font-bold text-gray-400 mb-3 uppercase tracking-widest px-1">Màu sắc chủ đạo</label>
-                        <div className="grid grid-cols-6 gap-3">
-                            {COLORS.map((color, index) => (
-                                <button 
-                                    key={index} 
-                                    onClick={() => setSelectedColor(color)} 
-                                    className={`w-8 h-8 rounded-full transition-all duration-200 relative flex items-center justify-center 
-                                    ${color.value.split(' ')[0]} 
-                                    ${selectedColor.name === color.name ? 'ring-2 ring-offset-2 ring-indigo-500 scale-110 shadow-md' : 'hover:scale-110 hover:shadow-sm'}`} 
-                                    title={color.name}
-                                >
-                                    {selectedColor.name === color.name && <Check size={12} className={color.text} strokeWidth={3} />}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="mt-8 flex gap-3 pt-6 border-t border-gray-100">
-                    <button onClick={() => { onDelete(category.id); }} className="p-3 text-red-500 bg-red-50 hover:bg-red-100 rounded-2xl transition-colors" title="Xóa"><Trash2 size={20} /></button>
-                    <button onClick={handleSave} className="flex-1 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-slate-800 shadow-lg shadow-slate-200 transition-all active:scale-95">Lưu thay đổi</button>
-                </div>
-            </div>
-        </div>
-    );
-};
-export default CategoryModal;
-</file>
-
 <file path=".gitignore">
 # Logs
 logs
@@ -172,6 +98,38 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+</file>
+
+<file path="db_schema.sql">
+-- Tạo bảng Hạng mục
+create table public.categories (
+  id text not null primary key,
+  title text,
+  color jsonb,
+  collapsed boolean default false,
+  position integer default 0,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Tạo bảng Công việc
+create table public.tasks (
+  id text not null primary key,
+  title text not null,
+  description text,
+  date text,
+  time text,
+  is_completed boolean default false,
+  category_id text references public.categories(id) on delete cascade,
+  repeat text default 'none',
+  series_id text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Bật bảo mật (Bắt buộc để Supabase cho phép đọc/ghi từ web)
+alter table public.categories enable row level security;
+alter table public.tasks enable row level security;
+create policy "Enable access to all users" on public.categories for all using (true);
+create policy "Enable access to all users" on public.tasks for all using (true);
 </file>
 
 <file path="eslint.config.js">
@@ -204,26 +162,6 @@ export default defineConfig([
     },
   },
 ])
-</file>
-
-<file path="index.html">
-<!doctype html>
-<html lang="vi">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
-    <title>PlanFlow Pro</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
-</html>
 </file>
 
 <file path="postcss.config.js">
@@ -307,6 +245,120 @@ If you are developing a production application, we recommend using TypeScript wi
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
 </file>
 
+<file path="src/components/tasks/CategoryModal.jsx">
+import React, { useState, useEffect } from 'react';
+import { X, Check, Trash2, Palette } from 'lucide-react';
+import { COLORS } from '../../constants/theme';
+
+const CategoryModal = ({ category, onClose, onUpdate, onDelete }) => {
+    const [title, setTitle] = useState(category.title);
+    const [selectedColor, setSelectedColor] = useState(category.color);
+
+    const handleSave = () => {
+        if (!title.trim()) return;
+        onUpdate({ ...category, title: title.trim(), color: selectedColor });
+        onClose();
+    };
+
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') onClose();
+            if (e.key === 'Enter') handleSave();
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [title, selectedColor]);
+
+    return (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-[2px] transition-opacity" onClick={onClose} />
+            
+            <div className="relative bg-white w-full max-w-sm rounded-[32px] shadow-2xl p-6 animate-in zoom-in-95 duration-300 ease-apple border border-white/50 ring-1 ring-black/5">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <Palette size={20} className="text-slate-700"/>
+                        Sửa hạng mục
+                    </h3>
+                    <button onClick={onClose} className="p-2 text-gray-400 hover:bg-gray-100 rounded-full transition-colors"><X size={20}/></button>
+                </div>
+
+                <div className="space-y-6">
+                    {/* INPUT: Tự nhiên, không viền, không box */}
+                    <div className="bg-transparent px-2 py-2">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Tên hiển thị</label>
+                        <input 
+                            type="text" 
+                            value={title} 
+                            onChange={(e) => setTitle(e.target.value)} 
+                            className="w-full bg-transparent border-none outline-none p-0 focus:ring-0 text-slate-900 font-black text-3xl" 
+                            autoFocus 
+                        />
+                        <div className="h-0.5 w-full bg-gray-100 mt-2"></div>
+                    </div>
+
+                    <div>
+                        <label className="block text-[10px] font-bold text-gray-400 mb-3 uppercase tracking-widest px-1">Màu sắc chủ đạo</label>
+                        <div className="grid grid-cols-6 gap-3">
+                            {COLORS.map((color, index) => (
+                                <button 
+                                    key={index} 
+                                    onClick={() => setSelectedColor(color)} 
+                                    className={`w-8 h-8 rounded-full transition-all duration-200 relative flex items-center justify-center 
+                                    ${color.value.split(' ')[0]} 
+                                    ${selectedColor.name === color.name ? 'ring-2 ring-offset-2 ring-slate-800 scale-110 shadow-md' : 'hover:scale-110 hover:shadow-sm'}`} 
+                                    title={color.name}
+                                >
+                                    {selectedColor.name === color.name && <Check size={12} className={color.text} strokeWidth={3} />}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-8 flex gap-3 pt-6 border-t border-gray-100">
+                    <button onClick={() => { onDelete(category.id); }} className="p-3 text-red-500 bg-red-50 hover:bg-red-100 rounded-2xl transition-colors" title="Xóa"><Trash2 size={20} /></button>
+                    <button onClick={handleSave} className="flex-1 py-3 bg-slate-900 text-white rounded-2xl font-bold hover:bg-black shadow-lg shadow-slate-300 transition-all active:scale-95">Lưu thay đổi</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+export default CategoryModal;
+</file>
+
+<file path="src/main.jsx">
+import { StrictMode } from 'react'
+import { createRoot } from 'react-dom/client'
+import './index.css'
+import App from './App.jsx'
+
+createRoot(document.getElementById('root')).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+</file>
+
+<file path="index.html">
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <title>PlanFlow Pro</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+</file>
+
 <file path="src/components/common/ToastContainer.jsx">
 import React from 'react';
 import { CheckSquare, Bell } from 'lucide-react';
@@ -386,21 +438,21 @@ const Header = ({
         <div className="flex items-center gap-6 flex-1">
           {/* Logo */}
           <div className="flex items-center gap-2.5 group cursor-pointer">
-              <div className="p-2 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl shadow-md shadow-indigo-200 text-white group-hover:scale-105 transition-transform">
+              <div className="p-2 bg-gradient-to-br from-slate-800 to-black rounded-xl shadow-md shadow-slate-200 text-white group-hover:scale-105 transition-transform">
                 <CalendarDays size={18} strokeWidth={2.5} />
               </div>
-              <h1 className="text-lg font-bold text-gray-800 tracking-tight hidden lg:block group-hover:text-indigo-600 transition-colors">PlanFlow</h1>
+              <h1 className="text-lg font-bold text-gray-900 tracking-tight hidden lg:block group-hover:text-black transition-colors">PlanFlow</h1>
           </div>
           
           {/* Divider */}
           <div className="h-6 w-px bg-gray-200 hidden md:block"></div>
 
-          {/* View Switcher (Segmented Control Style) */}
+          {/* View Switcher */}
           <div className="bg-gray-100/80 p-1 rounded-xl flex items-center border border-gray-200/50">
-              <button onClick={() => setViewMode('matrix')} className={`px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all duration-300 ${viewMode === 'matrix' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}>
+              <button onClick={() => setViewMode('matrix')} className={`px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all duration-300 ${viewMode === 'matrix' ? 'bg-white shadow-sm text-slate-900' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}>
                   <LayoutGrid size={14} /> Lịch biểu
               </button>
-              <button onClick={() => setViewMode('list')} className={`relative px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all duration-300 ${viewMode === 'list' ? 'bg-white shadow-sm text-indigo-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}>
+              <button onClick={() => setViewMode('list')} className={`relative px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 transition-all duration-300 ${viewMode === 'list' ? 'bg-white shadow-sm text-slate-900' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}>
                   <ListTodo size={14} /> To-Do
                   {overdueCount > 0 && (
                       <span className="flex h-2 w-2 relative">
@@ -417,21 +469,21 @@ const Header = ({
              {viewMode === 'matrix' ? (
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1 shadow-sm hover:shadow-md transition-all duration-300">
-                        <button onClick={prevWeek} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-50 text-gray-500 hover:text-indigo-600 transition-colors"><ChevronLeft size={18} /></button>
+                        <button onClick={prevWeek} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-50 text-gray-500 hover:text-black transition-colors"><ChevronLeft size={18} /></button>
                         
                         <div className="relative group px-2 flex items-center justify-center min-w-[140px]">
-                            <span className="font-bold text-gray-700 text-sm cursor-pointer hover:text-indigo-600 transition-colors flex flex-col items-center leading-tight">
+                            <span className="font-bold text-gray-800 text-sm cursor-pointer hover:text-black transition-colors flex flex-col items-center leading-tight">
                                 <span>Tháng {startOfWeek.getMonth() + 1}, {startOfWeek.getFullYear()}</span>
                             </span>
                             <input type="date" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" value={formatDateKey(currentDate)} onChange={(e) => e.target.value && onDateSelect(new Date(e.target.value))} />
                         </div>
 
-                        <button onClick={nextWeek} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-50 text-gray-500 hover:text-indigo-600 transition-colors"><ChevronRight size={18} /></button>
+                        <button onClick={nextWeek} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-50 text-gray-500 hover:text-black transition-colors"><ChevronRight size={18} /></button>
                     </div>
                     
-                    {/* NÚT HÔM NAY (ĐÃ LÀM NỔI BẬT) */}
-                    <button onClick={goToToday} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-200 transition-all transform active:scale-95 flex items-center gap-1.5" title="Về hôm nay">
-                        <Clock size={14} className="text-indigo-100"/> Hôm nay
+                    {/* NÚT HÔM NAY (Đen tối giản) */}
+                    <button onClick={goToToday} className="px-4 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold rounded-xl shadow-lg shadow-slate-200 transition-all transform active:scale-95 flex items-center gap-1.5" title="Về hôm nay">
+                        <Clock size={14} className="text-gray-300"/> Hôm nay
                     </button>
                 </div>
              ) : (
@@ -444,8 +496,8 @@ const Header = ({
         {/* --- KHU VỰC 3: PHẢI (Công cụ Search & Zoom) --- */}
         <div className="flex items-center gap-4 flex-1 justify-end">
             <div className="relative group z-[60]" ref={searchRef}>
-                <div className={`flex items-center bg-gray-100 hover:bg-white border border-transparent hover:border-gray-200 rounded-xl px-3 py-2 transition-all w-48 focus-within:w-64 focus-within:bg-white focus-within:border-indigo-300 focus-within:ring-2 focus-within:ring-indigo-100`}>
-                    <Search size={16} className="text-gray-400 group-focus-within:text-indigo-500 mr-2 transition-colors" />
+                <div className={`flex items-center bg-gray-100 hover:bg-white border border-transparent hover:border-gray-200 rounded-xl px-3 py-2 transition-all w-48 focus-within:w-64 focus-within:bg-white focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-100`}>
+                    <Search size={16} className="text-gray-400 group-focus-within:text-slate-800 mr-2 transition-colors" />
                     <input ref={searchInputRef} type="text" placeholder="Tìm kiếm..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); }} onFocus={() => setShowDropdown(true)} className="bg-transparent text-sm outline-none w-full placeholder-gray-400 text-gray-700 font-medium" />
                     {!searchQuery && <div className="text-[10px] text-gray-400 border border-gray-200 rounded px-1.5 py-0.5 ml-2 hidden lg:block">⌘K</div>}
                     {searchQuery && (<button onClick={() => { setSearchQuery(''); setShowDropdown(false); }} className="text-gray-300 hover:text-gray-500"><X size={14} /></button>)}
@@ -456,8 +508,8 @@ const Header = ({
                     <div className="absolute top-full right-0 mt-3 w-80 bg-white/95 backdrop-blur-xl border border-gray-100 rounded-2xl shadow-2xl max-h-96 overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-200 p-2">
                         {searchResults.length > 0 ? (
                             searchResults.map(task => (
-                                <div key={task.id} onClick={() => { onNavigateToTask(task); setShowDropdown(false); }} className="px-3 py-3 hover:bg-indigo-50 rounded-xl cursor-pointer transition-colors group/item border-b border-gray-50 last:border-0">
-                                    <div className="font-semibold text-sm text-gray-800 group-hover/item:text-indigo-700 truncate">{task.title}</div>
+                                <div key={task.id} onClick={() => { onNavigateToTask(task); setShowDropdown(false); }} className="px-3 py-3 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors group/item border-b border-gray-50 last:border-0">
+                                    <div className="font-semibold text-sm text-gray-800 group-hover/item:text-black truncate">{task.title}</div>
                                     <div className="text-xs text-gray-400 flex items-center gap-2 mt-1">
                                         <span className={`w-2 h-2 rounded-full ${categories.find(c => c.id === task.categoryId)?.color?.value.split(' ')[0] || 'bg-gray-300'}`}></span>
                                         <span>{task.date.split('-').reverse().join('/')}</span>
@@ -472,7 +524,7 @@ const Header = ({
             {viewMode === 'matrix' && (
                 <div className="flex items-center gap-3 pl-4 border-l border-gray-200 hidden lg:flex">
                      <ZoomIn size={16} className="text-gray-400" />
-                    <input type="range" min="0" max={ZOOM_LEVELS.length - 1} step="1" value={zoomIndex} onChange={onZoomChange} className="w-20 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600 hover:accent-indigo-500" />
+                    <input type="range" min="0" max={ZOOM_LEVELS.length - 1} step="1" value={zoomIndex} onChange={onZoomChange} className="w-20 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-slate-800 hover:accent-black" />
                 </div>
             )}
         </div>
@@ -513,23 +565,20 @@ const AddTaskModal = ({ onClose, onSave, categories, initialDate, initialCategor
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [title, date, categoryId, newCategoryTitle, isNewCategory]);
 
-    // Apple Style Input Component
     const InputField = ({ icon: Icon, children, className = "" }) => (
-        <div className={`group flex items-center gap-3 bg-gray-100/80 hover:bg-gray-100 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:shadow-lg transition-all duration-300 ease-out rounded-2xl px-4 py-3.5 ${className}`}>
-            <Icon size={18} className="text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+        // Dùng ring mềm thay vì border cứng
+        <div className={`group flex items-center gap-3 bg-gray-100/80 hover:bg-gray-100 focus-within:bg-white focus-within:ring-2 focus-within:ring-slate-200 focus-within:shadow-lg transition-all duration-300 ease-out rounded-2xl px-4 py-3.5 ${className}`}>
+            <Icon size={18} className="text-gray-400 group-focus-within:text-slate-800 transition-colors" />
             {children}
         </div>
     );
 
     return (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:px-4">
-            {/* Backdrop Blur tối dần */}
             <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-[2px] transition-opacity duration-300" onClick={onClose} />
             
-            {/* Modal Content - iOS Sheet Animation */}
             <div className="relative bg-white w-full max-w-[500px] sm:rounded-[32px] rounded-t-[32px] shadow-2xl transform transition-all animate-in slide-in-from-bottom-10 fade-in duration-300 overflow-hidden flex flex-col">
                 
-                {/* Drag Handle (Visual cue cho mobile/tablet) */}
                 <div className="w-full flex justify-center pt-3 pb-1 sm:hidden">
                     <div className="w-12 h-1.5 bg-gray-300 rounded-full"></div>
                 </div>
@@ -540,25 +589,24 @@ const AddTaskModal = ({ onClose, onSave, categories, initialDate, initialCategor
                 </div>
 
                 <div className="px-8 py-6 space-y-5">
-                    {/* Tên công việc - Input lớn nhất */}
                     <div className="relative">
+                        {/* INPUT TIÊU ĐỀ: Đã thêm outline-none và border-none */}
                         <input 
                             type="text" 
                             placeholder="Bạn cần làm gì?" 
                             value={title} 
                             onChange={(e) => setTitle(e.target.value)} 
-                            className="w-full text-2xl font-semibold placeholder-gray-300 text-slate-800 bg-transparent border-none focus:ring-0 p-0"
+                            className="w-full text-2xl font-semibold placeholder-gray-300 text-slate-800 bg-transparent border-none outline-none focus:ring-0 p-0"
                             autoFocus={!isNewCategory} 
                         />
                     </div>
 
                     <div className="h-px w-full bg-gray-100"></div>
 
-                    {/* Các trường chọn - Style Filled Input */}
                     <InputField icon={Tag}>
                         {!isNewCategory ? (
                             <div className="relative w-full">
-                                <select value={categoryId} onChange={(e) => e.target.value === 'NEW' ? setIsNewCategory(true) : setCategoryId(e.target.value)} className="w-full bg-transparent border-none text-slate-700 font-medium appearance-none focus:ring-0 cursor-pointer py-0">
+                                <select value={categoryId} onChange={(e) => e.target.value === 'NEW' ? setIsNewCategory(true) : setCategoryId(e.target.value)} className="w-full bg-transparent border-none outline-none text-slate-700 font-medium appearance-none focus:ring-0 cursor-pointer py-0">
                                     {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.title}</option>)}
                                     <option disabled>──────────</option>
                                     <option value="NEW">+ Tạo hạng mục mới...</option>
@@ -567,19 +615,19 @@ const AddTaskModal = ({ onClose, onSave, categories, initialDate, initialCategor
                             </div>
                         ) : (
                             <div className="flex gap-2 w-full animate-in fade-in slide-in-from-left-2">
-                                <input type="text" placeholder="Tên hạng mục..." value={newCategoryTitle} onChange={(e) => setNewCategoryTitle(e.target.value)} className="flex-1 bg-transparent border-none focus:ring-0 p-0 font-medium" autoFocus />
+                                <input type="text" placeholder="Tên hạng mục..." value={newCategoryTitle} onChange={(e) => setNewCategoryTitle(e.target.value)} className="flex-1 bg-transparent border-none outline-none focus:ring-0 p-0 font-medium" autoFocus />
                                 <button onClick={() => setIsNewCategory(false)} className="text-xs font-bold text-gray-400 hover:text-gray-600 bg-white px-2 py-1 rounded-md shadow-sm">Hủy</button>
                             </div>
                         )}
                     </InputField>
 
                     <InputField icon={Calendar}>
-                        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-transparent border-none text-slate-700 font-medium focus:ring-0 p-0 cursor-pointer" />
+                        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full bg-transparent border-none outline-none text-slate-700 font-medium focus:ring-0 p-0 cursor-pointer" />
                     </InputField>
                 </div>
 
                 <div className="px-8 pb-8 pt-4 flex justify-end items-center gap-3 bg-gray-50/50 border-t border-gray-100">
-                    <button onClick={handleSave} className="w-full sm:w-auto px-8 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold text-sm shadow-xl shadow-slate-200 transform active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
+                    <button onClick={handleSave} className="w-full sm:w-auto px-8 py-3.5 bg-slate-900 hover:bg-black text-white rounded-2xl font-bold text-sm shadow-xl shadow-slate-300 transform active:scale-[0.98] transition-all duration-200 flex items-center justify-center gap-2">
                         Lưu công việc
                     </button>
                 </div>
@@ -606,14 +654,14 @@ const QuickAddInput = ({ dateStr, onConfirm, onCancel, categoryColor }) => {
     };
 
     return (
-        <div className={`p-1 bg-white rounded-2xl shadow-xl ring-4 ring-indigo-500/10 animate-in fade-in zoom-in-95 duration-200 z-50 relative min-w-[220px]`}>
+        <div className={`p-1 bg-white rounded-2xl shadow-xl ring-4 ring-slate-900/5 animate-in fade-in zoom-in-95 duration-200 z-50 relative min-w-[220px]`}>
             <div className={`p-3 rounded-xl ${categoryColor.value.split(' ')[0]} bg-opacity-30`}>
                 <input 
                     ref={inputRef} 
                     type="text" 
                     value={title} 
                     onChange={(e) => setTitle(e.target.value)} 
-                    className="w-full text-sm font-semibold text-slate-800 placeholder-slate-400 border-none p-0 bg-transparent focus:ring-0 leading-tight" 
+                    className="w-full text-sm font-semibold text-slate-800 placeholder-slate-400 border-none outline-none p-0 bg-transparent focus:ring-0 leading-tight" 
                     placeholder="Nhập việc cần làm..." 
                     onKeyDown={handleKeyDown} 
                 />
@@ -622,7 +670,7 @@ const QuickAddInput = ({ dateStr, onConfirm, onCancel, categoryColor }) => {
                  <div className="flex items-center gap-1 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                      <CornerDownLeft size={10} /> Enter
                  </div>
-                 <button onClick={() => onConfirm(title)} className="text-[10px] font-bold bg-slate-800 text-white px-2.5 py-1 rounded-lg hover:bg-slate-700 shadow-md transition-all">Thêm</button>
+                 <button onClick={() => onConfirm(title)} className="text-[10px] font-bold bg-slate-900 text-white px-2.5 py-1 rounded-lg hover:bg-black shadow-md shadow-slate-200 transition-all">Thêm</button>
             </div>
         </div>
     );
@@ -812,15 +860,13 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
-      {/* Backdrop Blur chuẩn iOS */}
       <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-300" />
 
-      {/* Modal Container */}
       <div 
         className="relative bg-[#FBFBFD] w-full max-w-2xl h-[85vh] rounded-[32px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 ease-apple border border-white/50 ring-1 ring-black/5" 
         onClick={(e) => e.stopPropagation()}
       >
-        {/* --- HEADER (Glass Effect) --- */}
+        {/* --- HEADER --- */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50 bg-white/60 backdrop-blur-xl sticky top-0 z-10">
           <div className="flex items-center gap-3">
               <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest ${currentCategoryColor.value} border border-black/5 shadow-sm`}>
@@ -837,7 +883,6 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
         {/* --- BODY --- */}
         <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar space-y-6">
            
-           {/* Status & Repeat Row */}
            <div className="flex flex-wrap items-center gap-3">
                 <button 
                     onClick={() => setLocalTask(prev => ({...prev, isCompleted: !prev.isCompleted}))} 
@@ -850,9 +895,9 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
                     {localTask.isCompleted ? 'Đã xong' : 'Đánh dấu xong'}
                 </button>
 
-                <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border border-gray-200/60 shadow-sm group hover:border-indigo-200 transition-colors">
-                    <Repeat size={16} className="text-indigo-500" />
-                    <select value={localTask.repeat || 'none'} onChange={handleRepeatChange} className="text-sm bg-transparent border-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0 pl-0 pr-8">
+                <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border border-gray-200/60 shadow-sm group hover:border-slate-300 transition-colors">
+                    <Repeat size={16} className="text-slate-500" />
+                    <select value={localTask.repeat || 'none'} onChange={handleRepeatChange} className="text-sm bg-transparent border-none outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0 pl-0 pr-8">
                         <option value="none">Không lặp lại</option>
                         <option value="daily">Mỗi ngày</option>
                         <option value="weekly">Mỗi tuần</option>
@@ -861,47 +906,45 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
                 </div>
            </div>
 
-          {/* Title Input (Big & Bold) */}
+          {/* Title Input: Tự nhiên, không viền */}
           <textarea 
             value={localTask.title} 
             onChange={(e) => setLocalTask(prev => ({...prev, title: e.target.value}))} 
-            className={`w-full text-3xl sm:text-4xl font-bold border-none focus:ring-0 placeholder-gray-300 p-0 bg-transparent tracking-tight resize-none overflow-hidden ${localTask.isCompleted ? 'text-gray-400 line-through' : 'text-slate-900'}`} 
+            className={`w-full text-3xl sm:text-4xl font-bold border-none outline-none focus:ring-0 placeholder-gray-300 p-0 bg-transparent tracking-tight resize-none overflow-hidden ${localTask.isCompleted ? 'text-gray-400 line-through' : 'text-slate-900'}`} 
             placeholder="Tên công việc..." 
             rows={1}
             onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
           />
 
-          {/* Date Picker (Filled Style) */}
           <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
                     <Calendar size={20} />
                 </div>
                 <div className="flex-1">
                     <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hạn chót</label>
-                    <input type="date" value={localTask.date} onChange={(e) => setLocalTask(prev => ({...prev, date: e.target.value}))} className="bg-transparent border-none focus:ring-0 p-0 text-slate-700 font-bold text-lg cursor-pointer font-sans" />
+                    <input type="date" value={localTask.date} onChange={(e) => setLocalTask(prev => ({...prev, date: e.target.value}))} className="bg-transparent border-none outline-none focus:ring-0 p-0 text-slate-700 font-bold text-lg cursor-pointer font-sans" />
                 </div>
           </div>
 
-          {/* Description (Filled Box Style - giống Note) */}
           <div className="space-y-3">
               <div className="flex items-center gap-2 text-gray-400">
                   <AlignLeft size={16} />
                   <span className="text-xs font-bold uppercase tracking-wider">Ghi chú</span>
               </div>
-              <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm focus-within:ring-2 focus-within:ring-indigo-500/20 focus-within:border-indigo-500/50 transition-all p-4">
+              <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm focus-within:ring-2 focus-within:ring-slate-200 focus-within:border-slate-400 transition-all p-4">
                  <textarea 
                     value={localTask.description} 
                     onChange={(e) => setLocalTask(prev => ({...prev, description: e.target.value}))} 
-                    className="w-full min-h-[200px] p-0 text-slate-700 bg-transparent border-none focus:ring-0 text-base leading-relaxed placeholder-gray-300 resize-none" 
+                    className="w-full min-h-[200px] p-0 text-slate-700 bg-transparent border-none outline-none focus:ring-0 text-base leading-relaxed placeholder-gray-300 resize-none" 
                     placeholder="Nhập chi tiết công việc..." 
                  />
               </div>
           </div>
         </div>
 
-        {/* --- FOOTER --- */}
+        {/* --- FOOTER (NÚT ĐEN) --- */}
         <div className="p-6 border-t border-gray-200/50 bg-white/80 backdrop-blur-md flex justify-end">
-           <button onClick={handleSaveAndClose} className="flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white rounded-2xl hover:bg-slate-800 font-bold shadow-lg shadow-slate-200 transition-all transform active:scale-[0.98]">
+           <button onClick={handleSaveAndClose} className="flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white rounded-2xl hover:bg-black font-bold shadow-lg shadow-slate-300 transition-all transform active:scale-[0.98]">
                <Save size={18}/> Lưu thay đổi
            </button>
         </div>
@@ -913,7 +956,7 @@ export default TaskModal;
 </file>
 
 <file path="src/components/views/TodoView.jsx">
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState } from 'react';
 import { CheckCircle2, Circle, Clock, Trash2, Plus, Calendar as CalendarIcon, AlertCircle, ArrowRight, CalendarDays } from 'lucide-react';
 
 // Import các hàm xử lý ngày tháng
@@ -922,13 +965,23 @@ import { formatDateKey, getDayName } from '../../utils/dateHelpers.js';
 export default function TodoView({ 
   tasks, 
   categories, 
-  currentDate, 
+  // currentDate, <-- BỎ: Không dùng ngày được chọn từ App nữa
   onUpdateTask, 
   setEditingTask, 
   onDeleteTask, 
   onOpenAddTask,
   searchQuery 
 }) {
+  // --- LUÔN SỬ DỤNG NGÀY HÔM NAY ---
+  // Sử dụng state để force re-render khi qua ngày mới (nếu treo máy qua đêm)
+  const [today, setToday] = useState(new Date());
+
+  useEffect(() => {
+      // Cập nhật lại "Hôm nay" mỗi khi component được mount (chuyển tab)
+      setToday(new Date());
+  }, []);
+
+  const todayKey = useMemo(() => formatDateKey(today), [today]);
   
   // --- 1. PHÍM TẮT NGẦM (Hidden Feature): Nhấn 'N' để thêm nhanh task ---
   useEffect(() => {
@@ -937,33 +990,28 @@ export default function TodoView({
 
       if (e.key === 'n' || e.key === 'N') {
         e.preventDefault();
-        onOpenAddTask({ date: formatDateKey(currentDate) });
+        // Luôn mở modal thêm việc cho HÔM NAY
+        onOpenAddTask({ date: todayKey });
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentDate, onOpenAddTask]);
+  }, [todayKey, onOpenAddTask]);
 
-  // --- 2. LOGIC TÍNH TOÁN & PHÂN LOẠI ---
+  // --- 2. LOGIC TÍNH TOÁN & PHÂN LOẠI (Dựa trên Today) ---
   const { dailyTasks, overdueTasks, progress, completedCount, totalCount } = useMemo(() => {
-    const dateKey = formatDateKey(currentDate);
-    const todayKey = formatDateKey(new Date());
-    const isViewingToday = dateKey === todayKey;
     const validCategoryIds = new Set(categories.map(c => c.id));
 
-    // Lọc công việc trong ngày
+    // Lọc công việc HÔM NAY (Cố định)
     let current = tasks.filter(t => {
-      return t.date === dateKey && validCategoryIds.has(t.categoryId);
+      return t.date === todayKey && validCategoryIds.has(t.categoryId);
     });
 
-    // Lọc công việc quá hạn (Chỉ lấy khi đang xem Hôm nay)
-    let overdue = [];
-    if (isViewingToday) {
-        overdue = tasks.filter(t => {
-            return t.date < todayKey && !t.isCompleted && validCategoryIds.has(t.categoryId);
-        });
-    }
+    // Lọc công việc quá hạn (Luôn hiển thị vì đang xem Hôm nay)
+    let overdue = tasks.filter(t => {
+        return t.date < todayKey && !t.isCompleted && validCategoryIds.has(t.categoryId);
+    });
     
     // Áp dụng Search
     if (searchQuery) {
@@ -972,7 +1020,7 @@ export default function TodoView({
       overdue = overdue.filter(t => t.title.toLowerCase().includes(lowerQuery));
     }
 
-    // Tính toán tiến độ (Chỉ tính trên công việc của ngày hiện tại để đỡ áp lực)
+    // Tính toán tiến độ
     const total = current.length;
     const completed = current.filter(t => t.isCompleted).length;
     const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
@@ -984,9 +1032,9 @@ export default function TodoView({
         completedCount: completed, 
         totalCount: total 
     };
-  }, [tasks, categories, currentDate, searchQuery]);
+  }, [tasks, categories, todayKey, searchQuery]);
 
-  // --- 3. NHÓM TASK THEO CATEGORY (Cho Daily Tasks) ---
+  // --- 3. NHÓM TASK THEO CATEGORY ---
   const tasksByCategory = useMemo(() => {
     const grouped = {};
     categories.forEach(cat => {
@@ -999,11 +1047,9 @@ export default function TodoView({
     onUpdateTask({ ...task, isCompleted: !task.isCompleted });
   };
 
-  // Hàm chuyển việc quá hạn sang hôm nay
   const handleMoveToToday = (e, task) => {
       e.stopPropagation();
-      const todayStr = formatDateKey(new Date());
-      onUpdateTask({ ...task, date: todayStr });
+      onUpdateTask({ ...task, date: todayKey });
   };
 
   // --- COMPONENT CON: RENDER NHÓM TASK ---
@@ -1060,7 +1106,6 @@ export default function TodoView({
                 )}
               </div>
 
-              {/* NÚT XOÁ (TRASH ICON) */}
               <button 
                 onClick={(e) => { e.stopPropagation(); onDeleteTask(task.id); }}
                 className="opacity-0 group-hover:opacity-100 p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
@@ -1079,7 +1124,7 @@ export default function TodoView({
     <div className="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-8 custom-scrollbar relative">
       <div className="max-w-3xl mx-auto space-y-8 min-h-screen pb-32">
         
-        {/* --- KHU VỰC CẢNH BÁO QUÁ HẠN (MỚI) --- */}
+        {/* --- KHU VỰC CẢNH BÁO QUÁ HẠN --- */}
         {overdueTasks.length > 0 && (
             <div className="bg-rose-50 border border-rose-100 rounded-3xl p-6 animate-in slide-in-from-top-5 duration-500">
                 <div className="flex items-center gap-2 mb-4 text-rose-700">
@@ -1119,8 +1164,9 @@ export default function TodoView({
           <div className="flex justify-between items-end mb-4">
             <div>
               <div className="text-sm font-semibold text-indigo-500 tracking-wider uppercase mb-1">Tổng quan hôm nay</div>
+              {/* Sử dụng biến 'today' thay vì 'currentDate' */}
               <h2 className="text-3xl font-bold text-slate-800 flex items-center gap-2 capitalize">
-                {getDayName(currentDate)}, {currentDate.getDate()}/{currentDate.getMonth() + 1}
+                {getDayName(today)}, {today.getDate()}/{today.getMonth() + 1}
               </h2>
               <div className="text-gray-500 mt-1 font-medium">
                   Đã hoàn thành {completedCount}/{totalCount} công việc
@@ -1164,7 +1210,7 @@ export default function TodoView({
       {/* --- FLOATING ACTION BUTTON --- */}
       <div className="sticky bottom-10 left-0 right-0 flex justify-center z-30 pointer-events-none">
            <button 
-              onClick={() => onOpenAddTask({ date: formatDateKey(currentDate) })}
+              onClick={() => onOpenAddTask({ date: todayKey })} 
               className="
                 pointer-events-auto
                 group relative flex items-center gap-3 pl-4 pr-6 py-3
@@ -1266,18 +1312,20 @@ export const useUndoableState = (initialValue) => {
 
 @layer base {
   body {
-    /* Dùng Slate-900 thay vì đen tuyền, font chữ render sắc nét hơn */
     @apply font-sans bg-[#F5F5F7] text-slate-900 antialiased; 
-    /* #F5F5F7 là màu nền chuẩn của iOS Settings */
   }
   
-  /* Hiệu ứng bôi đen chữ màu xanh Apple */
   ::selection {
     @apply bg-blue-500/20 text-blue-700;
   }
+
+  /* --- MỚI: Tắt hoàn toàn khung đen mặc định của trình duyệt --- */
+  input:focus, textarea:focus, select:focus {
+    outline: none !important;
+    box-shadow: none !important; /* Tắt shadow mặc định nếu có */
+  }
 }
 
-/* Custom Scrollbar giống MacOS (Ẩn khi không cuộn - Chrome/Webkit) */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -1289,19 +1337,17 @@ export const useUndoableState = (initialValue) => {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.0); /* Ẩn mặc định */
+  background-color: rgba(0, 0, 0, 0.0); 
   border-radius: 9999px;
   border: 3px solid transparent;
   background-clip: content-box;
   transition: background-color 0.3s;
 }
 
-/* Chỉ hiện scrollbar khi hover vào vùng chứa */
 *:hover::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.2);
 }
 
-/* Animation chuẩn Apple (Spring Physics giả lập) */
 .ease-apple {
   transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
 }
@@ -1310,24 +1356,11 @@ export const useUndoableState = (initialValue) => {
 <file path="src/lib/supabaseClient.js">
 import { createClient } from '@supabase/supabase-js';
 
-// Thay thế bằng thông tin Project thật của anh
-const supabaseUrl = 'https://kivzurhuxsxwvdugujjg.supabase.co';
-const supabaseKey = 'sb_publishable_9ttt_Pw081eSgfISoUcFYA_e1RABNWY';
+// Vercel sẽ tự điền 2 thông tin này vào lúc chạy web
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
-</file>
-
-<file path="src/main.jsx">
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import './index.css'
-import App from './App.jsx'
-
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
 </file>
 
 <file path="src/utils/dateHelpers.js">
@@ -1401,18 +1434,6 @@ export default {
     require("tailwindcss-animate"), // Nếu anh có dùng plugin animation
   ],
 }
-</file>
-
-<file path="vite.config.js">
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-
-// https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  base: '/PlanFlowPro/',
-})
-// update
 </file>
 
 <file path="package.json">
@@ -1572,14 +1593,20 @@ export default function App() {
 
         if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); if (canUndo) { undo(); addToast('Đã hoàn tác ↩️'); } }
         if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); if (canRedo) { redo(); addToast('Đã làm lại ↪️'); } }
+        
         if (e.key === 'Delete' && selectedTaskId) { e.preventDefault(); handleDeleteTask(selectedTaskId); }
         if (e.key === 'Escape') setSelectedTaskId(null);
+
+        if (e.key === 'n' || e.key === 'N') {
+            e.preventDefault();
+            handleOpenAddTask({ date: formatDateKey(currentDate) });
+        }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [canUndo, canRedo, selectedTaskId, showAddTaskModal, showRecurringModal, editingTask, editingCategory, undo, redo]);
+  }, [canUndo, canRedo, selectedTaskId, showAddTaskModal, showRecurringModal, editingTask, editingCategory, undo, redo, currentDate]);
 
-  // Copy Paste Logic (Giữ nguyên)
+  // Copy Paste Logic
   useEffect(() => {
       const handleCopyPaste = async (e) => {
           if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
@@ -1720,7 +1747,7 @@ export default function App() {
       const seriesId = baseTask.seriesId || `series-${Date.now()}`;
       const newTasks = [];
       const startDate = new Date(baseTask.date);
-      const count = 12;
+      const count = 12; // Tạo trước 12 lần lặp
       for (let i = 1; i <= count; i++) {
           const nextDate = new Date(startDate);
           if (repeatType === 'daily') nextDate.setDate(startDate.getDate() + i);
@@ -1740,9 +1767,12 @@ export default function App() {
       }
       const mappedNewTasks = newTasks.map(t => ({ ...t, isCompleted: false, categoryId: t.category_id, seriesId: t.series_id }));
       const updatedBase = { ...baseTask, seriesId, repeat: repeatType };
+      
+      // Update State: Thêm task mới vào
       setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === baseTask.id ? updatedBase : t).concat(mappedNewTasks) }));
       addToast('Đã tạo lịch trình lặp lại', 'success');
 
+      // Update DB
       await supabase.from('tasks').insert(newTasks);
       await supabase.from('tasks').update({ series_id: seriesId, repeat: repeatType }).eq('id', baseTask.id);
   };
@@ -1752,6 +1782,8 @@ export default function App() {
       if (!originalTask) return;
       
       const hasSeries = !!originalTask.seriesId || (originalTask.repeat && originalTask.repeat !== 'none');
+      
+      // Kiểm tra thay đổi nội dung quan trọng
       const isContentChanged = originalTask.title !== updatedTask.title || 
                                originalTask.description !== updatedTask.description || 
                                originalTask.date !== updatedTask.date || 
@@ -1779,26 +1811,78 @@ export default function App() {
       const { originalTask, updatedTask } = pendingUpdate;
       setShowRecurringModal(false);
       setPendingUpdate(null);
+      
       if (mode === 'single') {
+           // Tách task này ra khỏi chuỗi (series_id = null)
            setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === updatedTask.id ? updatedTask : t) }));
            addToast('Đã cập nhật', 'success');
            await supabase.from('tasks').update({
-               title: updatedTask.title, description: updatedTask.description, date: updatedTask.date, is_completed: updatedTask.isCompleted, repeat: updatedTask.repeat, category_id: updatedTask.categoryId 
+               title: updatedTask.title, description: updatedTask.description, date: updatedTask.date, is_completed: updatedTask.isCompleted, repeat: updatedTask.repeat, category_id: updatedTask.categoryId, series_id: null
            }).eq('id', updatedTask.id);
+
       } else if (mode === 'future') {
-          const dateDiff = new Date(updatedTask.date) - new Date(originalTask.date);
-          const dayDiff = Math.round(dateDiff / (1000 * 60 * 60 * 24));
-          setBoardData(prev => ({
-              ...prev,
-              tasks: prev.tasks.map(t => {
-                  if (t.seriesId !== originalTask.seriesId) return t;
-                  if (t.date < originalTask.date) return t;
-                  let newDate = t.date;
-                  if (dayDiff !== 0) { const d = new Date(t.date); d.setDate(d.getDate() + dayDiff); newDate = formatDateKey(d); }
-                  return { ...t, title: updatedTask.title, description: updatedTask.description, date: newDate };
-              })
-          }));
-          addToast('Đã cập nhật chuỗi công việc', 'success');
+          // --- LOGIC MỚI: XỬ LÝ KHI THAY ĐỔI CHẾ ĐỘ LẶP ---
+          const isRepeatTypeChanged = originalTask.repeat !== updatedTask.repeat;
+
+          if (isRepeatTypeChanged) {
+              // TRƯỜNG HỢP 1: THAY ĐỔI KIỂU LẶP (VD: Daily -> Weekly, hoặc Daily -> None)
+              // 1. Xóa các task tương lai cũ trong State
+              setBoardData(prev => ({
+                  ...prev,
+                  tasks: prev.tasks.filter(t => {
+                      // Giữ lại chính nó
+                      if (t.id === updatedTask.id) return true;
+                      // Giữ lại task khác series
+                      if (t.seriesId !== originalTask.seriesId) return true;
+                      // Giữ lại task quá khứ của series
+                      return t.date <= originalTask.date;
+                  }).map(t => t.id === updatedTask.id ? updatedTask : t) // Cập nhật task hiện tại
+              }));
+
+              // 2. Xóa các task tương lai cũ trong DB
+              await supabase.from('tasks').delete()
+                  .eq('series_id', originalTask.seriesId)
+                  .gt('date', originalTask.date);
+
+              // 3. Cập nhật task hiện tại trong DB
+              // Lưu ý: Nếu user chọn "None", ta ngắt series_id luôn. Nếu chọn kiểu khác, ta giữ series_id để tái sinh.
+              const newSeriesId = updatedTask.repeat === 'none' ? null : originalTask.seriesId;
+              
+              await supabase.from('tasks').update({ 
+                  ...updatedTask, 
+                  series_id: newSeriesId 
+              }).eq('id', updatedTask.id);
+
+              // 4. Nếu có kiểu lặp mới (khác 'none'), TẠO RA TASK MỚI
+              if (updatedTask.repeat !== 'none') {
+                  await handleGenerateRepeats(updatedTask, updatedTask.repeat);
+              } else {
+                  addToast('Đã dừng lặp lại và xóa các việc sau này', 'success');
+              }
+
+          } else {
+              // TRƯỜNG HỢP 2: CHỈ SỬA NỘI DUNG/NGÀY (Vẫn giữ kiểu lặp cũ)
+              // Logic cũ: Dời ngày tịnh tiến
+              const dateDiff = new Date(updatedTask.date) - new Date(originalTask.date);
+              const dayDiff = Math.round(dateDiff / (1000 * 60 * 60 * 24));
+              
+              setBoardData(prev => ({
+                  ...prev,
+                  tasks: prev.tasks.map(t => {
+                      if (t.seriesId !== originalTask.seriesId) return t;
+                      if (t.date < originalTask.date) return t;
+                      let newDate = t.date;
+                      if (dayDiff !== 0) { const d = new Date(t.date); d.setDate(d.getDate() + dayDiff); newDate = formatDateKey(d); }
+                      return { ...t, title: updatedTask.title, description: updatedTask.description, date: newDate, categoryId: updatedTask.categoryId, repeat: updatedTask.repeat };
+                  })
+              }));
+              
+              await supabase.from('tasks').update({
+                   title: updatedTask.title, description: updatedTask.description, date: updatedTask.date, is_completed: updatedTask.isCompleted, repeat: updatedTask.repeat, category_id: updatedTask.categoryId 
+              }).eq('id', updatedTask.id);
+              
+              addToast('Đã cập nhật chuỗi công việc', 'success');
+          }
       }
   };
 
@@ -1901,12 +1985,42 @@ export default function App() {
     const onMouseMove = (ev) => setSidebarWidth(Math.max(150, Math.min(500, startWidth + (ev.clientX - startX)))); const onMouseUp = () => { document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp); }; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); };
   
-  const handleDragStart = (e, task) => { e.stopPropagation(); setDraggedTask(task); e.dataTransfer.effectAllowed = 'move'; e.target.style.opacity = '0.5'; };
-  const handleDragEnd = (e) => { e.target.style.opacity = '1'; setDraggedTask(null); };
+  // --- TỐI ƯU KÉO THẢ: XỬ LÝ GHOST IMAGE ---
+  const handleDragStart = (e, task) => { 
+    e.stopPropagation(); 
+    setDraggedTask(task); 
+    e.dataTransfer.effectAllowed = 'move'; 
+    e.dataTransfer.setData('text/plain', JSON.stringify(task)); 
+
+    setTimeout(() => {
+        if (e.target) {
+            e.target.style.opacity = '0.4'; 
+            e.target.style.transform = 'scale(0.95)'; 
+            e.target.style.filter = 'grayscale(0.5)'; 
+        }
+    }, 0);
+  };
+
+  const handleDragEnd = (e) => { 
+      if (e.target) {
+          e.target.style.opacity = '1'; 
+          e.target.style.transform = 'none'; 
+          e.target.style.filter = 'none';
+      }
+      setDraggedTask(null); 
+  };
+
   const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
   
   const handleDrop = (e, categoryId, dateStr) => { e.preventDefault();
-      if (draggedTask) { const draggedEl = document.querySelector(`[draggable="true"][style*="opacity: 0.5"]`); if (draggedEl) draggedEl.style.opacity = '1'; }
+      if (draggedTask) { 
+          const draggedEl = document.querySelector(`[draggable="true"][style*="opacity: 0.4"]`); 
+          if (draggedEl) {
+              draggedEl.style.opacity = '1';
+              draggedEl.style.transform = 'none';
+              draggedEl.style.filter = 'none';
+          }
+      }
       if (!draggedTask) return; 
       handleUpdateTask({ ...draggedTask, categoryId, date: dateStr });
       setDraggedTask(null); 
@@ -1979,7 +2093,8 @@ export default function App() {
                 {categories.map((category, index) => (
                   <div 
                     key={category.id} 
-                    className={`flex border-b border-gray-100 group ${draggedCategoryIndex === index ? 'opacity-40 border-dashed border-indigo-400' : ''}`}
+                    /* ĐÃ SỬA: Tăng độ đậm border từ gray-100 lên gray-300 */
+                    className={`flex border-b border-gray-300 group ${draggedCategoryIndex === index ? 'opacity-40 border-dashed border-indigo-400' : ''}`}
                     onDragOver={handleCategoryDragOver}
                     onDrop={(e) => handleCategoryDrop(e, index)}
                   >
@@ -2060,7 +2175,7 @@ export default function App() {
                 ))}
                 
                 {/* Khu vực tạo Category mới */}
-                <div className="flex border-b border-gray-200 group">
+                <div className="flex border-b border-gray-300 group">
                     <div className="sticky left-0 z-30 bg-white/95 backdrop-blur-sm border-r border-gray-200/60 flex flex-col justify-center border-l-4 border-transparent shadow-[4px_0_24px_rgba(0,0,0,0.02)]" style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
                         {isCreatingCategory ? (
                             <div className="p-3 m-2 bg-white border border-indigo-200 rounded-xl shadow-lg animate-in zoom-in-95 duration-200">
@@ -2097,12 +2212,6 @@ export default function App() {
 
               </div>
             </div>
-            
-            <div className="absolute bottom-8 right-8 z-50 animate-in slide-in-from-bottom-5 duration-500">
-                 <button onClick={() => handleOpenAddTask()} className="w-14 h-14 bg-gradient-to-tr from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-full shadow-xl shadow-indigo-300 flex items-center justify-center transition-all hover:scale-110 active:scale-95" title="Thêm công việc mới">
-                      <Plus size={28} />
-                 </button>
-            </div>
           </div>
       )}
 
@@ -2114,6 +2223,17 @@ export default function App() {
     </div>
   );
 }
+</file>
+
+<file path="vite.config.js">
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+})
+// update
 </file>
 
 </files>

@@ -8,6 +8,7 @@ import { useUndoableState } from './hooks/useUndoableState';
 // Components
 import Header from './components/layout/Header';
 import ToastContainer from './components/common/ToastContainer';
+import ConfirmModal from './components/common/ConfirmModal'; // <--- IMPORT MỚI
 import TodoView from './components/views/TodoView';
 import TaskCard from './components/tasks/TaskCard';
 import TaskModal from './components/tasks/TaskModal';
@@ -47,6 +48,9 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [toasts, setToasts] = useState([]); 
   const [highlightedTaskId, setHighlightedTaskId] = useState(null);
+
+  // --- STATE CHO MODAL XÁC NHẬN MỚI ---
+  const [confirmDialog, setConfirmDialog] = useState(null); 
 
   // Category Creation State
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
@@ -107,7 +111,7 @@ export default function App() {
   useEffect(() => {
     const handleKeyDown = (e) => {
         if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
-        if (showAddTaskModal || showRecurringModal || editingTask || editingCategory) return;
+        if (showAddTaskModal || showRecurringModal || editingTask || editingCategory || confirmDialog) return; // Chặn nếu đang mở modal confirm
 
         if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); if (canUndo) { undo(); addToast('Đã hoàn tác ↩️'); } }
         if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); if (canRedo) { redo(); addToast('Đã làm lại ↪️'); } }
@@ -122,7 +126,7 @@ export default function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [canUndo, canRedo, selectedTaskId, showAddTaskModal, showRecurringModal, editingTask, editingCategory, undo, redo, currentDate]);
+  }, [canUndo, canRedo, selectedTaskId, showAddTaskModal, showRecurringModal, editingTask, editingCategory, undo, redo, currentDate, confirmDialog]);
 
   // Copy Paste Logic
   useEffect(() => {
@@ -330,77 +334,24 @@ export default function App() {
       setShowRecurringModal(false);
       setPendingUpdate(null);
       
+      setBoardData(prev => ({
+          ...prev,
+          tasks: prev.tasks.filter(t => {
+              if (t.id === updatedTask.id) return true;
+              if (t.seriesId !== originalTask.seriesId) return true;
+              return t.date < originalTask.date;
+          }).map(t => t.id === updatedTask.id ? updatedTask : t) 
+      }));
+
       if (mode === 'single') {
-           // Tách task này ra khỏi chuỗi (series_id = null)
-           setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === updatedTask.id ? updatedTask : t) }));
-           addToast('Đã cập nhật', 'success');
-           await supabase.from('tasks').update({
-               title: updatedTask.title, description: updatedTask.description, date: updatedTask.date, is_completed: updatedTask.isCompleted, repeat: updatedTask.repeat, category_id: updatedTask.categoryId, series_id: null
-           }).eq('id', updatedTask.id);
-
+           await supabase.from('tasks').update({ ...updatedTask, series_id: null }).eq('id', updatedTask.id);
+           addToast('Đã cập nhật (Tách riêng công việc)', 'success');
       } else if (mode === 'future') {
-          // --- LOGIC MỚI: XỬ LÝ KHI THAY ĐỔI CHẾ ĐỘ LẶP ---
-          const isRepeatTypeChanged = originalTask.repeat !== updatedTask.repeat;
-
-          if (isRepeatTypeChanged) {
-              // TRƯỜNG HỢP 1: THAY ĐỔI KIỂU LẶP (VD: Daily -> Weekly, hoặc Daily -> None)
-              // 1. Xóa các task tương lai cũ trong State
-              setBoardData(prev => ({
-                  ...prev,
-                  tasks: prev.tasks.filter(t => {
-                      // Giữ lại chính nó
-                      if (t.id === updatedTask.id) return true;
-                      // Giữ lại task khác series
-                      if (t.seriesId !== originalTask.seriesId) return true;
-                      // Giữ lại task quá khứ của series
-                      return t.date <= originalTask.date;
-                  }).map(t => t.id === updatedTask.id ? updatedTask : t) // Cập nhật task hiện tại
-              }));
-
-              // 2. Xóa các task tương lai cũ trong DB
-              await supabase.from('tasks').delete()
-                  .eq('series_id', originalTask.seriesId)
-                  .gt('date', originalTask.date);
-
-              // 3. Cập nhật task hiện tại trong DB
-              // Lưu ý: Nếu user chọn "None", ta ngắt series_id luôn. Nếu chọn kiểu khác, ta giữ series_id để tái sinh.
-              const newSeriesId = updatedTask.repeat === 'none' ? null : originalTask.seriesId;
-              
-              await supabase.from('tasks').update({ 
-                  ...updatedTask, 
-                  series_id: newSeriesId 
-              }).eq('id', updatedTask.id);
-
-              // 4. Nếu có kiểu lặp mới (khác 'none'), TẠO RA TASK MỚI
-              if (updatedTask.repeat !== 'none') {
-                  await handleGenerateRepeats(updatedTask, updatedTask.repeat);
-              } else {
-                  addToast('Đã dừng lặp lại và xóa các việc sau này', 'success');
-              }
-
-          } else {
-              // TRƯỜNG HỢP 2: CHỈ SỬA NỘI DUNG/NGÀY (Vẫn giữ kiểu lặp cũ)
-              // Logic cũ: Dời ngày tịnh tiến
-              const dateDiff = new Date(updatedTask.date) - new Date(originalTask.date);
-              const dayDiff = Math.round(dateDiff / (1000 * 60 * 60 * 24));
-              
-              setBoardData(prev => ({
-                  ...prev,
-                  tasks: prev.tasks.map(t => {
-                      if (t.seriesId !== originalTask.seriesId) return t;
-                      if (t.date < originalTask.date) return t;
-                      let newDate = t.date;
-                      if (dayDiff !== 0) { const d = new Date(t.date); d.setDate(d.getDate() + dayDiff); newDate = formatDateKey(d); }
-                      return { ...t, title: updatedTask.title, description: updatedTask.description, date: newDate, categoryId: updatedTask.categoryId, repeat: updatedTask.repeat };
-                  })
-              }));
-              
-              await supabase.from('tasks').update({
-                   title: updatedTask.title, description: updatedTask.description, date: updatedTask.date, is_completed: updatedTask.isCompleted, repeat: updatedTask.repeat, category_id: updatedTask.categoryId 
-              }).eq('id', updatedTask.id);
-              
-              addToast('Đã cập nhật chuỗi công việc', 'success');
-          }
+          await supabase.from('tasks').delete().eq('series_id', originalTask.seriesId).gt('date', originalTask.date);
+          const newSeriesId = updatedTask.repeat === 'none' ? null : originalTask.seriesId;
+          await supabase.from('tasks').update({ ...updatedTask, series_id: newSeriesId }).eq('id', updatedTask.id);
+          if (updatedTask.repeat !== 'none') { await handleGenerateRepeats(updatedTask, updatedTask.repeat); } 
+          else { addToast('Đã cập nhật và dừng lặp lại', 'success'); }
       }
   };
 
@@ -459,13 +410,29 @@ export default function App() {
     }
   };
 
-  const handleDeleteCategory = async (catId) => { 
-        const originalData = { ...boardData };
-        setBoardData(prev => ({ tasks: prev.tasks.filter(t => t.categoryId !== catId), categories: prev.categories.filter(c => c.id !== catId) }));
-        setEditingCategory(null); 
-        addToast('Đã xóa hạng mục');
-        const { error } = await supabase.from('categories').delete().eq('id', catId);
-        if (error) { setBoardData(originalData); addToast('Lỗi xóa hạng mục - Đã khôi phục', 'error'); }
+  // --- HÀM XÓA HẠNG MỤC (ĐÃ CẬP NHẬT DÙNG CONFIRM MODAL) ---
+  const handleDeleteCategory = (catId) => { 
+        const category = categories.find(c => c.id === catId);
+        const title = category ? category.title : 'hạng mục này';
+
+        // Thay vì window.confirm, ta set state để hiện modal đẹp
+        setConfirmDialog({
+            title: "Xóa hạng mục?",
+            message: `Bạn có chắc chắn muốn xóa "${title}"?\n\nTất cả công việc nằm trong hạng mục này cũng sẽ bị xóa vĩnh viễn!`,
+            confirmLabel: "Xóa vĩnh viễn",
+            isDangerous: true,
+            onConfirm: async () => {
+                // Logic xóa thật sự (chuyển vào trong callback)
+                const originalData = { ...boardData };
+                setBoardData(prev => ({ tasks: prev.tasks.filter(t => t.categoryId !== catId), categories: prev.categories.filter(c => c.id !== catId) }));
+                setEditingCategory(null); 
+                setConfirmDialog(null); // Đóng modal
+                addToast('Đã xóa hạng mục');
+                
+                const { error } = await supabase.from('categories').delete().eq('id', catId);
+                if (error) { setBoardData(originalData); addToast('Lỗi xóa hạng mục - Đã khôi phục', 'error'); }
+            }
+        });
   };
 
   const handleUpdateCategory = async (updatedCat) => { 
@@ -503,7 +470,6 @@ export default function App() {
     const onMouseMove = (ev) => setSidebarWidth(Math.max(150, Math.min(500, startWidth + (ev.clientX - startX)))); const onMouseUp = () => { document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp); }; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); };
   
-  // --- TỐI ƯU KÉO THẢ: XỬ LÝ GHOST IMAGE ---
   const handleDragStart = (e, task) => { 
     e.stopPropagation(); 
     setDraggedTask(task); 
@@ -611,7 +577,6 @@ export default function App() {
                 {categories.map((category, index) => (
                   <div 
                     key={category.id} 
-                    /* ĐÃ SỬA: Tăng độ đậm border từ gray-100 lên gray-300 */
                     className={`flex border-b border-gray-300 group ${draggedCategoryIndex === index ? 'opacity-40 border-dashed border-indigo-400' : ''}`}
                     onDragOver={handleCategoryDragOver}
                     onDrop={(e) => handleCategoryDrop(e, index)}
@@ -737,6 +702,17 @@ export default function App() {
       {showAddTaskModal && <AddTaskModal onClose={() => setShowAddTaskModal(false)} onSave={handleSaveNewTask} categories={categories} initialDate={newTaskDefaults.date} initialCategoryId={newTaskDefaults.categoryId} />}
       {editingCategory && <CategoryModal category={editingCategory} onClose={() => setEditingCategory(null)} onUpdate={handleUpdateCategory} onDelete={handleDeleteCategory} />}
       {showRecurringModal && <RecurringUpdateModal onClose={() => setShowRecurringModal(false)} onConfirm={handleConfirmRecurringUpdate} />}
+      
+      {/* --- HIỂN THỊ MODAL CONFIRM MỚI --- */}
+      {/* Chỉ render khi có dữ liệu dialog -> Đảm bảo sạch sẽ bộ nhớ */}
+      {confirmDialog && (
+          <ConfirmModal 
+            isOpen={true} 
+            onClose={() => setConfirmDialog(null)}
+            {...confirmDialog} 
+          />
+      )}
+
       <ToastContainer toasts={toasts} />
     </div>
   );

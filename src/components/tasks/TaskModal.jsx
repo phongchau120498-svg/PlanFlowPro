@@ -21,7 +21,47 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
       onClose();
   };
 
-  const handleKeyDown = (e) => {
+  // --- XỬ LÝ PHÍM TẮT CHUNG (ESC & ENTER TOÀN CỤC) ---
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            onClose();
+            return;
+        }
+        // Phím Enter toàn cục:
+        // - Nếu đang ở ô Title (Tiêu đề): Đã có hàm handleTitleKeyDown xử lý riêng bên dưới.
+        // - Nếu đang ở ô Description (Ghi chú): Bỏ qua để cho phép xuống dòng.
+        // - Các trường hợp khác (Date, Select...): Bấm Enter là Lưu.
+        if (e.key === 'Enter') {
+            if (e.target.tagName === 'TEXTAREA') return; // Bỏ qua textarea (Title & Desc) để xử lý riêng
+            e.preventDefault();
+            handleSaveAndClose();
+        }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [localTask]); 
+
+  const handleAddToGoogleCalendar = () => {
+    const url = generateGoogleCalendarLink(localTask);
+    window.open(url, '_blank');
+  };
+
+  const handleRepeatChange = (e) => {
+      setLocalTask(prev => ({ ...prev, repeat: e.target.value }));
+  };
+
+  // --- XỬ LÝ RIÊNG CHO Ô TIÊU ĐỀ: ENTER LÀ LƯU ---
+  const handleTitleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Chặn hành vi xuống dòng mặc định của textarea
+      handleSaveAndClose(); // Lưu ngay lập tức
+    }
+  };
+
+  // --- LOGIC THÔNG MINH CHO Ô GHI CHÚ (Giữ nguyên) ---
+  const handleDescriptionKeyDown = (e) => {
       if (e.key === 'Enter') {
           const textarea = descriptionRef.current;
           if (!textarea) return;
@@ -66,23 +106,12 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
               }, 0);
           }
       }
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveAndClose();
-  };
-
-  const handleAddToGoogleCalendar = () => {
-    const url = generateGoogleCalendarLink(localTask);
-    window.open(url, '_blank');
-  };
-
-  const handleRepeatChange = (e) => {
-      setLocalTask(prev => ({ ...prev, repeat: e.target.value }));
   };
 
   const toggleLineFormat = (type) => { 
       const textarea = descriptionRef.current;
       if (!textarea) return;
-
+      // ... (Logic format giữ nguyên) ...
       const start = textarea.selectionStart;
       const value = localTask.description || '';
       const lastNewLine = value.lastIndexOf('\n', start - 1);
@@ -159,12 +188,15 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
                 </div>
            </div>
 
+          {/* Ô TIÊU ĐỀ: Thêm onKeyDown để chặn xuống dòng */}
           <textarea 
             value={localTask.title} 
             onChange={(e) => setLocalTask(prev => ({...prev, title: e.target.value}))} 
+            onKeyDown={handleTitleKeyDown} // <--- QUAN TRỌNG: Gắn hàm xử lý riêng
             className={`w-full text-3xl sm:text-4xl font-bold border-none outline-none focus:ring-0 placeholder-gray-300 p-0 bg-transparent tracking-tight resize-none overflow-hidden ${localTask.isCompleted ? 'text-gray-400 line-through' : 'text-slate-900'}`} 
             placeholder="Tên công việc..." 
             rows={1}
+            autoFocus 
             onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
           />
 
@@ -188,12 +220,11 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
                     <ToolbarButton icon={List} onClick={() => toggleLineFormat('bullet')} tooltip="Gạch đầu dòng" />
                     <ToolbarButton icon={ListOrdered} onClick={() => toggleLineFormat('number')} tooltip="Đánh số" />
                  </div>
-                 {/* ĐÃ BỎ FONT-MONO ĐỂ CHỮ ĐẸP NHƯ APPLE NOTES */}
                  <textarea 
                     ref={descriptionRef}
                     value={localTask.description} 
                     onChange={(e) => setLocalTask(prev => ({...prev, description: e.target.value}))} 
-                    onKeyDown={handleKeyDown}
+                    onKeyDown={handleDescriptionKeyDown} 
                     className="w-full min-h-[400px] p-0 text-slate-700 bg-transparent border-none outline-none focus:ring-0 text-base leading-relaxed placeholder-gray-300 resize-none" 
                     placeholder="Nhập chi tiết công việc..." 
                  />

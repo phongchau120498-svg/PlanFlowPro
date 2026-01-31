@@ -51,6 +51,7 @@ README.md
 src/App.css
 src/App.jsx
 src/assets/react.svg
+src/components/common/ConfirmModal.jsx
 src/components/common/ToastContainer.jsx
 src/components/layout/Header.jsx
 src/components/tasks/AddTaskModal.jsx
@@ -243,6 +244,93 @@ If you are developing a production application, we recommend using TypeScript wi
 
 <file path="src/assets/react.svg">
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="35.93" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 228"><path fill="#00D8FF" d="M210.483 73.824a171.49 171.49 0 0 0-8.24-2.597c.465-1.9.893-3.777 1.273-5.621c6.238-30.281 2.16-54.676-11.769-62.708c-13.355-7.7-35.196.329-57.254 19.526a171.23 171.23 0 0 0-6.375 5.848a155.866 155.866 0 0 0-4.241-3.917C100.759 3.829 77.587-4.822 63.673 3.233C50.33 10.957 46.379 33.89 51.995 62.588a170.974 170.974 0 0 0 1.892 8.48c-3.28.932-6.445 1.924-9.474 2.98C17.309 83.498 0 98.307 0 113.668c0 15.865 18.582 31.778 46.812 41.427a145.52 145.52 0 0 0 6.921 2.165a167.467 167.467 0 0 0-2.01 9.138c-5.354 28.2-1.173 50.591 12.134 58.266c13.744 7.926 36.812-.22 59.273-19.855a145.567 145.567 0 0 0 5.342-4.923a168.064 168.064 0 0 0 6.92 6.314c21.758 18.722 43.246 26.282 56.54 18.586c13.731-7.949 18.194-32.003 12.4-61.268a145.016 145.016 0 0 0-1.535-6.842c1.62-.48 3.21-.974 4.76-1.488c29.348-9.723 48.443-25.443 48.443-41.52c0-15.417-17.868-30.326-45.517-39.844Zm-6.365 70.984c-1.4.463-2.836.91-4.3 1.345c-3.24-10.257-7.612-21.163-12.963-32.432c5.106-11 9.31-21.767 12.459-31.957c2.619.758 5.16 1.557 7.61 2.4c23.69 8.156 38.14 20.213 38.14 29.504c0 9.896-15.606 22.743-40.946 31.14Zm-10.514 20.834c2.562 12.94 2.927 24.64 1.23 33.787c-1.524 8.219-4.59 13.698-8.382 15.893c-8.067 4.67-25.32-1.4-43.927-17.412a156.726 156.726 0 0 1-6.437-5.87c7.214-7.889 14.423-17.06 21.459-27.246c12.376-1.098 24.068-2.894 34.671-5.345a134.17 134.17 0 0 1 1.386 6.193ZM87.276 214.515c-7.882 2.783-14.16 2.863-17.955.675c-8.075-4.657-11.432-22.636-6.853-46.752a156.923 156.923 0 0 1 1.869-8.499c10.486 2.32 22.093 3.988 34.498 4.994c7.084 9.967 14.501 19.128 21.976 27.15a134.668 134.668 0 0 1-4.877 4.492c-9.933 8.682-19.886 14.842-28.658 17.94ZM50.35 144.747c-12.483-4.267-22.792-9.812-29.858-15.863c-6.35-5.437-9.555-10.836-9.555-15.216c0-9.322 13.897-21.212 37.076-29.293c2.813-.98 5.757-1.905 8.812-2.773c3.204 10.42 7.406 21.315 12.477 32.332c-5.137 11.18-9.399 22.249-12.634 32.792a134.718 134.718 0 0 1-6.318-1.979Zm12.378-84.26c-4.811-24.587-1.616-43.134 6.425-47.789c8.564-4.958 27.502 2.111 47.463 19.835a144.318 144.318 0 0 1 3.841 3.545c-7.438 7.987-14.787 17.08-21.808 26.988c-12.04 1.116-23.565 2.908-34.161 5.309a160.342 160.342 0 0 1-1.76-7.887Zm110.427 27.268a347.8 347.8 0 0 0-7.785-12.803c8.168 1.033 15.994 2.404 23.343 4.08c-2.206 7.072-4.956 14.465-8.193 22.045a381.151 381.151 0 0 0-7.365-13.322Zm-45.032-43.861c5.044 5.465 10.096 11.566 15.065 18.186a322.04 322.04 0 0 0-30.257-.006c4.974-6.559 10.069-12.652 15.192-18.18ZM82.802 87.83a323.167 323.167 0 0 0-7.227 13.238c-3.184-7.553-5.909-14.98-8.134-22.152c7.304-1.634 15.093-2.97 23.209-3.984a321.524 321.524 0 0 0-7.848 12.897Zm8.081 65.352c-8.385-.936-16.291-2.203-23.593-3.793c2.26-7.3 5.045-14.885 8.298-22.6a321.187 321.187 0 0 0 7.257 13.246c2.594 4.48 5.28 8.868 8.038 13.147Zm37.542 31.03c-5.184-5.592-10.354-11.779-15.403-18.433c4.902.192 9.899.29 14.978.29c5.218 0 10.376-.117 15.453-.343c-4.985 6.774-10.018 12.97-15.028 18.486Zm52.198-57.817c3.422 7.8 6.306 15.345 8.596 22.52c-7.422 1.694-15.436 3.058-23.88 4.071a382.417 382.417 0 0 0 7.859-13.026a347.403 347.403 0 0 0 7.425-13.565Zm-16.898 8.101a358.557 358.557 0 0 1-12.281 19.815a329.4 329.4 0 0 1-23.444.823c-7.967 0-15.716-.248-23.178-.732a310.202 310.202 0 0 1-12.513-19.846h.001a307.41 307.41 0 0 1-10.923-20.627a310.278 310.278 0 0 1 10.89-20.637l-.001.001a307.318 307.318 0 0 1 12.413-19.761c7.613-.576 15.42-.876 23.31-.876H128c7.926 0 15.743.303 23.354.883a329.357 329.357 0 0 1 12.335 19.695a358.489 358.489 0 0 1 11.036 20.54a329.472 329.472 0 0 1-11 20.722Zm22.56-122.124c8.572 4.944 11.906 24.881 6.52 51.026c-.344 1.668-.73 3.367-1.15 5.09c-10.622-2.452-22.155-4.275-34.23-5.408c-7.034-10.017-14.323-19.124-21.64-27.008a160.789 160.789 0 0 1 5.888-5.4c18.9-16.447 36.564-22.941 44.612-18.3ZM128 90.808c12.625 0 22.86 10.235 22.86 22.86s-10.235 22.86-22.86 22.86s-22.86-10.235-22.86-22.86s10.235-22.86 22.86-22.86Z"></path></svg>
+</file>
+
+<file path="src/components/common/ConfirmModal.jsx">
+import React, { useEffect } from 'react';
+import { AlertTriangle } from 'lucide-react';
+
+const ConfirmModal = ({ 
+    isOpen, 
+    onClose, 
+    onConfirm, 
+    title, 
+    message, 
+    confirmLabel = "Xác nhận", 
+    cancelLabel = "Hủy bỏ", 
+    isDangerous = false 
+}) => {
+    // --- SỬA LỖI QUAN TRỌNG: Di chuyển useEffect lên đầu ---
+    // Hook phải luôn được gọi trước khi return để đảm bảo cleanup hoạt động đúng
+    
+    useEffect(() => {
+        if (!isOpen) return; 
+
+        const handleKeyDown = (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                e.stopPropagation();
+                onClose();
+            }
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation(); // Ngăn không cho sự kiện lọt xuống dưới
+                onConfirm();
+            }
+        };
+
+        // Thêm sự kiện
+        window.addEventListener('keydown', handleKeyDown);
+
+        // Dọn dẹp sự kiện ngay khi Modal đóng (Quan trọng!)
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isOpen, onClose, onConfirm]);
+
+    // --- CHECK ĐIỀU KIỆN HIỂN THỊ Ở DƯỚI CÙNG ---
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-[2px] transition-opacity animate-in fade-in duration-200" onClick={onClose} />
+            
+            <div className="relative bg-white w-full max-w-sm rounded-[32px] shadow-2xl p-6 animate-in zoom-in-95 duration-300 ease-apple border border-white/50 text-center ring-1 ring-black/5">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 shadow-sm 
+                    ${isDangerous ? 'bg-red-50 text-red-500' : 'bg-indigo-50 text-indigo-500'}`}>
+                    <AlertTriangle size={32} strokeWidth={2.5} />
+                </div>
+                
+                <h3 className="text-xl font-bold text-slate-900 mb-3">{title}</h3>
+                
+                <p className="text-sm text-slate-500 mb-8 px-2 leading-relaxed whitespace-pre-line font-medium">
+                    {message}
+                </p>
+                
+                <div className="flex gap-3">
+                    <button 
+                        onClick={onClose} 
+                        className="flex-1 py-3.5 bg-gray-100 hover:bg-gray-200 text-slate-600 rounded-2xl font-bold transition-all active:scale-95"
+                    >
+                        {cancelLabel}
+                    </button>
+                    <button 
+                        onClick={onConfirm} 
+                        className={`flex-1 py-3.5 text-white rounded-2xl font-bold shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2
+                            ${isDangerous 
+                                ? 'bg-red-500 hover:bg-red-600 shadow-red-200' 
+                                : 'bg-slate-900 hover:bg-black shadow-slate-300'
+                            }`}
+                    >
+                        {confirmLabel}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default ConfirmModal;
 </file>
 
 <file path="src/components/tasks/CategoryModal.jsx">
@@ -1072,57 +1160,6 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(supabaseUrl, supabaseKey);
 </file>
 
-<file path="src/utils/dateHelpers.js">
-export const formatDateKey = (date) => {
-    if (!date) return '';
-    const d = new Date(date);
-    if (isNaN(d.getTime())) return '';
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-};
-
-export const getMonday = (d) => {
-    d = new Date(d);
-    const day = d.getDay();
-    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(d.setDate(diff));
-};
-
-export const getInfiniteWeekWindow = (currentDate) => {
-    const currentMonday = getMonday(currentDate);
-    const startDate = new Date(currentMonday);
-    startDate.setDate(startDate.getDate() - 7); 
-    const days = [];
-    for (let i = 0; i < 21; i++) {
-        const d = new Date(startDate);
-        d.setDate(startDate.getDate() + i);
-        days.push(d);
-    }
-    return days;
-};
-
-export const formatDateDisplay = (date) => date.getDate();
-
-export const getDayName = (date) => {
-    const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-    return days[date.getDay()];
-};
-
-export const getFullDateDisplay = (date) => {
-    return `Thứ ${date.getDay() === 0 ? 'CN' : date.getDay() + 1}, ${date.getDate()}/${date.getMonth() + 1}`;
-};
-
-export const generateGoogleCalendarLink = (task) => {
-    const startTime = task.date.replace(/-/g, '') + 'T090000';
-    const endTime = task.date.replace(/-/g, '') + 'T100000';
-    const details = encodeURIComponent(`${task.description || ''} \n\n[PlanFlow App]`);
-    const title = encodeURIComponent(`DEADLINE: ${task.title}`);
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTime}/${endTime}&details=${details}`;
-};
-</file>
-
 <file path="tailwind.config.js">
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -1321,221 +1358,60 @@ const Header = ({
 export default Header;
 </file>
 
-<file path="src/components/tasks/TaskModal.jsx">
-import React, { useState, useEffect, useRef } from 'react';
-import { CalendarPlus, Trash2, X, CheckSquare, Square, Repeat, Calendar, AlignLeft, Save, List, ListOrdered } from 'lucide-react';
-import { generateGoogleCalendarLink } from '../../utils/dateHelpers';
-import { COLORS } from '../../constants/theme';
-
-const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRepeats }) => {
-  if (!task) return null;
-  const [localTask, setLocalTask] = useState(task);
-  const descriptionRef = useRef(null);
-
-  const category = categories.find(c => c.id === localTask.categoryId);
-  const currentCategoryColor = category ? category.color : COLORS[0];
-
-  useEffect(() => { setLocalTask(task); }, [task.id]);
-
-  const handleSaveAndClose = () => {
-      if (localTask.repeat !== task.repeat && localTask.repeat !== 'none') {
-           onGenerateRepeats(localTask, localTask.repeat);
-      }
-      onUpdate(localTask);
-      onClose();
-  };
-
-  const handleKeyDown = (e) => {
-      if (e.key === 'Enter') {
-          const textarea = descriptionRef.current;
-          if (!textarea) return;
-
-          const start = textarea.selectionStart;
-          const value = localTask.description || '';
-          
-          const lastNewLine = value.lastIndexOf('\n', start - 1);
-          const currentLineStart = lastNewLine + 1;
-          const currentLineText = value.substring(currentLineStart, start);
-
-          const match = currentLineText.match(/^(\s*)(• |\d+\. )/);
-
-          if (match) {
-              const fullPrefix = match[0]; 
-              const content = currentLineText.substring(fullPrefix.length);
-
-              if (!content.trim()) {
-                  e.preventDefault();
-                  const newValue = value.substring(0, currentLineStart) + value.substring(start);
-                  setLocalTask(prev => ({...prev, description: newValue}));
-                  setTimeout(() => {
-                      textarea.selectionStart = textarea.selectionEnd = currentLineStart;
-                  }, 0);
-                  return;
-              }
-
-              e.preventDefault();
-              let nextPrefix = match[2]; 
-              if (nextPrefix.match(/\d+\./)) {
-                  const num = parseInt(nextPrefix);
-                  nextPrefix = `${num + 1}. `;
-              }
-
-              const insertText = '\n' + match[1] + nextPrefix; 
-              const newValue = value.substring(0, start) + insertText + value.substring(textarea.selectionEnd);
-              
-              setLocalTask(prev => ({...prev, description: newValue}));
-              setTimeout(() => {
-                  textarea.selectionStart = textarea.selectionEnd = start + insertText.length;
-                  textarea.scrollTop = textarea.scrollHeight; 
-              }, 0);
-          }
-      }
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSaveAndClose();
-  };
-
-  const handleAddToGoogleCalendar = () => {
-    const url = generateGoogleCalendarLink(localTask);
-    window.open(url, '_blank');
-  };
-
-  const handleRepeatChange = (e) => {
-      setLocalTask(prev => ({ ...prev, repeat: e.target.value }));
-  };
-
-  const toggleLineFormat = (type) => { 
-      const textarea = descriptionRef.current;
-      if (!textarea) return;
-
-      const start = textarea.selectionStart;
-      const value = localTask.description || '';
-      const lastNewLine = value.lastIndexOf('\n', start - 1);
-      const currentLineStart = lastNewLine + 1;
-      let nextNewLine = value.indexOf('\n', start);
-      if (nextNewLine === -1) nextNewLine = value.length;
-
-      const currentLineContent = value.substring(currentLineStart, nextNewLine);
-      const match = currentLineContent.match(/^(\s*)(• |\d+\. )(.*)/);
-      
-      let newContent = currentLineContent;
-      let newPrefix = type === 'bullet' ? '• ' : '1. ';
-
-      if (match) {
-          const currentPrefix = match[2];
-          const textBody = match[3] || '';
-          if ((type === 'bullet' && currentPrefix === '• ') || (type === 'number' && currentPrefix.match(/\d+\./))) {
-               newContent = match[1] + textBody;
-          } else {
-               newContent = match[1] + newPrefix + textBody;
-          }
-      } else {
-          newContent = newPrefix + currentLineContent;
-      }
-
-      const newValue = value.substring(0, currentLineStart) + newContent + value.substring(nextNewLine);
-      setLocalTask(prev => ({...prev, description: newValue}));
-      setTimeout(() => {
-          textarea.focus();
-          textarea.selectionStart = textarea.selectionEnd = currentLineStart + newContent.length;
-      }, 0);
-  };
-
-  const ToolbarButton = ({ icon: Icon, onClick, tooltip }) => (
-      <button onClick={onClick} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title={tooltip} type="button">
-          <Icon size={16} strokeWidth={2.5} />
-      </button>
-  );
-
-  return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
-      <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-300" />
-      <div className="relative bg-[#FBFBFD] w-full max-w-2xl h-auto max-h-[90vh] rounded-[32px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 ease-apple border border-white/50 ring-1 ring-black/5" onClick={(e) => e.stopPropagation()}>
-        
-        {/* HEADER */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50 bg-white/60 backdrop-blur-xl sticky top-0 z-10 shrink-0">
-          <div className="flex items-center gap-3">
-              <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest ${currentCategoryColor.value} border border-black/5 shadow-sm`}>
-                  {category?.title}
-              </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={handleAddToGoogleCalendar} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all"><CalendarPlus size={20} /></button>
-             <button onClick={() => { onDelete(localTask.id); onClose(); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all"><Trash2 size={20} /></button>
-            <button onClick={onClose} className="ml-2 p-2 bg-gray-200/50 hover:bg-gray-300/50 text-gray-500 rounded-full transition-all"><X size={20} /></button>
-          </div>
-        </div>
-
-        {/* BODY */}
-        <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar space-y-6">
-           <div className="flex flex-wrap items-center gap-3">
-                <button onClick={() => setLocalTask(prev => ({...prev, isCompleted: !prev.isCompleted}))} className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-sm font-bold transition-all border shadow-sm active:scale-95 duration-200 ${localTask.isCompleted ? 'bg-gray-100 text-gray-500 border-transparent' : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'}`}>
-                    {localTask.isCompleted ? <CheckSquare size={18}/> : <Square size={18}/>}
-                    {localTask.isCompleted ? 'Đã xong' : 'Đánh dấu xong'}
-                </button>
-                <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border border-gray-200/60 shadow-sm group hover:border-slate-300 transition-colors">
-                    <Repeat size={16} className="text-slate-500" />
-                    <select value={localTask.repeat || 'none'} onChange={handleRepeatChange} className="text-sm bg-transparent border-none outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0 pl-0 pr-8">
-                        <option value="none">Không lặp lại</option>
-                        <option value="daily">Mỗi ngày</option>
-                        <option value="weekly">Mỗi tuần</option>
-                        <option value="monthly">Mỗi tháng</option>
-                    </select>
-                </div>
-           </div>
-
-          <textarea 
-            value={localTask.title} 
-            onChange={(e) => setLocalTask(prev => ({...prev, title: e.target.value}))} 
-            className={`w-full text-3xl sm:text-4xl font-bold border-none outline-none focus:ring-0 placeholder-gray-300 p-0 bg-transparent tracking-tight resize-none overflow-hidden ${localTask.isCompleted ? 'text-gray-400 line-through' : 'text-slate-900'}`} 
-            placeholder="Tên công việc..." 
-            rows={1}
-            onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
-          />
-
-          <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
-                    <Calendar size={20} />
-                </div>
-                <div className="flex-1">
-                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hạn chót</label>
-                    <input type="date" value={localTask.date} onChange={(e) => setLocalTask(prev => ({...prev, date: e.target.value}))} className="bg-transparent border-none outline-none focus:ring-0 p-0 text-slate-700 font-bold text-lg cursor-pointer font-sans" />
-                </div>
-          </div>
-
-          <div className="space-y-3">
-              <div className="flex items-center gap-2 text-gray-400">
-                  <AlignLeft size={16} />
-                  <span className="text-xs font-bold uppercase tracking-wider">Ghi chú</span>
-              </div>
-              <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm focus-within:ring-2 focus-within:ring-slate-200 focus-within:border-slate-400 transition-all p-4">
-                 <div className="flex items-center gap-1 pb-2 mb-2 border-b border-gray-100/80">
-                    <ToolbarButton icon={List} onClick={() => toggleLineFormat('bullet')} tooltip="Gạch đầu dòng" />
-                    <ToolbarButton icon={ListOrdered} onClick={() => toggleLineFormat('number')} tooltip="Đánh số" />
-                 </div>
-                 {/* ĐÃ BỎ FONT-MONO ĐỂ CHỮ ĐẸP NHƯ APPLE NOTES */}
-                 <textarea 
-                    ref={descriptionRef}
-                    value={localTask.description} 
-                    onChange={(e) => setLocalTask(prev => ({...prev, description: e.target.value}))} 
-                    onKeyDown={handleKeyDown}
-                    className="w-full min-h-[400px] p-0 text-slate-700 bg-transparent border-none outline-none focus:ring-0 text-base leading-relaxed placeholder-gray-300 resize-none" 
-                    placeholder="Nhập chi tiết công việc..." 
-                 />
-              </div>
-          </div>
-        </div>
-
-        {/* FOOTER */}
-        <div className="p-6 border-t border-gray-200/50 bg-white/80 backdrop-blur-md flex justify-end shrink-0">
-           <button onClick={handleSaveAndClose} className="flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white rounded-2xl hover:bg-black font-bold shadow-lg shadow-slate-300 transition-all transform active:scale-[0.98]">
-               <Save size={18}/> Lưu thay đổi
-           </button>
-        </div>
-      </div>
-    </div>
-  );
+<file path="src/utils/dateHelpers.js">
+export const formatDateKey = (date) => {
+    if (!date) return '';
+    const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 };
-export default TaskModal;
+
+export const getMonday = (d) => {
+    d = new Date(d);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+};
+
+export const getInfiniteWeekWindow = (currentDate) => {
+    const currentMonday = getMonday(currentDate);
+    const startDate = new Date(currentMonday);
+    startDate.setDate(startDate.getDate() - 7); 
+    const days = [];
+    for (let i = 0; i < 21; i++) {
+        const d = new Date(startDate);
+        d.setDate(startDate.getDate() + i);
+        days.push(d);
+    }
+    return days;
+};
+
+export const formatDateDisplay = (date) => date.getDate();
+
+export const getDayName = (date) => {
+    const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+    return days[date.getDay()];
+};
+
+export const getFullDateDisplay = (date) => {
+    return `Thứ ${date.getDay() === 0 ? 'CN' : date.getDay() + 1}, ${date.getDate()}/${date.getMonth() + 1}`;
+};
+
+export const generateGoogleCalendarLink = (task) => {
+    // Mặc định set giờ là 9h sáng đến 10h sáng
+    const startTime = task.date.replace(/-/g, '') + 'T090000';
+    const endTime = task.date.replace(/-/g, '') + 'T100000';
+    
+    const details = encodeURIComponent(`${task.description || ''} \n\n[PlanFlow App]`);
+    
+    // ĐÃ SỬA: Chỉ lấy tên task, bỏ chữ DEADLINE: ở trước
+    const title = encodeURIComponent(task.title);
+    
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTime}/${endTime}&details=${details}`;
+};
 </file>
 
 <file path="package.json">
@@ -1581,6 +1457,17 @@ export default TaskModal;
 }
 </file>
 
+<file path="vite.config.js">
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+})
+// update
+</file>
+
 <file path="src/App.jsx">
 import React, { useState, useMemo, useEffect, useRef, useCallback, useLayoutEffect } from 'react';
 import { Plus, GripVertical, CornerDownLeft, Trash2, Palette, ChevronRight as ChevronRightIcon, X, Check } from 'lucide-react';
@@ -1592,6 +1479,7 @@ import { useUndoableState } from './hooks/useUndoableState';
 // Components
 import Header from './components/layout/Header';
 import ToastContainer from './components/common/ToastContainer';
+import ConfirmModal from './components/common/ConfirmModal'; // <--- IMPORT MỚI
 import TodoView from './components/views/TodoView';
 import TaskCard from './components/tasks/TaskCard';
 import TaskModal from './components/tasks/TaskModal';
@@ -1631,6 +1519,9 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [toasts, setToasts] = useState([]); 
   const [highlightedTaskId, setHighlightedTaskId] = useState(null);
+
+  // --- STATE CHO MODAL XÁC NHẬN MỚI ---
+  const [confirmDialog, setConfirmDialog] = useState(null); 
 
   // Category Creation State
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
@@ -1691,7 +1582,7 @@ export default function App() {
   useEffect(() => {
     const handleKeyDown = (e) => {
         if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
-        if (showAddTaskModal || showRecurringModal || editingTask || editingCategory) return;
+        if (showAddTaskModal || showRecurringModal || editingTask || editingCategory || confirmDialog) return; // Chặn nếu đang mở modal confirm
 
         if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); if (canUndo) { undo(); addToast('Đã hoàn tác ↩️'); } }
         if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); if (canRedo) { redo(); addToast('Đã làm lại ↪️'); } }
@@ -1706,7 +1597,7 @@ export default function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [canUndo, canRedo, selectedTaskId, showAddTaskModal, showRecurringModal, editingTask, editingCategory, undo, redo, currentDate]);
+  }, [canUndo, canRedo, selectedTaskId, showAddTaskModal, showRecurringModal, editingTask, editingCategory, undo, redo, currentDate, confirmDialog]);
 
   // Copy Paste Logic
   useEffect(() => {
@@ -1914,77 +1805,24 @@ export default function App() {
       setShowRecurringModal(false);
       setPendingUpdate(null);
       
+      setBoardData(prev => ({
+          ...prev,
+          tasks: prev.tasks.filter(t => {
+              if (t.id === updatedTask.id) return true;
+              if (t.seriesId !== originalTask.seriesId) return true;
+              return t.date < originalTask.date;
+          }).map(t => t.id === updatedTask.id ? updatedTask : t) 
+      }));
+
       if (mode === 'single') {
-           // Tách task này ra khỏi chuỗi (series_id = null)
-           setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === updatedTask.id ? updatedTask : t) }));
-           addToast('Đã cập nhật', 'success');
-           await supabase.from('tasks').update({
-               title: updatedTask.title, description: updatedTask.description, date: updatedTask.date, is_completed: updatedTask.isCompleted, repeat: updatedTask.repeat, category_id: updatedTask.categoryId, series_id: null
-           }).eq('id', updatedTask.id);
-
+           await supabase.from('tasks').update({ ...updatedTask, series_id: null }).eq('id', updatedTask.id);
+           addToast('Đã cập nhật (Tách riêng công việc)', 'success');
       } else if (mode === 'future') {
-          // --- LOGIC MỚI: XỬ LÝ KHI THAY ĐỔI CHẾ ĐỘ LẶP ---
-          const isRepeatTypeChanged = originalTask.repeat !== updatedTask.repeat;
-
-          if (isRepeatTypeChanged) {
-              // TRƯỜNG HỢP 1: THAY ĐỔI KIỂU LẶP (VD: Daily -> Weekly, hoặc Daily -> None)
-              // 1. Xóa các task tương lai cũ trong State
-              setBoardData(prev => ({
-                  ...prev,
-                  tasks: prev.tasks.filter(t => {
-                      // Giữ lại chính nó
-                      if (t.id === updatedTask.id) return true;
-                      // Giữ lại task khác series
-                      if (t.seriesId !== originalTask.seriesId) return true;
-                      // Giữ lại task quá khứ của series
-                      return t.date <= originalTask.date;
-                  }).map(t => t.id === updatedTask.id ? updatedTask : t) // Cập nhật task hiện tại
-              }));
-
-              // 2. Xóa các task tương lai cũ trong DB
-              await supabase.from('tasks').delete()
-                  .eq('series_id', originalTask.seriesId)
-                  .gt('date', originalTask.date);
-
-              // 3. Cập nhật task hiện tại trong DB
-              // Lưu ý: Nếu user chọn "None", ta ngắt series_id luôn. Nếu chọn kiểu khác, ta giữ series_id để tái sinh.
-              const newSeriesId = updatedTask.repeat === 'none' ? null : originalTask.seriesId;
-              
-              await supabase.from('tasks').update({ 
-                  ...updatedTask, 
-                  series_id: newSeriesId 
-              }).eq('id', updatedTask.id);
-
-              // 4. Nếu có kiểu lặp mới (khác 'none'), TẠO RA TASK MỚI
-              if (updatedTask.repeat !== 'none') {
-                  await handleGenerateRepeats(updatedTask, updatedTask.repeat);
-              } else {
-                  addToast('Đã dừng lặp lại và xóa các việc sau này', 'success');
-              }
-
-          } else {
-              // TRƯỜNG HỢP 2: CHỈ SỬA NỘI DUNG/NGÀY (Vẫn giữ kiểu lặp cũ)
-              // Logic cũ: Dời ngày tịnh tiến
-              const dateDiff = new Date(updatedTask.date) - new Date(originalTask.date);
-              const dayDiff = Math.round(dateDiff / (1000 * 60 * 60 * 24));
-              
-              setBoardData(prev => ({
-                  ...prev,
-                  tasks: prev.tasks.map(t => {
-                      if (t.seriesId !== originalTask.seriesId) return t;
-                      if (t.date < originalTask.date) return t;
-                      let newDate = t.date;
-                      if (dayDiff !== 0) { const d = new Date(t.date); d.setDate(d.getDate() + dayDiff); newDate = formatDateKey(d); }
-                      return { ...t, title: updatedTask.title, description: updatedTask.description, date: newDate, categoryId: updatedTask.categoryId, repeat: updatedTask.repeat };
-                  })
-              }));
-              
-              await supabase.from('tasks').update({
-                   title: updatedTask.title, description: updatedTask.description, date: updatedTask.date, is_completed: updatedTask.isCompleted, repeat: updatedTask.repeat, category_id: updatedTask.categoryId 
-              }).eq('id', updatedTask.id);
-              
-              addToast('Đã cập nhật chuỗi công việc', 'success');
-          }
+          await supabase.from('tasks').delete().eq('series_id', originalTask.seriesId).gt('date', originalTask.date);
+          const newSeriesId = updatedTask.repeat === 'none' ? null : originalTask.seriesId;
+          await supabase.from('tasks').update({ ...updatedTask, series_id: newSeriesId }).eq('id', updatedTask.id);
+          if (updatedTask.repeat !== 'none') { await handleGenerateRepeats(updatedTask, updatedTask.repeat); } 
+          else { addToast('Đã cập nhật và dừng lặp lại', 'success'); }
       }
   };
 
@@ -2043,13 +1881,29 @@ export default function App() {
     }
   };
 
-  const handleDeleteCategory = async (catId) => { 
-        const originalData = { ...boardData };
-        setBoardData(prev => ({ tasks: prev.tasks.filter(t => t.categoryId !== catId), categories: prev.categories.filter(c => c.id !== catId) }));
-        setEditingCategory(null); 
-        addToast('Đã xóa hạng mục');
-        const { error } = await supabase.from('categories').delete().eq('id', catId);
-        if (error) { setBoardData(originalData); addToast('Lỗi xóa hạng mục - Đã khôi phục', 'error'); }
+  // --- HÀM XÓA HẠNG MỤC (ĐÃ CẬP NHẬT DÙNG CONFIRM MODAL) ---
+  const handleDeleteCategory = (catId) => { 
+        const category = categories.find(c => c.id === catId);
+        const title = category ? category.title : 'hạng mục này';
+
+        // Thay vì window.confirm, ta set state để hiện modal đẹp
+        setConfirmDialog({
+            title: "Xóa hạng mục?",
+            message: `Bạn có chắc chắn muốn xóa "${title}"?\n\nTất cả công việc nằm trong hạng mục này cũng sẽ bị xóa vĩnh viễn!`,
+            confirmLabel: "Xóa vĩnh viễn",
+            isDangerous: true,
+            onConfirm: async () => {
+                // Logic xóa thật sự (chuyển vào trong callback)
+                const originalData = { ...boardData };
+                setBoardData(prev => ({ tasks: prev.tasks.filter(t => t.categoryId !== catId), categories: prev.categories.filter(c => c.id !== catId) }));
+                setEditingCategory(null); 
+                setConfirmDialog(null); // Đóng modal
+                addToast('Đã xóa hạng mục');
+                
+                const { error } = await supabase.from('categories').delete().eq('id', catId);
+                if (error) { setBoardData(originalData); addToast('Lỗi xóa hạng mục - Đã khôi phục', 'error'); }
+            }
+        });
   };
 
   const handleUpdateCategory = async (updatedCat) => { 
@@ -2087,7 +1941,6 @@ export default function App() {
     const onMouseMove = (ev) => setSidebarWidth(Math.max(150, Math.min(500, startWidth + (ev.clientX - startX)))); const onMouseUp = () => { document.removeEventListener('mousemove', onMouseMove);
     document.removeEventListener('mouseup', onMouseUp); }; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); };
   
-  // --- TỐI ƯU KÉO THẢ: XỬ LÝ GHOST IMAGE ---
   const handleDragStart = (e, task) => { 
     e.stopPropagation(); 
     setDraggedTask(task); 
@@ -2195,7 +2048,6 @@ export default function App() {
                 {categories.map((category, index) => (
                   <div 
                     key={category.id} 
-                    /* ĐÃ SỬA: Tăng độ đậm border từ gray-100 lên gray-300 */
                     className={`flex border-b border-gray-300 group ${draggedCategoryIndex === index ? 'opacity-40 border-dashed border-indigo-400' : ''}`}
                     onDragOver={handleCategoryDragOver}
                     onDrop={(e) => handleCategoryDrop(e, index)}
@@ -2321,21 +2173,269 @@ export default function App() {
       {showAddTaskModal && <AddTaskModal onClose={() => setShowAddTaskModal(false)} onSave={handleSaveNewTask} categories={categories} initialDate={newTaskDefaults.date} initialCategoryId={newTaskDefaults.categoryId} />}
       {editingCategory && <CategoryModal category={editingCategory} onClose={() => setEditingCategory(null)} onUpdate={handleUpdateCategory} onDelete={handleDeleteCategory} />}
       {showRecurringModal && <RecurringUpdateModal onClose={() => setShowRecurringModal(false)} onConfirm={handleConfirmRecurringUpdate} />}
+      
+      {/* --- HIỂN THỊ MODAL CONFIRM MỚI --- */}
+      {/* Chỉ render khi có dữ liệu dialog -> Đảm bảo sạch sẽ bộ nhớ */}
+      {confirmDialog && (
+          <ConfirmModal 
+            isOpen={true} 
+            onClose={() => setConfirmDialog(null)}
+            {...confirmDialog} 
+          />
+      )}
+
       <ToastContainer toasts={toasts} />
     </div>
   );
 }
 </file>
 
-<file path="vite.config.js">
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+<file path="src/components/tasks/TaskModal.jsx">
+import React, { useState, useEffect, useRef } from 'react';
+import { CalendarPlus, Trash2, X, CheckSquare, Square, Repeat, Calendar, AlignLeft, Save, List, ListOrdered } from 'lucide-react';
+import { generateGoogleCalendarLink } from '../../utils/dateHelpers';
+import { COLORS } from '../../constants/theme';
 
-// https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react()],
-})
-// update
+const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRepeats }) => {
+  if (!task) return null;
+  const [localTask, setLocalTask] = useState(task);
+  const descriptionRef = useRef(null);
+
+  const category = categories.find(c => c.id === localTask.categoryId);
+  const currentCategoryColor = category ? category.color : COLORS[0];
+
+  useEffect(() => { setLocalTask(task); }, [task.id]);
+
+  const handleSaveAndClose = () => {
+      if (localTask.repeat !== task.repeat && localTask.repeat !== 'none') {
+           onGenerateRepeats(localTask, localTask.repeat);
+      }
+      onUpdate(localTask);
+      onClose();
+  };
+
+  // --- XỬ LÝ PHÍM TẮT CHUNG (ESC & ENTER TOÀN CỤC) ---
+  useEffect(() => {
+    const handleGlobalKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            onClose();
+            return;
+        }
+        // Phím Enter toàn cục:
+        // - Nếu đang ở ô Title (Tiêu đề): Đã có hàm handleTitleKeyDown xử lý riêng bên dưới.
+        // - Nếu đang ở ô Description (Ghi chú): Bỏ qua để cho phép xuống dòng.
+        // - Các trường hợp khác (Date, Select...): Bấm Enter là Lưu.
+        if (e.key === 'Enter') {
+            if (e.target.tagName === 'TEXTAREA') return; // Bỏ qua textarea (Title & Desc) để xử lý riêng
+            e.preventDefault();
+            handleSaveAndClose();
+        }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [localTask]); 
+
+  const handleAddToGoogleCalendar = () => {
+    const url = generateGoogleCalendarLink(localTask);
+    window.open(url, '_blank');
+  };
+
+  const handleRepeatChange = (e) => {
+      setLocalTask(prev => ({ ...prev, repeat: e.target.value }));
+  };
+
+  // --- XỬ LÝ RIÊNG CHO Ô TIÊU ĐỀ: ENTER LÀ LƯU ---
+  const handleTitleKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Chặn hành vi xuống dòng mặc định của textarea
+      handleSaveAndClose(); // Lưu ngay lập tức
+    }
+  };
+
+  // --- LOGIC THÔNG MINH CHO Ô GHI CHÚ (Giữ nguyên) ---
+  const handleDescriptionKeyDown = (e) => {
+      if (e.key === 'Enter') {
+          const textarea = descriptionRef.current;
+          if (!textarea) return;
+
+          const start = textarea.selectionStart;
+          const value = localTask.description || '';
+          
+          const lastNewLine = value.lastIndexOf('\n', start - 1);
+          const currentLineStart = lastNewLine + 1;
+          const currentLineText = value.substring(currentLineStart, start);
+
+          const match = currentLineText.match(/^(\s*)(• |\d+\. )/);
+
+          if (match) {
+              const fullPrefix = match[0]; 
+              const content = currentLineText.substring(fullPrefix.length);
+
+              if (!content.trim()) {
+                  e.preventDefault();
+                  const newValue = value.substring(0, currentLineStart) + value.substring(start);
+                  setLocalTask(prev => ({...prev, description: newValue}));
+                  setTimeout(() => {
+                      textarea.selectionStart = textarea.selectionEnd = currentLineStart;
+                  }, 0);
+                  return;
+              }
+
+              e.preventDefault();
+              let nextPrefix = match[2]; 
+              if (nextPrefix.match(/\d+\./)) {
+                  const num = parseInt(nextPrefix);
+                  nextPrefix = `${num + 1}. `;
+              }
+
+              const insertText = '\n' + match[1] + nextPrefix; 
+              const newValue = value.substring(0, start) + insertText + value.substring(textarea.selectionEnd);
+              
+              setLocalTask(prev => ({...prev, description: newValue}));
+              setTimeout(() => {
+                  textarea.selectionStart = textarea.selectionEnd = start + insertText.length;
+                  textarea.scrollTop = textarea.scrollHeight; 
+              }, 0);
+          }
+      }
+  };
+
+  const toggleLineFormat = (type) => { 
+      const textarea = descriptionRef.current;
+      if (!textarea) return;
+      // ... (Logic format giữ nguyên) ...
+      const start = textarea.selectionStart;
+      const value = localTask.description || '';
+      const lastNewLine = value.lastIndexOf('\n', start - 1);
+      const currentLineStart = lastNewLine + 1;
+      let nextNewLine = value.indexOf('\n', start);
+      if (nextNewLine === -1) nextNewLine = value.length;
+
+      const currentLineContent = value.substring(currentLineStart, nextNewLine);
+      const match = currentLineContent.match(/^(\s*)(• |\d+\. )(.*)/);
+      
+      let newContent = currentLineContent;
+      let newPrefix = type === 'bullet' ? '• ' : '1. ';
+
+      if (match) {
+          const currentPrefix = match[2];
+          const textBody = match[3] || '';
+          if ((type === 'bullet' && currentPrefix === '• ') || (type === 'number' && currentPrefix.match(/\d+\./))) {
+               newContent = match[1] + textBody;
+          } else {
+               newContent = match[1] + newPrefix + textBody;
+          }
+      } else {
+          newContent = newPrefix + currentLineContent;
+      }
+
+      const newValue = value.substring(0, currentLineStart) + newContent + value.substring(nextNewLine);
+      setLocalTask(prev => ({...prev, description: newValue}));
+      setTimeout(() => {
+          textarea.focus();
+          textarea.selectionStart = textarea.selectionEnd = currentLineStart + newContent.length;
+      }, 0);
+  };
+
+  const ToolbarButton = ({ icon: Icon, onClick, tooltip }) => (
+      <button onClick={onClick} className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all" title={tooltip} type="button">
+          <Icon size={16} strokeWidth={2.5} />
+      </button>
+  );
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-6" onClick={onClose}>
+      <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-300" />
+      <div className="relative bg-[#FBFBFD] w-full max-w-2xl h-auto max-h-[90vh] rounded-[32px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 ease-apple border border-white/50 ring-1 ring-black/5" onClick={(e) => e.stopPropagation()}>
+        
+        {/* HEADER */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50 bg-white/60 backdrop-blur-xl sticky top-0 z-10 shrink-0">
+          <div className="flex items-center gap-3">
+              <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest ${currentCategoryColor.value} border border-black/5 shadow-sm`}>
+                  {category?.title}
+              </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={handleAddToGoogleCalendar} className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all"><CalendarPlus size={20} /></button>
+             <button onClick={() => { onDelete(localTask.id); onClose(); }} className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all"><Trash2 size={20} /></button>
+            <button onClick={onClose} className="ml-2 p-2 bg-gray-200/50 hover:bg-gray-300/50 text-gray-500 rounded-full transition-all"><X size={20} /></button>
+          </div>
+        </div>
+
+        {/* BODY */}
+        <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar space-y-6">
+           <div className="flex flex-wrap items-center gap-3">
+                <button onClick={() => setLocalTask(prev => ({...prev, isCompleted: !prev.isCompleted}))} className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-sm font-bold transition-all border shadow-sm active:scale-95 duration-200 ${localTask.isCompleted ? 'bg-gray-100 text-gray-500 border-transparent' : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'}`}>
+                    {localTask.isCompleted ? <CheckSquare size={18}/> : <Square size={18}/>}
+                    {localTask.isCompleted ? 'Đã xong' : 'Đánh dấu xong'}
+                </button>
+                <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border border-gray-200/60 shadow-sm group hover:border-slate-300 transition-colors">
+                    <Repeat size={16} className="text-slate-500" />
+                    <select value={localTask.repeat || 'none'} onChange={handleRepeatChange} className="text-sm bg-transparent border-none outline-none focus:ring-0 text-slate-700 font-semibold cursor-pointer py-0 pl-0 pr-8">
+                        <option value="none">Không lặp lại</option>
+                        <option value="daily">Mỗi ngày</option>
+                        <option value="weekly">Mỗi tuần</option>
+                        <option value="monthly">Mỗi tháng</option>
+                    </select>
+                </div>
+           </div>
+
+          {/* Ô TIÊU ĐỀ: Thêm onKeyDown để chặn xuống dòng */}
+          <textarea 
+            value={localTask.title} 
+            onChange={(e) => setLocalTask(prev => ({...prev, title: e.target.value}))} 
+            onKeyDown={handleTitleKeyDown} // <--- QUAN TRỌNG: Gắn hàm xử lý riêng
+            className={`w-full text-3xl sm:text-4xl font-bold border-none outline-none focus:ring-0 placeholder-gray-300 p-0 bg-transparent tracking-tight resize-none overflow-hidden ${localTask.isCompleted ? 'text-gray-400 line-through' : 'text-slate-900'}`} 
+            placeholder="Tên công việc..." 
+            rows={1}
+            autoFocus 
+            onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = e.target.scrollHeight + 'px'; }}
+          />
+
+          <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
+                    <Calendar size={20} />
+                </div>
+                <div className="flex-1">
+                    <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Hạn chót</label>
+                    <input type="date" value={localTask.date} onChange={(e) => setLocalTask(prev => ({...prev, date: e.target.value}))} className="bg-transparent border-none outline-none focus:ring-0 p-0 text-slate-700 font-bold text-lg cursor-pointer font-sans" />
+                </div>
+          </div>
+
+          <div className="space-y-3">
+              <div className="flex items-center gap-2 text-gray-400">
+                  <AlignLeft size={16} />
+                  <span className="text-xs font-bold uppercase tracking-wider">Ghi chú</span>
+              </div>
+              <div className="bg-white rounded-2xl border border-gray-200/60 shadow-sm focus-within:ring-2 focus-within:ring-slate-200 focus-within:border-slate-400 transition-all p-4">
+                 <div className="flex items-center gap-1 pb-2 mb-2 border-b border-gray-100/80">
+                    <ToolbarButton icon={List} onClick={() => toggleLineFormat('bullet')} tooltip="Gạch đầu dòng" />
+                    <ToolbarButton icon={ListOrdered} onClick={() => toggleLineFormat('number')} tooltip="Đánh số" />
+                 </div>
+                 <textarea 
+                    ref={descriptionRef}
+                    value={localTask.description} 
+                    onChange={(e) => setLocalTask(prev => ({...prev, description: e.target.value}))} 
+                    onKeyDown={handleDescriptionKeyDown} 
+                    className="w-full min-h-[400px] p-0 text-slate-700 bg-transparent border-none outline-none focus:ring-0 text-base leading-relaxed placeholder-gray-300 resize-none" 
+                    placeholder="Nhập chi tiết công việc..." 
+                 />
+              </div>
+          </div>
+        </div>
+
+        {/* FOOTER */}
+        <div className="p-6 border-t border-gray-200/50 bg-white/80 backdrop-blur-md flex justify-end shrink-0">
+           <button onClick={handleSaveAndClose} className="flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white rounded-2xl hover:bg-black font-bold shadow-lg shadow-slate-300 transition-all transform active:scale-[0.98]">
+               <Save size={18}/> Lưu thay đổi
+           </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+export default TaskModal;
 </file>
 
 </files>

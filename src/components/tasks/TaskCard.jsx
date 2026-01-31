@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
-import { Square, CheckSquare, AlignLeft, Repeat } from 'lucide-react';
+import { Square, CheckSquare, AlignLeft, Repeat, Clock } from 'lucide-react';
 
-const TaskCard = ({ task, categoryColor, isSelected, isHighlighted, onSelect, onUpdate, onDragStart, onDragEnd, setEditingTask }) => {
+const TaskCard = ({ 
+    task, categoryColor, isSelected, isHighlighted, 
+    onSelect, onUpdate, onDragStart, onDragEnd, setEditingTask,
+    onContextMenu 
+}) => {
     
     const [dropPosition, setDropPosition] = useState(null);
 
@@ -10,29 +14,10 @@ const TaskCard = ({ task, categoryColor, isSelected, isHighlighted, onSelect, on
         onUpdate({ ...task, isCompleted: !task.isCompleted });
     };
 
-    const handleDragOver = (e) => {
-        e.preventDefault();
-        e.stopPropagation(); 
-        
-        const rect = e.currentTarget.getBoundingClientRect();
-        const midpoint = rect.height / 2;
-        const hoverY = e.clientY - rect.top; 
-
-        if (hoverY < midpoint) {
-            setDropPosition('top');
-        } else {
-            setDropPosition('bottom');
+    const handleRightClick = (e) => {
+        if (onContextMenu) {
+            onContextMenu(e, task);
         }
-    };
-
-    const handleDragLeave = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDropPosition(null); 
-    };
-
-    const handleDrop = (e) => {
-        setDropPosition(null);
     };
 
     return (
@@ -42,57 +27,92 @@ const TaskCard = ({ task, categoryColor, isSelected, isHighlighted, onSelect, on
             onDragEnd={onDragEnd} 
             onClick={(e) => { e.stopPropagation(); onSelect(task.id); }}
             onDoubleClick={(e) => { e.stopPropagation(); setEditingTask(task); }}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+            onContextMenu={handleRightClick}
+            
+            onDragOver={(e) => {
+                e.preventDefault(); e.stopPropagation();
+                const rect = e.currentTarget.getBoundingClientRect();
+                setDropPosition((e.clientY - rect.top) < (rect.height / 2) ? 'top' : 'bottom');
+            }}
+            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDropPosition(null); }}
+            onDrop={() => setDropPosition(null)}
 
             className={`
-                group relative px-3.5 py-3 mb-2 rounded-2xl border transition-all duration-300 ease-out select-none
-                cursor-grab active:cursor-grabbing
+                group relative px-3 py-3 mb-2 rounded-2xl border transition-all duration-200 ease-apple select-none
                 
-                ${/* Hiệu ứng hover: Nhấc nhẹ thẻ lên + Bóng đổ đậm hơn */ 'hover:-translate-y-0.5 hover:shadow-md'}
+                cursor-grab active:cursor-grabbing
+                hover:-translate-y-[2px] hover:shadow-md
+                active:scale-105 active:rotate-2 active:shadow-xl active:z-50
                 
                 ${task.isCompleted 
-                    // Task hoàn thành: Chìm vào nền, trong suốt hơn
-                    ? 'bg-gray-50/80 border-transparent opacity-60 grayscale' 
-                    // Task thường: Dùng màu nền nhẹ, border trong suốt để shadow nổi bật
-                    : `${categoryColor.value} border-transparent shadow-sm`
+                    ? 'bg-gray-50/50 border-transparent' 
+                    : `${categoryColor.value} shadow-sm backdrop-blur-sm`
                 }
                 
-                ${/* Viền khi chọn */ isSelected ? `ring-2 ring-indigo-500 ring-offset-2 z-10` : ''}
-                ${/* Viền khi highlight (tìm kiếm/di chuyển) */ isHighlighted ? 'ring-4 ring-yellow-400 ring-offset-2 z-20 scale-105 shadow-xl bg-yellow-50' : ''}
+                ${isSelected ? `ring-2 ring-indigo-500 ring-offset-2 z-10` : ''}
+                ${isHighlighted ? 'ring-4 ring-yellow-400 ring-offset-2 z-20 scale-105 shadow-xl bg-yellow-50' : ''}
                 
                 ${dropPosition === 'top' ? 'border-t-2 border-t-indigo-500 pt-[12px] mt-0' : ''}
                 ${dropPosition === 'bottom' ? 'border-b-2 border-b-indigo-500 pb-[12px] mb-0' : ''}
-                transition-[border,padding,margin,transform,box-shadow]
             `}
         >
-            <div className="flex items-start gap-3 pointer-events-none">
-                <button 
-                    onClick={handleToggleComplete} 
-                    className={`
-                        mt-0.5 min-w-[18px] h-[18px] flex items-center justify-center transition-transform duration-300 pointer-events-auto
-                        ${task.isCompleted ? 'text-gray-400' : `${categoryColor.text} hover:scale-110 active:scale-75`}
-                    `}
-                >
-                    {task.isCompleted 
-                        ? <CheckSquare size={18} className="animate-in zoom-in spin-in-180 duration-300" /> 
-                        : <Square size={18} />
-                    }
-                </button>
+            {/* SỬ DỤNG FLEX-ROW ĐỂ CHIA 2 CỘT */}
+            <div className="flex flex-row gap-3">
                 
-                <div className="flex-1 min-w-0 flex flex-col gap-1">
-                    <span className={`text-sm font-semibold leading-snug transition-all duration-300 ${task.isCompleted ? 'text-gray-500 line-through decoration-gray-300 decoration-2' : 'text-gray-700'}`}>
-                        {task.title}
-                    </span>
-                    
-                    {(task.description || task.repeat !== 'none') && (
-                         <div className="flex items-center gap-2 opacity-60">
-                            {task.repeat !== 'none' && <Repeat size={10} className="text-indigo-500" />}
-                            {task.description && <AlignLeft size={10} />}
-                        </div>
-                    )}
+                {/* --- CỘT TRÁI: CHECKBOX + ICONS --- */}
+                <div className="flex flex-col items-center gap-1.5 pt-0.5 min-w-[24px]">
+                    {/* Checkbox */}
+                    <button 
+                        onClick={handleToggleComplete} 
+                        className={`
+                            w-[20px] h-[20px] flex items-center justify-center transition-all duration-300 rounded-md
+                            ${task.isCompleted 
+                                ? 'scale-100 animate-check-bounce text-gray-400' 
+                                : `${categoryColor.text} hover:scale-110 active:scale-90`
+                            }
+                        `}
+                    >
+                        {task.isCompleted 
+                            ? <CheckSquare size={20} weight="fill" /> 
+                            : <Square size={20} />
+                        }
+                    </button>
+
+                    {/* Các icon nhỏ xếp dọc bên dưới Checkbox */}
+                    <div className={`flex flex-col items-center gap-1 transition-opacity duration-300 ${task.isCompleted ? 'opacity-30' : 'opacity-60'}`}>
+                        {/* Giờ (nếu có) - Hiển thị text nhỏ */}
+                        {task.time && (
+                            <div className="text-[9px] font-bold text-indigo-600 bg-white/60 px-0.5 rounded leading-tight text-center tracking-tighter w-full overflow-hidden">
+                                {task.time}
+                            </div>
+                        )}
+                        
+                        {/* Icon Lặp lại */}
+                        {task.repeat !== 'none' && (
+                            <Repeat size={12} className="text-indigo-500" />
+                        )}
+
+                        {/* Icon Ghi chú */}
+                        {task.description && (
+                            <AlignLeft size={12} className="text-slate-500" />
+                        )}
+                    </div>
                 </div>
+                
+                {/* --- CỘT PHẢI: NỘI DUNG --- */}
+                <div className="flex-1 min-w-0 flex flex-col pt-0.5">
+                    <div className="leading-snug break-words">
+                        <span 
+                            className={`
+                                text-[15px] font-semibold task-title
+                                ${task.isCompleted ? 'completed' : 'text-gray-700'}
+                            `}
+                        >
+                            {task.title}
+                        </span>
+                    </div>
+                </div>
+
             </div>
         </div>
     );

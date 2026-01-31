@@ -11,23 +11,67 @@
     @apply bg-blue-500/20 text-blue-700;
   }
 
-  /* --- MỚI: Tắt hoàn toàn khung đen mặc định của trình duyệt --- */
   input:focus, textarea:focus, select:focus {
     outline: none !important;
-    box-shadow: none !important; /* Tắt shadow mặc định nếu có */
+    box-shadow: none !important; 
   }
 }
 
+/* --- ANIMATION MỚI --- */
+
+/* 1. Hiệu ứng nảy khi check */
+@keyframes check-bounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.3); }
+  80% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+.animate-check-bounce {
+  animation: check-bounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* --- SỬA LỖI GẠCH NGANG CHỮ --- */
+.task-title {
+  /* Quan trọng: display inline để background bám theo chữ, không bám theo khung */
+  display: inline !important; 
+  
+  /* Tạo đường gạch bằng background gradient */
+  background-image: linear-gradient(#94a3b8, #94a3b8); /* Màu slate-400 */
+  background-repeat: no-repeat;
+  
+  /* Vị trí: 0% trái, 55% từ trên xuống (để nằm giữa dòng chữ thường) */
+  background-position: 0% 55%; 
+  
+  /* Mặc định độ rộng = 0 (chưa gạch) */
+  background-size: 0% 1.5px; /* Độ dày 1.5px cho thanh mảnh */
+  
+  /* Hiệu ứng chạy mượt trong 0.25s */
+  transition: background-size 0.25s ease-out, color 0.25s ease-out;
+  
+  /* Đảm bảo gạch đẹp kể cả khi xuống dòng */
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  
+  /* Padding nhỏ để chữ thở */
+  padding: 0 1px;
+}
+
+.task-title.completed {
+  /* Khi xong: Background chạy ra 100% chiều dài chữ */
+  background-size: 100% 1.5px; 
+  color: #cbd5e1; /* Chữ mờ đi hẳn (slate-300) */
+}
+
+/* Scrollbar đẹp (Giữ nguyên) */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
   background-color: transparent;
 }
-
 ::-webkit-scrollbar-track {
   background-color: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.0); 
   border-radius: 9999px;
@@ -35,11 +79,9 @@
   background-clip: content-box;
   transition: background-color 0.3s;
 }
-
 *:hover::-webkit-scrollbar-thumb {
   background-color: rgba(0, 0, 0, 0.2);
 }
-
 .ease-apple {
   transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
 }

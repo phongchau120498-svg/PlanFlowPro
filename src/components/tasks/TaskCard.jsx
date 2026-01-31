@@ -20,6 +20,10 @@ const TaskCard = ({
         }
     };
 
+    // Fallback an toàn nếu chưa có màu
+    const finalColorValue = categoryColor?.value || 'bg-white border-gray-200';
+    const finalColorText = categoryColor?.text || 'text-gray-700';
+
     return (
         <div 
             draggable 
@@ -46,7 +50,7 @@ const TaskCard = ({
                 
                 ${task.isCompleted 
                     ? 'bg-gray-50/50 border-transparent' 
-                    : `${categoryColor.value} shadow-sm backdrop-blur-sm`
+                    : `${finalColorValue} shadow-sm backdrop-blur-sm`
                 }
                 
                 ${isSelected ? `ring-2 ring-indigo-500 ring-offset-2 z-10` : ''}
@@ -56,19 +60,16 @@ const TaskCard = ({
                 ${dropPosition === 'bottom' ? 'border-b-2 border-b-indigo-500 pb-[12px] mb-0' : ''}
             `}
         >
-            {/* SỬ DỤNG FLEX-ROW ĐỂ CHIA 2 CỘT */}
             <div className="flex flex-row gap-3">
-                
-                {/* --- CỘT TRÁI: CHECKBOX + ICONS --- */}
+                {/* CỘT TRÁI: CHECKBOX + ICONS */}
                 <div className="flex flex-col items-center gap-1.5 pt-0.5 min-w-[24px]">
-                    {/* Checkbox */}
                     <button 
                         onClick={handleToggleComplete} 
                         className={`
                             w-[20px] h-[20px] flex items-center justify-center transition-all duration-300 rounded-md
                             ${task.isCompleted 
                                 ? 'scale-100 animate-check-bounce text-gray-400' 
-                                : `${categoryColor.text} hover:scale-110 active:scale-90`
+                                : `${finalColorText} hover:scale-110 active:scale-90`
                             }
                         `}
                     >
@@ -78,28 +79,18 @@ const TaskCard = ({
                         }
                     </button>
 
-                    {/* Các icon nhỏ xếp dọc bên dưới Checkbox */}
                     <div className={`flex flex-col items-center gap-1 transition-opacity duration-300 ${task.isCompleted ? 'opacity-30' : 'opacity-60'}`}>
-                        {/* Giờ (nếu có) - Hiển thị text nhỏ */}
                         {task.time && (
                             <div className="text-[9px] font-bold text-indigo-600 bg-white/60 px-0.5 rounded leading-tight text-center tracking-tighter w-full overflow-hidden">
                                 {task.time}
                             </div>
                         )}
-                        
-                        {/* Icon Lặp lại */}
-                        {task.repeat !== 'none' && (
-                            <Repeat size={12} className="text-indigo-500" />
-                        )}
-
-                        {/* Icon Ghi chú */}
-                        {task.description && (
-                            <AlignLeft size={12} className="text-slate-500" />
-                        )}
+                        {task.repeat !== 'none' && <Repeat size={12} className="text-indigo-500" />}
+                        {task.description && <AlignLeft size={12} className="text-slate-500" />}
                     </div>
                 </div>
                 
-                {/* --- CỘT PHẢI: NỘI DUNG --- */}
+                {/* CỘT PHẢI: NỘI DUNG */}
                 <div className="flex-1 min-w-0 flex flex-col pt-0.5">
                     <div className="leading-snug break-words">
                         <span 
@@ -112,7 +103,6 @@ const TaskCard = ({
                         </span>
                     </div>
                 </div>
-
             </div>
         </div>
     );

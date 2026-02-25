@@ -8,8 +8,7 @@ import { useUndoableState } from './hooks/useUndoableState';
 // Components
 import Header from './components/layout/Header';
 import ToastContainer from './components/common/ToastContainer';
-import ConfirmModal from './components/common/ConfirmModal';
-import ContextMenu from './components/common/ContextMenu';
+import ConfirmModal from './components/common/ConfirmModal'; // <--- IMPORT MỚI
 import TodoView from './components/views/TodoView';
 import TaskCard from './components/tasks/TaskCard';
 import TaskModal from './components/tasks/TaskModal';
@@ -50,11 +49,8 @@ export default function App() {
   const [toasts, setToasts] = useState([]); 
   const [highlightedTaskId, setHighlightedTaskId] = useState(null);
 
-  // Confirm Dialog State
+  // --- STATE CHO MODAL XÁC NHẬN MỚI ---
   const [confirmDialog, setConfirmDialog] = useState(null); 
-
-  // Context Menu State
-  const [contextMenu, setContextMenu] = useState(null);
 
   // Category Creation State
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
@@ -90,7 +86,6 @@ export default function App() {
                 title: t.title,
                 description: t.description,
                 date: t.date,
-                endDate: t.end_date || t.date, // Map thêm end_date cho tính năng kéo dài
                 isCompleted: t.is_completed,
                 categoryId: t.category_id,
                 repeat: t.repeat,
@@ -112,45 +107,31 @@ export default function App() {
     fetchData();
   }, []);
 
-  // --- 4. PHÍM TẮT & GLOBAL EVENTS ---
+  // --- 4. PHÍM TẮT ---
   useEffect(() => {
     const handleKeyDown = (e) => {
         if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
-        if (showAddTaskModal || showRecurringModal || editingTask || editingCategory || confirmDialog) return;
+        if (showAddTaskModal || showRecurringModal || editingTask || editingCategory || confirmDialog) return; // Chặn nếu đang mở modal confirm
 
-        if ((e.ctrlKey || e.metaKey) && e.key === 'z') { 
-            e.preventDefault(); 
-            if (canUndo) { undo(); addToast('Đã hoàn tác ↩️'); } 
-        }
-        if ((e.ctrlKey || e.metaKey) && e.key === 'y') { 
-            e.preventDefault(); 
-            if (canRedo) { redo(); addToast('Đã làm lại ↪️'); } 
-        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); if (canUndo) { undo(); addToast('Đã hoàn tác ↩️'); } }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); if (canRedo) { redo(); addToast('Đã làm lại ↪️'); } }
         
-        if (e.key === 'Delete' && selectedTaskId) { 
-            e.preventDefault(); 
-            handleDeleteTask(selectedTaskId); 
-        }
-        if (e.key === 'Escape') { 
-            setSelectedTaskId(null); 
-            setContextMenu(null); 
-        }
+        if (e.key === 'Delete' && selectedTaskId) { e.preventDefault(); handleDeleteTask(selectedTaskId); }
+        if (e.key === 'Escape') setSelectedTaskId(null);
 
         if (e.key === 'n' || e.key === 'N') {
             e.preventDefault();
             handleOpenAddTask({ date: formatDateKey(currentDate) });
         }
     };
-    
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [canUndo, canRedo, selectedTaskId, showAddTaskModal, showRecurringModal, editingTask, editingCategory, undo, redo, currentDate, confirmDialog]);
 
-  // Logic Copy/Paste
+  // Copy Paste Logic
   useEffect(() => {
       const handleCopyPaste = async (e) => {
           if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
-          
           if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
               if (selectedTaskId) {
                   const taskToCopy = tasks.find(t => t.id === selectedTaskId);
@@ -161,7 +142,6 @@ export default function App() {
                   }
               }
           }
-          
           if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
               if (!hoveredCell) return; 
               try {
@@ -172,14 +152,12 @@ export default function App() {
                       return;
                   }
               } catch (err) {}
-              
               if (copiedTask) {
                   e.preventDefault();
                   handlePasteInternalTask(copiedTask, hoveredCell);
               }
           }
       };
-      
       window.addEventListener('keydown', handleCopyPaste);
       return () => window.removeEventListener('keydown', handleCopyPaste);
   }, [selectedTaskId, hoveredCell, copiedTask, tasks]);
@@ -187,16 +165,13 @@ export default function App() {
   const handleBatchPaste = async (text, targetCell) => {
       const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
       if (lines.length === 0) return;
-      
       const newTasks = [];
       const { categoryId, dateStr } = targetCell;
-      
       lines.forEach((line, index) => {
           newTasks.push({
               id: `paste-${Date.now()}-${index}`,
               category_id: categoryId,
               date: dateStr,
-              end_date: dateStr, // Luôn mặc định task mới paste là 1 ngày
               title: line.trim(),
               description: '',
               is_completed: false,
@@ -204,53 +179,18 @@ export default function App() {
               series_id: null
           });
       });
-      
-      const mappedNewTasks = newTasks.map(t => ({ 
-          ...t, 
-          id: t.id, 
-          categoryId: t.category_id, 
-          endDate: t.end_date,
-          isCompleted: t.is_completed, 
-          seriesId: t.series_id 
-      }));
-      
+      const mappedNewTasks = newTasks.map(t => ({ ...t, id: t.id, categoryId: t.category_id, isCompleted: t.is_completed, seriesId: t.series_id }));
       setBoardData(prev => ({ ...prev, tasks: [...prev.tasks, ...mappedNewTasks] }));
-      
       const { error } = await supabase.from('tasks').insert(newTasks);
-      if (error) { 
-          console.error(error); 
-          addToast('Lỗi dán dữ liệu', 'error'); 
-      } else { 
-          addToast(`Đã dán ${lines.length} công việc mới`, 'success'); 
-      }
+      if (error) { console.error(error); addToast('Lỗi dán dữ liệu', 'error'); } else { addToast(`Đã dán ${lines.length} công việc mới`, 'success'); }
   };
 
   const handlePasteInternalTask = async (originalTask, targetCell) => {
       const { categoryId, dateStr } = targetCell;
       const newId = `paste-internal-${Date.now()}`;
-      const newTask = { 
-          ...originalTask, 
-          id: newId, 
-          categoryId: categoryId, 
-          date: dateStr, 
-          endDate: dateStr, 
-          isCompleted: false, 
-          seriesId: null 
-      };
-      
+      const newTask = { ...originalTask, id: newId, categoryId: categoryId, date: dateStr, isCompleted: false, seriesId: null };
       setBoardData(prev => ({ ...prev, tasks: [...prev.tasks, newTask] }));
-      
-      const dbTask = { 
-          id: newId, 
-          category_id: categoryId, 
-          date: dateStr, 
-          end_date: dateStr,
-          title: newTask.title, 
-          description: newTask.description, 
-          is_completed: false, 
-          repeat: newTask.repeat, 
-          series_id: null 
-      };
+      const dbTask = { id: newId, category_id: categoryId, date: dateStr, title: newTask.title, description: newTask.description, is_completed: false, repeat: newTask.repeat, series_id: null };
       await supabase.from('tasks').insert([dbTask]);
       addToast('Đã dán công việc', 'success');
   };
@@ -262,9 +202,7 @@ export default function App() {
           setCurrentDate(today);
           previousDateRef.current = today;
           scrollActionRef.current = 'jump';
-          setTimeout(() => { 
-              if (scrollContainerRef.current) scrollContainerRef.current.scrollLeft = 7 * dayWidth; 
-          }, 10);
+          setTimeout(() => { if (scrollContainerRef.current) scrollContainerRef.current.scrollLeft = 7 * dayWidth; }, 10);
       }
   }, [viewMode, dayWidth]);
 
@@ -294,29 +232,17 @@ export default function App() {
       const now = Date.now();
       if (now - lastScrollTimeRef.current < 50) return;
       lastScrollTimeRef.current = now;
-      
       const { scrollLeft, clientWidth } = scrollContainerRef.current;
       const scrollCenter = scrollLeft + clientWidth / 2;
       const dayIndex = Math.floor(scrollCenter / dayWidth);
-      
       if (dayIndex >= 0 && dayIndex < visibleDays.length) {
           const currentMonday = getMonday(currentDate);
           if (dayIndex < 7) {
-              const prevMonday = new Date(currentMonday); 
-              prevMonday.setDate(prevMonday.getDate() - 7);
-              if (previousDateRef.current.getTime() === currentDate.getTime()) { 
-                  previousDateRef.current = currentDate; 
-                  scrollActionRef.current = 'maintain'; 
-                  setCurrentDate(prevMonday); 
-              }
+              const prevMonday = new Date(currentMonday); prevMonday.setDate(prevMonday.getDate() - 7);
+              if (previousDateRef.current.getTime() === currentDate.getTime()) { previousDateRef.current = currentDate; scrollActionRef.current = 'maintain'; setCurrentDate(prevMonday); }
           } else if (dayIndex >= 14) {
-              const nextMonday = new Date(currentMonday); 
-              nextMonday.setDate(nextMonday.getDate() + 7);
-              if (previousDateRef.current.getTime() === currentDate.getTime()) { 
-                  previousDateRef.current = currentDate; 
-                  scrollActionRef.current = 'maintain'; 
-                  setCurrentDate(nextMonday); 
-              }
+              const nextMonday = new Date(currentMonday); nextMonday.setDate(nextMonday.getDate() + 7);
+              if (previousDateRef.current.getTime() === currentDate.getTime()) { previousDateRef.current = currentDate; scrollActionRef.current = 'maintain'; setCurrentDate(nextMonday); }
           }
       }
   }, [currentDate, visibleDays, dayWidth]);
@@ -326,72 +252,49 @@ export default function App() {
       const prevDate = previousDateRef.current;
       const action = scrollActionRef.current;
       isProgrammaticScroll.current = true;
-      
-      if (action === 'jump') { 
-          scrollContainerRef.current.scrollLeft = 7 * dayWidth; 
-          previousDateRef.current = currentDate; 
-      } else if (action === 'maintain') {
+      if (action === 'jump') { scrollContainerRef.current.scrollLeft = 7 * dayWidth; previousDateRef.current = currentDate; } 
+      else if (action === 'maintain') {
           if (currentDate > prevDate) scrollContainerRef.current.scrollLeft -= 7 * dayWidth;
           else scrollContainerRef.current.scrollLeft += 7 * dayWidth;
           previousDateRef.current = currentDate;
       }
-      
-      setTimeout(() => { 
-          isProgrammaticScroll.current = false; 
-          scrollActionRef.current = 'maintain'; 
-      }, 100); 
+      setTimeout(() => { isProgrammaticScroll.current = false; scrollActionRef.current = 'maintain'; }, 100); 
   }, [currentDate, dayWidth]);
 
-  useEffect(() => { 
-      if (scrollContainerRef.current) scrollContainerRef.current.scrollLeft = 7 * dayWidth; 
-  }, []);
+  useEffect(() => { if (scrollContainerRef.current) scrollContainerRef.current.scrollLeft = 7 * dayWidth; }, []);
 
-  // --- 6. LOGIC TASK & UPDATES ---
+  // --- 6. LOGIC TASK (OPTIMISTIC UPDATES) ---
   const handleGenerateRepeats = async (baseTask, repeatType) => {
       if (!baseTask || !repeatType || repeatType === 'none') return;
-      
       const seriesId = baseTask.seriesId || `series-${Date.now()}`;
       const newTasks = [];
       const startDate = new Date(baseTask.date);
-      const count = 12; 
-      
+      const count = 12; // Tạo trước 12 lần lặp
       for (let i = 1; i <= count; i++) {
           const nextDate = new Date(startDate);
           if (repeatType === 'daily') nextDate.setDate(startDate.getDate() + i);
           else if (repeatType === 'weekly') nextDate.setDate(startDate.getDate() + (i * 7));
           else if (repeatType === 'monthly') nextDate.setMonth(startDate.getMonth() + i);
           
-          const nextDateStr = formatDateKey(nextDate);
           newTasks.push({ 
               id: `${baseTask.id}-rep-${Date.now()}-${i}`,
               category_id: baseTask.categoryId,
-              date: nextDateStr, 
-              end_date: nextDateStr, // Chuỗi lặp lại luôn có độ dài 1 ngày cho mỗi task
+              date: formatDateKey(nextDate), 
               title: baseTask.title,
               description: baseTask.description,
               is_completed: false,
               repeat: repeatType, 
-              series_id: seriesId,
-              time: baseTask.time 
+              series_id: seriesId, 
           });
       }
-      
-      const mappedNewTasks = newTasks.map(t => ({ 
-          ...t, 
-          isCompleted: false, 
-          categoryId: t.category_id, 
-          endDate: t.end_date, 
-          seriesId: t.series_id 
-      }));
-      
+      const mappedNewTasks = newTasks.map(t => ({ ...t, isCompleted: false, categoryId: t.category_id, seriesId: t.series_id }));
       const updatedBase = { ...baseTask, seriesId, repeat: repeatType };
       
-      setBoardData(prev => ({ 
-          ...prev, 
-          tasks: prev.tasks.map(t => t.id === baseTask.id ? updatedBase : t).concat(mappedNewTasks) 
-      }));
+      // Update State: Thêm task mới vào
+      setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === baseTask.id ? updatedBase : t).concat(mappedNewTasks) }));
       addToast('Đã tạo lịch trình lặp lại', 'success');
-      
+
+      // Update DB
       await supabase.from('tasks').insert(newTasks);
       await supabase.from('tasks').update({ series_id: seriesId, repeat: repeatType }).eq('id', baseTask.id);
   };
@@ -402,10 +305,10 @@ export default function App() {
       
       const hasSeries = !!originalTask.seriesId || (originalTask.repeat && originalTask.repeat !== 'none');
       
+      // Kiểm tra thay đổi nội dung quan trọng
       const isContentChanged = originalTask.title !== updatedTask.title || 
                                originalTask.description !== updatedTask.description || 
                                originalTask.date !== updatedTask.date || 
-                               originalTask.endDate !== updatedTask.endDate ||
                                originalTask.repeat !== updatedTask.repeat ||
                                originalTask.categoryId !== updatedTask.categoryId;
 
@@ -413,36 +316,18 @@ export default function App() {
           setPendingUpdate({ originalTask, updatedTask });
           setShowRecurringModal(true);
       } else {
-          setBoardData(prev => ({ 
-              ...prev, 
-              tasks: prev.tasks.map(t => t.id === updatedTask.id ? updatedTask : t) 
-          }));
-          
-          const dbPayload = {
-              title: updatedTask.title, 
-              description: updatedTask.description, 
-              date: updatedTask.date, 
-              end_date: updatedTask.endDate, 
-              is_completed: updatedTask.isCompleted, 
-              repeat: updatedTask.repeat, 
-              category_id: updatedTask.categoryId,
-              time: updatedTask.time
-          };
-
-          const { error } = await supabase.from('tasks').update(dbPayload).eq('id', updatedTask.id);
-          
+          setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === updatedTask.id ? updatedTask : t) }));
+          const { error } = await supabase.from('tasks').update({
+              title: updatedTask.title, description: updatedTask.description, date: updatedTask.date, is_completed: updatedTask.isCompleted, repeat: updatedTask.repeat, category_id: updatedTask.categoryId 
+          }).eq('id', updatedTask.id);
           if (error) {
                console.error('Sync Error:', error);
-               setBoardData(prev => ({ 
-                   ...prev, 
-                   tasks: prev.tasks.map(t => t.id === updatedTask.id ? originalTask : t) 
-               }));
+               setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === updatedTask.id ? originalTask : t) }));
                addToast('Lỗi đồng bộ, đã hoàn tác', 'error');
           }
       }
   };
 
-  // --- ĐÃ FIX LỖI: SỬA TASK LẶP LẠI (SỬ DỤNG CHUẨN DATABASE SNAKE_CASE) ---
   const handleConfirmRecurringUpdate = async (mode) => {
       if (!pendingUpdate) return;
       const { originalTask, updatedTask } = pendingUpdate;
@@ -458,46 +343,15 @@ export default function App() {
           }).map(t => t.id === updatedTask.id ? updatedTask : t) 
       }));
 
-      const dbPayload = {
-          title: updatedTask.title,
-          description: updatedTask.description,
-          date: updatedTask.date,
-          end_date: updatedTask.endDate,
-          time: updatedTask.time,
-          is_completed: updatedTask.isCompleted,
-          repeat: updatedTask.repeat,
-          category_id: updatedTask.categoryId
-      };
-
       if (mode === 'single') {
-           dbPayload.series_id = null;
-           
-           const { error } = await supabase.from('tasks').update(dbPayload).eq('id', updatedTask.id);
-           if (error) {
-               console.error(error);
-               addToast('Có lỗi xảy ra khi lưu!', 'error');
-           } else {
-               addToast('Đã cập nhật (Tách riêng công việc)', 'success');
-           }
-
+           await supabase.from('tasks').update({ ...updatedTask, series_id: null }).eq('id', updatedTask.id);
+           addToast('Đã cập nhật (Tách riêng công việc)', 'success');
       } else if (mode === 'future') {
           await supabase.from('tasks').delete().eq('series_id', originalTask.seriesId).gt('date', originalTask.date);
-          
           const newSeriesId = updatedTask.repeat === 'none' ? null : originalTask.seriesId;
-          dbPayload.series_id = newSeriesId;
-          
-          const { error } = await supabase.from('tasks').update(dbPayload).eq('id', updatedTask.id);
-
-          if (error) {
-               console.error(error);
-               addToast('Có lỗi xảy ra khi lưu!', 'error');
-          } else {
-              if (updatedTask.repeat !== 'none') { 
-                  await handleGenerateRepeats(updatedTask, updatedTask.repeat); 
-              } else { 
-                  addToast('Đã cập nhật và dừng lặp lại', 'success'); 
-              }
-          }
+          await supabase.from('tasks').update({ ...updatedTask, series_id: newSeriesId }).eq('id', updatedTask.id);
+          if (updatedTask.repeat !== 'none') { await handleGenerateRepeats(updatedTask, updatedTask.repeat); } 
+          else { addToast('Đã cập nhật và dừng lặp lại', 'success'); }
       }
   };
 
@@ -505,61 +359,25 @@ export default function App() {
       let finalCategoryId = categoryId;
       let newCategories = [...categories];
       let newCategoryObj = null;
-      
       if (newCategoryTitle) {
           const newCatId = `cat-${Date.now()}`;
-          newCategoryObj = { 
-              id: newCatId, 
-              title: newCategoryTitle, 
-              color: COLORS[Math.floor(Math.random() * COLORS.length)], 
-              collapsed: false, 
-              position: categories.length 
-          };
+          newCategoryObj = { id: newCatId, title: newCategoryTitle, color: COLORS[Math.floor(Math.random() * COLORS.length)], collapsed: false, position: categories.length };
           newCategories.push(newCategoryObj);
           finalCategoryId = newCatId;
       }
-      
       const newId = `new-${Date.now()}`; 
-      const localTask = { 
-          id: newId, 
-          categoryId: finalCategoryId, 
-          date: date, 
-          endDate: date, 
-          title: title, 
-          description: '', 
-          isCompleted: false, 
-          repeat: 'none', 
-          seriesId: null 
-      };
-      
+      const localTask = { id: newId, categoryId: finalCategoryId, date: date, title: title, description: '', isCompleted: false, repeat: 'none', seriesId: null };
       setBoardData(prev => ({ categories: newCategories, tasks: [...prev.tasks, localTask] }));
       setShowAddTaskModal(false);
       addToast('Đã lưu công việc!', 'success');
-      
       try {
           if (newCategoryObj) await supabase.from('categories').insert([newCategoryObj]);
-          
-          const dbTask = { 
-              id: newId, 
-              category_id: finalCategoryId, 
-              date: date, 
-              end_date: date, 
-              title: title, 
-              description: '', 
-              is_completed: false, 
-              repeat: 'none', 
-              series_id: null 
-          };
-          
+          const dbTask = { id: newId, category_id: finalCategoryId, date: date, title: title, description: '', is_completed: false, repeat: 'none', series_id: null };
           const { error } = await supabase.from('tasks').insert([dbTask]);
           if (error) throw error;
       } catch (error) {
           console.error("Lỗi lưu:", error);
-          setBoardData(prev => ({ 
-              ...prev, 
-              tasks: prev.tasks.filter(t => t.id !== newId), 
-              categories: newCategoryObj ? prev.categories.filter(c => c.id !== newCategoryObj.id) : prev.categories 
-          }));
+          setBoardData(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== newId), categories: newCategoryObj ? prev.categories.filter(c => c.id !== newCategoryObj.id) : prev.categories }));
           addToast('Lỗi lưu dữ liệu - Đã hoàn tác', 'error');
       }
   };
@@ -569,7 +387,6 @@ export default function App() {
       setBoardData(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== taskId) })); 
       setEditingTask(null);
       addToast('Đã xóa công việc 🗑️');
-      
       const { error } = await supabase.from('tasks').delete().eq('id', taskId);
       if (error) {
         setBoardData(prev => ({ ...prev, tasks: originalTasks }));
@@ -578,55 +395,44 @@ export default function App() {
   };
 
   const handleSaveCategory = async () => {
-      if (newCategoryName && newCategoryName.trim()) {
-          const newCat = { 
-              id: `cat-${Date.now()}`, 
-              title: newCategoryName.trim(), 
-              color: COLORS[Math.floor(Math.random() * COLORS.length)], 
-              collapsed: false, 
-              position: categories.length 
-          };
-          
-          setBoardData(prev => ({ ...prev, categories: [...prev.categories, newCat] }));
-          setNewCategoryName(''); 
-          setIsCreatingCategory(false);
-          addToast('Đã thêm hạng mục', 'success');
-          
-          const { error } = await supabase.from('categories').insert([newCat]);
-          if (error) {
+    if (newCategoryName && newCategoryName.trim()) {
+        const newCat = { id: `cat-${Date.now()}`, title: newCategoryName.trim(), color: COLORS[Math.floor(Math.random() * COLORS.length)], collapsed: false, position: categories.length };
+        setBoardData(prev => ({ ...prev, categories: [...prev.categories, newCat] }));
+        setNewCategoryName(''); 
+        setIsCreatingCategory(false);
+        addToast('Đã thêm hạng mục', 'success');
+        const { error } = await supabase.from('categories').insert([newCat]);
+        if (error) {
               console.error(error);
               setBoardData(prev => ({ ...prev, categories: prev.categories.filter(c => c.id !== newCat.id) })); 
               addToast('Lỗi server', 'error');
-          }
-      }
+        }
+    }
   };
 
+  // --- HÀM XÓA HẠNG MỤC (ĐÃ CẬP NHẬT DÙNG CONFIRM MODAL) ---
   const handleDeleteCategory = (catId) => { 
-      const category = categories.find(c => c.id === catId);
-      const title = category ? category.title : 'hạng mục này';
-      
-      setConfirmDialog({
-          title: "Xóa hạng mục?",
-          message: `Bạn có chắc chắn muốn xóa "${title}"?\n\nTất cả công việc nằm trong hạng mục này cũng sẽ bị xóa vĩnh viễn!`,
-          confirmLabel: "Xóa vĩnh viễn",
-          isDangerous: true,
-          onConfirm: async () => {
-              const originalData = { ...boardData };
-              setBoardData(prev => ({ 
-                  tasks: prev.tasks.filter(t => t.categoryId !== catId), 
-                  categories: prev.categories.filter(c => c.id !== catId) 
-              }));
-              setEditingCategory(null); 
-              setConfirmDialog(null); 
-              addToast('Đã xóa hạng mục');
-              
-              const { error } = await supabase.from('categories').delete().eq('id', catId);
-              if (error) { 
-                  setBoardData(originalData); 
-                  addToast('Lỗi xóa hạng mục - Đã khôi phục', 'error'); 
-              }
-          }
-      });
+        const category = categories.find(c => c.id === catId);
+        const title = category ? category.title : 'hạng mục này';
+
+        // Thay vì window.confirm, ta set state để hiện modal đẹp
+        setConfirmDialog({
+            title: "Xóa hạng mục?",
+            message: `Bạn có chắc chắn muốn xóa "${title}"?\n\nTất cả công việc nằm trong hạng mục này cũng sẽ bị xóa vĩnh viễn!`,
+            confirmLabel: "Xóa vĩnh viễn",
+            isDangerous: true,
+            onConfirm: async () => {
+                // Logic xóa thật sự (chuyển vào trong callback)
+                const originalData = { ...boardData };
+                setBoardData(prev => ({ tasks: prev.tasks.filter(t => t.categoryId !== catId), categories: prev.categories.filter(c => c.id !== catId) }));
+                setEditingCategory(null); 
+                setConfirmDialog(null); // Đóng modal
+                addToast('Đã xóa hạng mục');
+                
+                const { error } = await supabase.from('categories').delete().eq('id', catId);
+                if (error) { setBoardData(originalData); addToast('Lỗi xóa hạng mục - Đã khôi phục', 'error'); }
+            }
+        });
   };
 
   const handleUpdateCategory = async (updatedCat) => { 
@@ -643,159 +449,76 @@ export default function App() {
       }
   };
 
-  const handleCategoryDragStart = (e, index) => { 
-      setDraggedCategoryIndex(index); 
-      e.dataTransfer.effectAllowed = "move"; 
-  };
-  
-  const handleCategoryDragOver = (e) => { 
-      e.preventDefault(); 
-      e.dataTransfer.dropEffect = "move"; 
-  };
+  const handleCategoryDragStart = (e, index) => { setDraggedCategoryIndex(index); e.dataTransfer.effectAllowed = "move"; };
+  const handleCategoryDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; };
   
   const handleCategoryDrop = async (e, dropIndex) => {
       e.preventDefault();
       if (draggedCategoryIndex === null || draggedCategoryIndex === dropIndex) return;
-      
       const newCategories = [...categories];
       const [movedCategory] = newCategories.splice(draggedCategoryIndex, 1);
       newCategories.splice(dropIndex, 0, movedCategory);
-      
       const orderedCategories = newCategories.map((cat, index) => ({ ...cat, position: index }));
       setBoardData(prev => ({ ...prev, categories: orderedCategories }));
       setDraggedCategoryIndex(null);
       addToast('Đã sắp xếp lại thứ tự hạng mục', 'success');
-      
-      const updates = orderedCategories.map(c => ({ 
-          id: c.id, 
-          title: c.title, 
-          color: c.color, 
-          collapsed: c.collapsed, 
-          position: c.position 
-      }));
+      const updates = orderedCategories.map(c => ({ id: c.id, title: c.title, color: c.color, collapsed: c.collapsed, position: c.position }));
       await supabase.from('categories').upsert(updates);
   };
 
-  const startResizingSidebar = (e) => { 
-      e.preventDefault(); 
-      const startX = e.clientX; 
-      const startWidth = sidebarWidth;
-      
-      const onMouseMove = (ev) => {
-          setSidebarWidth(Math.max(150, Math.min(500, startWidth + (ev.clientX - startX))));
-      };
-      
-      const onMouseUp = () => { 
-          document.removeEventListener('mousemove', onMouseMove);
-          document.removeEventListener('mouseup', onMouseUp); 
-      };
-      
-      document.addEventListener('mousemove', onMouseMove); 
-      document.addEventListener('mouseup', onMouseUp); 
-  };
+  const startResizingSidebar = (e) => { e.preventDefault(); const startX = e.clientX; const startWidth = sidebarWidth;
+    const onMouseMove = (ev) => setSidebarWidth(Math.max(150, Math.min(500, startWidth + (ev.clientX - startX)))); const onMouseUp = () => { document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp); }; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); };
   
   const handleDragStart = (e, task) => { 
-      e.stopPropagation(); 
-      setDraggedTask(task); 
-      e.dataTransfer.effectAllowed = 'move'; 
-      e.dataTransfer.setData('text/plain', JSON.stringify(task)); 
+    e.stopPropagation(); 
+    setDraggedTask(task); 
+    e.dataTransfer.effectAllowed = 'move'; 
+    e.dataTransfer.setData('text/plain', JSON.stringify(task)); 
 
-      setTimeout(() => {
-          if (e.target) {
-              e.target.style.opacity = '0.4'; 
-              e.target.style.transform = 'scale(0.95)'; 
-              e.target.style.filter = 'grayscale(0.5)'; 
-          }
-      }, 0);
+    setTimeout(() => {
+        if (e.target) {
+            e.target.style.opacity = '0.4'; 
+            e.target.style.transform = 'scale(0.95)'; 
+            e.target.style.filter = 'grayscale(0.5)'; 
+        }
+    }, 0);
   };
 
   const handleDragEnd = (e) => { 
-      if (e.target) { 
+      if (e.target) {
           e.target.style.opacity = '1'; 
           e.target.style.transform = 'none'; 
-          e.target.style.filter = 'none'; 
+          e.target.style.filter = 'none';
       }
       setDraggedTask(null); 
   };
 
-  const handleDragOver = (e) => { 
-      e.preventDefault(); 
-      e.dataTransfer.dropEffect = 'move'; 
-  };
+  const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
   
-  const handleDrop = (e, categoryId, dateStr) => { 
-      e.preventDefault();
+  const handleDrop = (e, categoryId, dateStr) => { e.preventDefault();
       if (draggedTask) { 
           const draggedEl = document.querySelector(`[draggable="true"][style*="opacity: 0.4"]`); 
-          if (draggedEl) { 
-              draggedEl.style.opacity = '1'; 
-              draggedEl.style.transform = 'none'; 
-              draggedEl.style.filter = 'none'; 
+          if (draggedEl) {
+              draggedEl.style.opacity = '1';
+              draggedEl.style.transform = 'none';
+              draggedEl.style.filter = 'none';
           }
       }
-      
       if (!draggedTask) return; 
-      
-      // Khi kéo thả sang ngày mới, độ dài task được giữ nguyên (update cả start và end)
-      const duration = (new Date(draggedTask.endDate) - new Date(draggedTask.date)) / (1000 * 60 * 60 * 24);
-      const newEndDate = new Date(dateStr);
-      newEndDate.setDate(newEndDate.getDate() + (isNaN(duration) ? 0 : duration));
-      
-      handleUpdateTask({ 
-          ...draggedTask, 
-          categoryId, 
-          date: dateStr, 
-          endDate: formatDateKey(newEndDate) 
-      });
+      handleUpdateTask({ ...draggedTask, categoryId, date: dateStr });
       setDraggedTask(null); 
   };
 
-  const handleConfirmQuickAdd = (title) => { 
-      if (!title || !title.trim()) { 
-          setQuickAddCell(null); 
-          return; 
-      } 
-      handleSaveNewTask({ 
-          title: title.trim(), 
-          date: quickAddCell.dateStr, 
-          categoryId: quickAddCell.categoryId 
-      });
-      setQuickAddCell(null); 
+  const handleConfirmQuickAdd = (title) => { if (!title || !title.trim()) { setQuickAddCell(null); return; } 
+    handleSaveNewTask({ title: title.trim(), date: quickAddCell.dateStr, categoryId: quickAddCell.categoryId });
+    setQuickAddCell(null); 
   };
-
-  const prevWeek = () => { 
-      const d = new Date(currentDate); 
-      d.setDate(d.getDate() - 7); 
-      previousDateRef.current = currentDate; 
-      scrollActionRef.current = 'jump'; 
-      setCurrentDate(d); 
-  };
-  
-  const nextWeek = () => { 
-      const d = new Date(currentDate); 
-      d.setDate(d.getDate() + 7); 
-      previousDateRef.current = currentDate; 
-      scrollActionRef.current = 'jump'; 
-      setCurrentDate(d); 
-  };
-  
-  const goToToday = () => { 
-      previousDateRef.current = currentDate; 
-      scrollActionRef.current = 'jump'; 
-      setCurrentDate(new Date()); 
-  };
-  
-  const handleDateSelect = (date) => { 
-      previousDateRef.current = currentDate; 
-      scrollActionRef.current = 'jump'; 
-      setCurrentDate(date); 
-  };
-  
-  const handleOpenAddTask = (defaults = {}) => { 
-      setNewTaskDefaults(defaults); 
-      setShowAddTaskModal(true); 
-  };
-  
+  const prevWeek = () => { const d = new Date(currentDate); d.setDate(d.getDate() - 7); previousDateRef.current = currentDate; scrollActionRef.current = 'jump'; setCurrentDate(d); };
+  const nextWeek = () => { const d = new Date(currentDate); d.setDate(d.getDate() + 7); previousDateRef.current = currentDate; scrollActionRef.current = 'jump'; setCurrentDate(d); };
+  const goToToday = () => { previousDateRef.current = currentDate; scrollActionRef.current = 'jump'; setCurrentDate(new Date()); };
+  const handleDateSelect = (date) => { previousDateRef.current = currentDate; scrollActionRef.current = 'jump'; setCurrentDate(date); };
+  const handleOpenAddTask = (defaults = {}) => { setNewTaskDefaults(defaults); setShowAddTaskModal(true); };
   const handleNavigateToTask = (task) => {
       const targetDate = new Date(task.date);
       setCurrentDate(targetDate);
@@ -811,105 +534,35 @@ export default function App() {
       return tasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [tasks, searchQuery]);
 
-  // Context Menu
-  const handleContextMenu = useCallback((e, task) => { 
-      e.preventDefault(); 
-      setContextMenu({ 
-          position: { x: e.clientX, y: e.clientY }, 
-          type: 'TASK', 
-          data: task 
-      }); 
-  }, []);
-
-  const handleContextMenuAction = async (action, task) => {
-      switch (action) {
-          case 'EDIT': 
-              setEditingTask(task); 
-              break;
-          case 'DELETE': 
-              handleDeleteTask(task.id); 
-              break;
-          case 'TOGGLE_COMPLETE': 
-              handleUpdateTask({ ...task, isCompleted: !task.isCompleted }); 
-              break;
-          case 'DUPLICATE': { 
-              const newTask = { 
-                  ...task, 
-                  id: `dup-${Date.now()}`, 
-                  title: `${task.title} (Sao chép)`, 
-                  seriesId: null, 
-                  repeat: 'none' 
-              }; 
-              await handleSaveNewTask({ title: newTask.title, date: newTask.date, categoryId: newTask.categoryId }); 
-              break; 
-          }
-          case 'MOVE_TODAY': { 
-              const todayStr = formatDateKey(new Date()); 
-              handleUpdateTask({ ...task, date: todayStr, endDate: todayStr }); 
-              addToast('Đã dời sang hôm nay 📅', 'success'); 
-              break; 
-          }
-          default: 
-              break;
-      }
-  };
-
   return (
-    <div className="flex flex-col h-screen bg-gray-50 font-sans text-slate-800" onClick={() => { setSelectedTaskId(null); setContextMenu(null); }}>
+    <div className="flex flex-col h-screen bg-gray-50 font-sans text-slate-800" onClick={() => setSelectedTaskId(null)}>
       
       <Header 
-        currentDate={currentDate} 
-        prevWeek={prevWeek} 
-        nextWeek={nextWeek} 
-        goToToday={goToToday} 
-        onDateSelect={handleDateSelect} 
-        zoomIndex={zoomIndex} 
-        onZoomChange={handleZoomChange} 
-        onUndo={undo} 
-        canUndo={canUndo} 
-        onRedo={redo} 
-        canRedo={canRedo} 
-        viewMode={viewMode} 
-        setViewMode={setViewMode} 
-        onOpenAddTask={handleOpenAddTask} 
-        searchQuery={searchQuery} 
-        setSearchQuery={setSearchQuery} 
-        tasks={tasks} 
-        onNavigateToTask={handleNavigateToTask} 
+        currentDate={currentDate} prevWeek={prevWeek} nextWeek={nextWeek} goToToday={goToToday} onDateSelect={handleDateSelect} zoomIndex={zoomIndex} onZoomChange={handleZoomChange} onUndo={undo} canUndo={canUndo} onRedo={redo} canRedo={canRedo} viewMode={viewMode} setViewMode={setViewMode} onOpenAddTask={handleOpenAddTask} searchQuery={searchQuery} setSearchQuery={setSearchQuery} tasks={tasks} onNavigateToTask={handleNavigateToTask} 
         categories={categories} 
       />
       
       {viewMode === 'list' ? (
           <TodoView 
-              tasks={tasks} 
-              categories={categories} 
-              currentDate={currentDate} 
-              onUpdateTask={handleUpdateTask} 
-              setEditingTask={setEditingTask} 
-              onDeleteTask={handleDeleteTask} 
-              onOpenAddTask={handleOpenAddTask} 
-              quickAddCell={quickAddCell} 
-              setQuickAddCell={setQuickAddCell} 
-              onConfirmQuickAdd={handleConfirmQuickAdd} 
-              searchQuery={searchQuery} 
-              onSaveNewTask={handleSaveNewTask} 
+            tasks={tasks} categories={categories} currentDate={currentDate} onUpdateTask={handleUpdateTask} setEditingTask={setEditingTask} onDeleteTask={handleDeleteTask} onOpenAddTask={handleOpenAddTask} quickAddCell={quickAddCell} setQuickAddCell={setQuickAddCell} onConfirmQuickAdd={handleConfirmQuickAdd} searchQuery={searchQuery} onSaveNewTask={handleSaveNewTask}
           />
       ) : (
           <div className="flex-1 overflow-hidden relative flex flex-col">
             <div ref={scrollContainerRef} className="flex-1 overflow-auto custom-scrollbar" onScroll={handleScroll}>
               <div className="inline-block min-w-full">
                 
-                {/* Header Ngày Tháng */}
+                {/* --- HEADER NGÀY THÁNG --- */}
                 <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md flex border-b border-gray-200/60 shadow-sm transition-all">
                   <div className="sticky left-0 z-50 bg-white/95 backdrop-blur-md border-r border-gray-200/60 p-4 flex items-center font-bold text-gray-500 bg-gray-50/50 box-border group" style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
                     Hạng Mục / Deadline
                     <div className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-indigo-500 group-hover:bg-gray-300 transition-colors z-30" onMouseDown={startResizingSidebar} />
                   </div>
                   {visibleDays.map((day, index) => {
-                        const dayKey = formatDateKey(day); 
+                        const dayKey = formatDateKey(day);
                         const isTodayDate = dayKey === formatDateKey(new Date()); 
-                        const isMonday = index % 7 === 0; 
+                        const isMonday = index % 7 === 0;
                         const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+
                         return (
                           <div key={dayKey} style={{ width: dayWidth, minWidth: dayWidth }} className={`flex-shrink-0 p-3 text-center flex flex-col justify-center transition-all duration-200 ease-out relative ${isTodayDate ? 'bg-indigo-50/50' : (isWeekend ? 'bg-slate-50/50' : 'bg-white')}`}>
                             {isMonday && (<div className="absolute top-0 left-0 right-0 -mt-1 text-[10px] font-bold text-indigo-400 uppercase tracking-widest text-center">Tuần {day.getDate()} - {new Date(day.getTime() + 6*86400000).getDate()}/{day.getMonth() + 1}</div>)}
@@ -920,41 +573,57 @@ export default function App() {
                   })}
                 </div>
 
-                {/* Các dòng Category */}
+                {/* --- ROWS --- */}
                 {categories.map((category, index) => (
-                  <div key={category.id} className={`flex border-b border-gray-300 group ${draggedCategoryIndex === index ? 'opacity-40 border-dashed border-indigo-400' : ''}`} onDragOver={handleCategoryDragOver} onDrop={(e) => handleCategoryDrop(e, index)}>
-                    
-                    <div draggable onDragStart={(e) => handleCategoryDragStart(e, index)} className={`sticky left-0 z-30 bg-white/95 backdrop-blur-sm border-r border-gray-200/60 p-4 flex flex-col justify-center group-hover:bg-gray-50 transition-colors border-l-4 ${category.color.value.replace('bg-', 'border-').split(' ')[0]} shadow-[4px_0_24px_rgba(0,0,0,0.02)]`} style={{ width: sidebarWidth, minWidth: sidebarWidth, borderLeftColor: category.color?.hex || '#ccc' }}>
+                  <div 
+                    key={category.id} 
+                    className={`flex border-b border-gray-300 group ${draggedCategoryIndex === index ? 'opacity-40 border-dashed border-indigo-400' : ''}`}
+                    onDragOver={handleCategoryDragOver}
+                    onDrop={(e) => handleCategoryDrop(e, index)}
+                  >
+                    {/* SIDEBAR CELL */}
+                    <div 
+                        draggable 
+                        onDragStart={(e) => handleCategoryDragStart(e, index)}
+                        className={`sticky left-0 z-30 bg-white/95 backdrop-blur-sm border-r border-gray-200/60 p-4 flex flex-col justify-center group-hover:bg-gray-50 transition-colors border-l-4 ${category.color.value.replace('bg-', 'border-').split(' ')[0]} shadow-[4px_0_24px_rgba(0,0,0,0.02)]`} 
+                        style={{ width: sidebarWidth, minWidth: sidebarWidth, borderLeftColor: category.color?.hex || '#ccc' }}
+                    >
                       <div className="font-semibold text-gray-800 flex items-center justify-between group/header overflow-hidden">
                         <div className="flex items-center gap-2 truncate pr-2 cursor-pointer" onDoubleClick={() => setEditingCategory(category)}>
-                             <button onClick={(e) => { e.stopPropagation(); toggleCategoryCollapse(category.id); }} className="text-gray-400 hover:text-indigo-600 transition-colors"> 
-                                 {category.collapsed ? <ChevronRightIcon size={16} /> : <CornerDownLeft size={16} className="rotate-0" />} 
+                             <button onClick={(e) => { e.stopPropagation(); toggleCategoryCollapse(category.id); }} className="text-gray-400 hover:text-indigo-600 transition-colors">
+                                 {category.collapsed ? <ChevronRightIcon size={16} /> : <CornerDownLeft size={16} className="rotate-0" />}
                              </button>
                              <span className="truncate hover:underline decoration-dashed underline-offset-4">{category.title}</span>
                         </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
+                         <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
                             <button onClick={() => handleDeleteCategory(category.id)} className="p-1 rounded hover:bg-red-100 text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
                             <button onClick={() => setEditingCategory(category)} className={`p-1 rounded hover:bg-gray-200 ${category.color.text}`}><Palette size={14}/></button>
                             <div className="text-gray-400 cursor-grab active:cursor-grabbing hover:text-gray-700" title="Kéo để sắp xếp"><GripVertical size={14}/></div>
                         </div>
                       </div>
-                      <div className="text-xs text-gray-400 mt-1 flex items-center gap-2 ml-6"> 
-                          <span className={`w-2 h-2 rounded-full ${category.color.value.split(' ')[0].replace('bg-', 'bg-')}`}></span> 
+                      
+                      <div className="text-xs text-gray-400 mt-1 flex items-center gap-2 ml-6">
+                        <span className={`w-2 h-2 rounded-full ${category.color.value.split(' ')[0].replace('bg-', 'bg-')}`}></span>
                       </div>
                       <div className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-indigo-500 z-30" onMouseDown={startResizingSidebar} />
                     </div>
 
+                    {/* TASK CELLS */}
                     {!category.collapsed && visibleDays.map((day) => {
                         const dateStr = formatDateKey(day);
                         const cellTasks = filteredMatrixTasks.filter(t => t.categoryId === category.id && t.date === dateStr);
-                        const isToday = dateStr === formatDateKey(new Date()); 
+                        const isToday = dateStr === formatDateKey(new Date());
                         const isWeekend = day.getDay() === 0 || day.getDay() === 6;
 
                         return (
                             <div 
                                 key={`${category.id}-${dateStr}`} 
                                 style={{ width: dayWidth, minWidth: dayWidth }} 
-                                className={`flex-shrink-0 min-h-[120px] p-2 transition-all duration-300 group/cell relative ${isToday ? 'bg-indigo-50/40' : (isWeekend ? 'bg-slate-50/30' : 'bg-transparent')} hover:bg-gray-50/80 cursor-pointer`} 
+                                className={`
+                                    flex-shrink-0 min-h-[120px] p-2 transition-all duration-300 group/cell relative
+                                    ${isToday ? 'bg-indigo-50/40' : (isWeekend ? 'bg-slate-50/30' : 'bg-transparent')} 
+                                    hover:bg-gray-50/80 cursor-pointer
+                                `}
                                 onDragOver={handleDragOver} 
                                 onDrop={(e) => handleDrop(e, category.id, dateStr)} 
                                 onMouseEnter={() => setHoveredCell({ categoryId: category.id, dateStr })} 
@@ -964,11 +633,11 @@ export default function App() {
                             >
                                 <div className="flex flex-col gap-2 h-full relative z-10">
                                     {cellTasks.map((task) => (
-                                        <div className="pointer-events-auto relative" key={task.id}>
+                                        <div className="pointer-events-auto" key={task.id}>
                                             <TaskCard 
                                                 task={task} 
                                                 categoryColor={category.color} 
-                                                dayWidth={dayWidth} // TRUYỀN DAYWIDTH XUỐNG
+                                                dayWidth={dayWidth} 
                                                 isSelected={selectedTaskId === task.id} 
                                                 isHighlighted={highlightedTaskId === task.id} 
                                                 onSelect={setSelectedTaskId} 
@@ -977,7 +646,6 @@ export default function App() {
                                                 onDragStart={handleDragStart} 
                                                 onDragEnd={handleDragEnd} 
                                                 setEditingTask={setEditingTask} 
-                                                onContextMenu={handleContextMenu} 
                                             />
                                         </div>
                                     ))}
@@ -989,54 +657,62 @@ export default function App() {
                   </div>
                 ))}
                 
-                {/* Dòng tạo Category mới */}
+                {/* Khu vực tạo Category mới */}
                 <div className="flex border-b border-gray-300 group">
                     <div className="sticky left-0 z-30 bg-white/95 backdrop-blur-sm border-r border-gray-200/60 flex flex-col justify-center border-l-4 border-transparent shadow-[4px_0_24px_rgba(0,0,0,0.02)]" style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
                         {isCreatingCategory ? (
                             <div className="p-3 m-2 bg-white border border-indigo-200 rounded-xl shadow-lg animate-in zoom-in-95 duration-200">
                                 <input 
-                                    autoFocus 
+                                    autoFocus
                                     type="text" 
-                                    value={newCategoryName} 
-                                    onChange={(e) => setNewCategoryName(e.target.value)} 
-                                    onKeyDown={(e) => { if (e.key === 'Enter') handleSaveCategory(); if (e.key === 'Escape') setIsCreatingCategory(false); }} 
-                                    placeholder="Tên hạng mục..." 
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" 
+                                    value={newCategoryName}
+                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') handleSaveCategory();
+                                        if (e.key === 'Escape') setIsCreatingCategory(false);
+                                    }}
+                                    placeholder="Tên hạng mục..."
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                                 />
-                                <div className="flex gap-2 justify-end"> 
-                                    <button onClick={() => setIsCreatingCategory(false)} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"><X size={16}/></button> 
-                                    <button onClick={handleSaveCategory} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors flex items-center gap-1"><Check size={14}/> Lưu</button> 
+                                <div className="flex gap-2 justify-end">
+                                    <button onClick={() => setIsCreatingCategory(false)} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"><X size={16}/></button>
+                                    <button onClick={handleSaveCategory} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors flex items-center gap-1"><Check size={14}/> Lưu</button>
                                 </div>
                             </div>
                         ) : (
-                            <button onClick={() => setIsCreatingCategory(true)} className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 font-bold transition-colors w-full p-4"> 
-                                <div className="p-1 rounded-md bg-gray-100 group-hover:bg-indigo-100 text-gray-500 group-hover:text-indigo-600 transition-colors"> <Plus size={16} /> </div> 
-                                <span>Thêm hạng mục mới</span> 
+                            <button onClick={() => setIsCreatingCategory(true)} className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 font-bold transition-colors w-full p-4">
+                                <div className="p-1 rounded-md bg-gray-100 group-hover:bg-indigo-100 text-gray-500 group-hover:text-indigo-600 transition-colors">
+                                    <Plus size={16} />
+                                </div>
+                                <span>Thêm hạng mục mới</span>
                             </button>
                         )}
                     </div>
-                    {visibleDays.map((day) => ( 
-                        <div key={`empty-${formatDateKey(day)}`} style={{ width: dayWidth, minWidth: dayWidth }} className="flex-shrink-0 border-r border-transparent bg-gray-50/20" /> 
+                    {visibleDays.map((day) => (
+                        <div key={`empty-${formatDateKey(day)}`} style={{ width: dayWidth, minWidth: dayWidth }} className="flex-shrink-0 border-r border-transparent bg-gray-50/20" />
                     ))}
                 </div>
+
               </div>
             </div>
           </div>
       )}
 
-      {/* --- CÁC MODAL --- */}
       {editingTask && <TaskModal task={editingTask} onClose={() => setEditingTask(null)} onUpdate={handleUpdateTask} onDelete={handleDeleteTask} categories={categories} onGenerateRepeats={handleGenerateRepeats} />}
       {showAddTaskModal && <AddTaskModal onClose={() => setShowAddTaskModal(false)} onSave={handleSaveNewTask} categories={categories} initialDate={newTaskDefaults.date} initialCategoryId={newTaskDefaults.categoryId} />}
       {editingCategory && <CategoryModal category={editingCategory} onClose={() => setEditingCategory(null)} onUpdate={handleUpdateCategory} onDelete={handleDeleteCategory} />}
       {showRecurringModal && <RecurringUpdateModal onClose={() => setShowRecurringModal(false)} onConfirm={handleConfirmRecurringUpdate} />}
       
-      {/* Confirm Dialog */}
-      {confirmDialog && <ConfirmModal isOpen={true} onClose={() => setConfirmDialog(null)} {...confirmDialog} />}
-      
-      {/* Context Menu (Chuột phải) */}
-      {contextMenu && <ContextMenu position={contextMenu.position} type={contextMenu.type} data={contextMenu.data} onClose={() => setContextMenu(null)} onAction={handleContextMenuAction} />}
-      
-      {/* Thông báo góc */}
+      {/* --- HIỂN THỊ MODAL CONFIRM MỚI --- */}
+      {/* Chỉ render khi có dữ liệu dialog -> Đảm bảo sạch sẽ bộ nhớ */}
+      {confirmDialog && (
+          <ConfirmModal 
+            isOpen={true} 
+            onClose={() => setConfirmDialog(null)}
+            {...confirmDialog} 
+          />
+      )}
+
       <ToastContainer toasts={toasts} />
     </div>
   );

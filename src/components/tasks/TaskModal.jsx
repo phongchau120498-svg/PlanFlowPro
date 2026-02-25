@@ -3,7 +3,7 @@ import { CalendarPlus, Trash2, X, CheckSquare, Square, Repeat, Calendar, AlignLe
 import { generateGoogleCalendarLink } from '../../utils/dateHelpers';
 import { COLORS } from '../../constants/theme';
 
-const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRepeats }) => {
+const TaskModal = ({ task, onClose, onUpdate, onDelete, categories }) => {
   if (!task) return null;
   const [localTask, setLocalTask] = useState(task);
   const descriptionRef = useRef(null);
@@ -13,32 +13,24 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
 
   useEffect(() => { setLocalTask(task); }, [task.id]);
 
+  // --- ĐÃ FIX: Chỉ gọi onUpdate, giao toàn quyền xử lý chuỗi lặp cho App.jsx ---
   const handleSaveAndClose = () => {
-      if (localTask.repeat !== task.repeat && localTask.repeat !== 'none') {
-           onGenerateRepeats(localTask, localTask.repeat);
-      }
       onUpdate(localTask);
       onClose();
   };
 
-  // --- XỬ LÝ PHÍM TẮT CHUNG (ESC & ENTER TOÀN CỤC) ---
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
         if (e.key === 'Escape') {
             onClose();
             return;
         }
-        // Phím Enter toàn cục:
-        // - Nếu đang ở ô Title (Tiêu đề): Đã có hàm handleTitleKeyDown xử lý riêng bên dưới.
-        // - Nếu đang ở ô Description (Ghi chú): Bỏ qua để cho phép xuống dòng.
-        // - Các trường hợp khác (Date, Select...): Bấm Enter là Lưu.
         if (e.key === 'Enter') {
-            if (e.target.tagName === 'TEXTAREA') return; // Bỏ qua textarea (Title & Desc) để xử lý riêng
+            if (e.target.tagName === 'TEXTAREA') return; 
             e.preventDefault();
             handleSaveAndClose();
         }
     };
-
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [localTask]); 
@@ -52,53 +44,42 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
       setLocalTask(prev => ({ ...prev, repeat: e.target.value }));
   };
 
-  // --- XỬ LÝ RIÊNG CHO Ô TIÊU ĐỀ: ENTER LÀ LƯU ---
   const handleTitleKeyDown = (e) => {
     if (e.key === 'Enter') {
-      e.preventDefault(); // Chặn hành vi xuống dòng mặc định của textarea
-      handleSaveAndClose(); // Lưu ngay lập tức
+      e.preventDefault(); 
+      handleSaveAndClose(); 
     }
   };
 
-  // --- LOGIC THÔNG MINH CHO Ô GHI CHÚ (Giữ nguyên) ---
   const handleDescriptionKeyDown = (e) => {
       if (e.key === 'Enter') {
           const textarea = descriptionRef.current;
           if (!textarea) return;
-
           const start = textarea.selectionStart;
           const value = localTask.description || '';
-          
           const lastNewLine = value.lastIndexOf('\n', start - 1);
           const currentLineStart = lastNewLine + 1;
           const currentLineText = value.substring(currentLineStart, start);
-
           const match = currentLineText.match(/^(\s*)(• |\d+\. )/);
 
           if (match) {
               const fullPrefix = match[0]; 
               const content = currentLineText.substring(fullPrefix.length);
-
               if (!content.trim()) {
                   e.preventDefault();
                   const newValue = value.substring(0, currentLineStart) + value.substring(start);
                   setLocalTask(prev => ({...prev, description: newValue}));
-                  setTimeout(() => {
-                      textarea.selectionStart = textarea.selectionEnd = currentLineStart;
-                  }, 0);
+                  setTimeout(() => { textarea.selectionStart = textarea.selectionEnd = currentLineStart; }, 0);
                   return;
               }
-
               e.preventDefault();
               let nextPrefix = match[2]; 
               if (nextPrefix.match(/\d+\./)) {
                   const num = parseInt(nextPrefix);
                   nextPrefix = `${num + 1}. `;
               }
-
               const insertText = '\n' + match[1] + nextPrefix; 
               const newValue = value.substring(0, start) + insertText + value.substring(textarea.selectionEnd);
-              
               setLocalTask(prev => ({...prev, description: newValue}));
               setTimeout(() => {
                   textarea.selectionStart = textarea.selectionEnd = start + insertText.length;
@@ -111,7 +92,6 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
   const toggleLineFormat = (type) => { 
       const textarea = descriptionRef.current;
       if (!textarea) return;
-      // ... (Logic format giữ nguyên) ...
       const start = textarea.selectionStart;
       const value = localTask.description || '';
       const lastNewLine = value.lastIndexOf('\n', start - 1);
@@ -156,7 +136,6 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
       <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-300" />
       <div className="relative bg-[#FBFBFD] w-full max-w-2xl h-auto max-h-[90vh] rounded-[32px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 ease-apple border border-white/50 ring-1 ring-black/5" onClick={(e) => e.stopPropagation()}>
         
-        {/* HEADER */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50 bg-white/60 backdrop-blur-xl sticky top-0 z-10 shrink-0">
           <div className="flex items-center gap-3">
               <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest ${currentCategoryColor.value} border border-black/5 shadow-sm`}>
@@ -170,7 +149,6 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
           </div>
         </div>
 
-        {/* BODY */}
         <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar space-y-6">
            <div className="flex flex-wrap items-center gap-3">
                 <button onClick={() => setLocalTask(prev => ({...prev, isCompleted: !prev.isCompleted}))} className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-sm font-bold transition-all border shadow-sm active:scale-95 duration-200 ${localTask.isCompleted ? 'bg-gray-100 text-gray-500 border-transparent' : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'}`}>
@@ -188,11 +166,10 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
                 </div>
            </div>
 
-          {/* Ô TIÊU ĐỀ: Thêm onKeyDown để chặn xuống dòng */}
           <textarea 
             value={localTask.title} 
             onChange={(e) => setLocalTask(prev => ({...prev, title: e.target.value}))} 
-            onKeyDown={handleTitleKeyDown} // <--- QUAN TRỌNG: Gắn hàm xử lý riêng
+            onKeyDown={handleTitleKeyDown} 
             className={`w-full text-3xl sm:text-4xl font-bold border-none outline-none focus:ring-0 placeholder-gray-300 p-0 bg-transparent tracking-tight resize-none overflow-hidden ${localTask.isCompleted ? 'text-gray-400 line-through' : 'text-slate-900'}`} 
             placeholder="Tên công việc..." 
             rows={1}
@@ -232,7 +209,6 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
           </div>
         </div>
 
-        {/* FOOTER */}
         <div className="p-6 border-t border-gray-200/50 bg-white/80 backdrop-blur-md flex justify-end shrink-0">
            <button onClick={handleSaveAndClose} className="flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white rounded-2xl hover:bg-black font-bold shadow-lg shadow-slate-300 transition-all transform active:scale-[0.98]">
                <Save size={18}/> Lưu thay đổi

@@ -648,110 +648,6 @@ const RecurringUpdateModal = ({ onClose, onConfirm }) => {
 export default RecurringUpdateModal;
 </file>
 
-<file path="src/components/tasks/TaskCard.jsx">
-import React, { useState } from 'react';
-import { Square, CheckSquare, AlignLeft, Repeat } from 'lucide-react';
-
-const TaskCard = ({ task, categoryColor, isSelected, isHighlighted, onSelect, onUpdate, onDragStart, onDragEnd, setEditingTask }) => {
-    
-    const [dropPosition, setDropPosition] = useState(null);
-
-    const handleToggleComplete = (e) => {
-        e.stopPropagation();
-        onUpdate({ ...task, isCompleted: !task.isCompleted });
-    };
-
-    const handleDragOver = (e) => {
-        e.preventDefault();
-        e.stopPropagation(); 
-        
-        const rect = e.currentTarget.getBoundingClientRect();
-        const midpoint = rect.height / 2;
-        const hoverY = e.clientY - rect.top; 
-
-        if (hoverY < midpoint) {
-            setDropPosition('top');
-        } else {
-            setDropPosition('bottom');
-        }
-    };
-
-    const handleDragLeave = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDropPosition(null); 
-    };
-
-    const handleDrop = (e) => {
-        setDropPosition(null);
-    };
-
-    return (
-        <div 
-            draggable 
-            onDragStart={(e) => onDragStart(e, task)}
-            onDragEnd={onDragEnd} 
-            onClick={(e) => { e.stopPropagation(); onSelect(task.id); }}
-            onDoubleClick={(e) => { e.stopPropagation(); setEditingTask(task); }}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-
-            className={`
-                group relative px-3.5 py-3 mb-2 rounded-2xl border transition-all duration-300 ease-out select-none
-                cursor-grab active:cursor-grabbing
-                
-                ${/* Hiệu ứng hover: Nhấc nhẹ thẻ lên + Bóng đổ đậm hơn */ 'hover:-translate-y-0.5 hover:shadow-md'}
-                
-                ${task.isCompleted 
-                    // Task hoàn thành: Chìm vào nền, trong suốt hơn
-                    ? 'bg-gray-50/80 border-transparent opacity-60 grayscale' 
-                    // Task thường: Dùng màu nền nhẹ, border trong suốt để shadow nổi bật
-                    : `${categoryColor.value} border-transparent shadow-sm`
-                }
-                
-                ${/* Viền khi chọn */ isSelected ? `ring-2 ring-indigo-500 ring-offset-2 z-10` : ''}
-                ${/* Viền khi highlight (tìm kiếm/di chuyển) */ isHighlighted ? 'ring-4 ring-yellow-400 ring-offset-2 z-20 scale-105 shadow-xl bg-yellow-50' : ''}
-                
-                ${dropPosition === 'top' ? 'border-t-2 border-t-indigo-500 pt-[12px] mt-0' : ''}
-                ${dropPosition === 'bottom' ? 'border-b-2 border-b-indigo-500 pb-[12px] mb-0' : ''}
-                transition-[border,padding,margin,transform,box-shadow]
-            `}
-        >
-            <div className="flex items-start gap-3 pointer-events-none">
-                <button 
-                    onClick={handleToggleComplete} 
-                    className={`
-                        mt-0.5 min-w-[18px] h-[18px] flex items-center justify-center transition-transform duration-300 pointer-events-auto
-                        ${task.isCompleted ? 'text-gray-400' : `${categoryColor.text} hover:scale-110 active:scale-75`}
-                    `}
-                >
-                    {task.isCompleted 
-                        ? <CheckSquare size={18} className="animate-in zoom-in spin-in-180 duration-300" /> 
-                        : <Square size={18} />
-                    }
-                </button>
-                
-                <div className="flex-1 min-w-0 flex flex-col gap-1">
-                    <span className={`text-sm font-semibold leading-snug transition-all duration-300 ${task.isCompleted ? 'text-gray-500 line-through decoration-gray-300 decoration-2' : 'text-gray-700'}`}>
-                        {task.title}
-                    </span>
-                    
-                    {(task.description || task.repeat !== 'none') && (
-                         <div className="flex items-center gap-2 opacity-60">
-                            {task.repeat !== 'none' && <Repeat size={10} className="text-indigo-500" />}
-                            {task.description && <AlignLeft size={10} />}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-export default TaskCard;
-</file>
-
 <file path="src/components/views/TodoView.jsx">
 import React, { useMemo, useEffect, useState } from 'react';
 import { CheckCircle2, Circle, Clock, Trash2, Plus, Calendar as CalendarIcon, AlertCircle, ArrowRight, CalendarDays } from 'lucide-react';
@@ -1039,32 +935,6 @@ export default function TodoView({
 }
 </file>
 
-<file path="src/constants/theme.js">
-export const COLORS = [
-  { name: 'Classic Gray', value: 'bg-gray-50 border-gray-200', text: 'text-gray-700', ring: 'ring-gray-400' },
-  { name: 'Ocean Blue', value: 'bg-blue-50 border-blue-200', text: 'text-blue-700', ring: 'ring-blue-400' },
-  { name: 'Sage Green', value: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', ring: 'ring-emerald-400' },
-  { name: 'Sunny Yellow', value: 'bg-amber-50 border-amber-200', text: 'text-amber-700', ring: 'ring-amber-400' },
-  { name: 'Rose Red', value: 'bg-rose-50 border-rose-200', text: 'text-rose-700', ring: 'ring-rose-400' },
-  { name: 'Lavender', value: 'bg-violet-50 border-violet-200', text: 'text-violet-700', ring: 'ring-violet-400' },
-  { name: 'Peach', value: 'bg-orange-50 border-orange-200', text: 'text-orange-700', ring: 'ring-orange-400' },
-  { name: 'Blush Pink', value: 'bg-pink-50 border-pink-200', text: 'text-pink-700', ring: 'ring-pink-400' },
-  // --- 4 MÀU MỚI THÊM ---
-  { name: 'Fresh Teal', value: 'bg-teal-50 border-teal-200', text: 'text-teal-700', ring: 'ring-teal-400' },
-  { name: 'Sky Blue', value: 'bg-sky-50 border-sky-200', text: 'text-sky-700', ring: 'ring-sky-400' },
-  { name: 'Lime Zest', value: 'bg-lime-50 border-lime-200', text: 'text-lime-700', ring: 'ring-lime-400' },
-  { name: 'Fuchsia Dream', value: 'bg-fuchsia-50 border-fuchsia-200', text: 'text-fuchsia-700', ring: 'ring-fuchsia-400' },
-];
-
-// ĐÃ SỬA: Rút gọn còn 3 cấp độ (Nhỏ - Trung bình - Lớn)
-export const ZOOM_LEVELS = [160, 220, 280];
-
-export const INITIAL_DATA = {
-  categories: [],
-  tasks: []
-};
-</file>
-
 <file path="src/hooks/useUndoableState.js">
 import { useState, useCallback } from 'react';
 
@@ -1100,54 +970,6 @@ export const useUndoableState = (initialValue) => {
 
     return [state, setStateWithHistory, undo, redo, history.length > 0, future.length > 0];
 };
-</file>
-
-<file path="src/index.css">
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-@layer base {
-  body {
-    @apply font-sans bg-[#F5F5F7] text-slate-900 antialiased; 
-  }
-  
-  ::selection {
-    @apply bg-blue-500/20 text-blue-700;
-  }
-
-  /* --- MỚI: Tắt hoàn toàn khung đen mặc định của trình duyệt --- */
-  input:focus, textarea:focus, select:focus {
-    outline: none !important;
-    box-shadow: none !important; /* Tắt shadow mặc định nếu có */
-  }
-}
-
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-  background-color: transparent;
-}
-
-::-webkit-scrollbar-track {
-  background-color: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.0); 
-  border-radius: 9999px;
-  border: 3px solid transparent;
-  background-clip: content-box;
-  transition: background-color 0.3s;
-}
-
-*:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
-}
-
-.ease-apple {
-  transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
-}
 </file>
 
 <file path="src/lib/supabaseClient.js">
@@ -1358,6 +1180,30 @@ const Header = ({
 export default Header;
 </file>
 
+<file path="src/constants/theme.js">
+export const COLORS = [
+  { name: 'Classic Gray', value: 'bg-gray-50/60 border-gray-200/60', text: 'text-gray-600', ring: 'ring-gray-200' },
+  { name: 'Ocean Blue', value: 'bg-blue-50/60 border-blue-200/60', text: 'text-blue-600', ring: 'ring-blue-200' },
+  { name: 'Sage Green', value: 'bg-emerald-50/60 border-emerald-200/60', text: 'text-emerald-600', ring: 'ring-emerald-200' },
+  { name: 'Sunny Yellow', value: 'bg-amber-50/60 border-amber-200/60', text: 'text-amber-600', ring: 'ring-amber-200' },
+  { name: 'Rose Red', value: 'bg-rose-50/60 border-rose-200/60', text: 'text-rose-600', ring: 'ring-rose-200' },
+  { name: 'Lavender', value: 'bg-violet-50/60 border-violet-200/60', text: 'text-violet-600', ring: 'ring-violet-200' },
+  { name: 'Peach', value: 'bg-orange-50/60 border-orange-200/60', text: 'text-orange-600', ring: 'ring-orange-200' },
+  { name: 'Blush Pink', value: 'bg-pink-50/60 border-pink-200/60', text: 'text-pink-600', ring: 'ring-pink-200' },
+  { name: 'Fresh Teal', value: 'bg-teal-50/60 border-teal-200/60', text: 'text-teal-600', ring: 'ring-teal-200' },
+  { name: 'Sky Blue', value: 'bg-sky-50/60 border-sky-200/60', text: 'text-sky-600', ring: 'ring-sky-200' },
+  { name: 'Lime Zest', value: 'bg-lime-50/60 border-lime-200/60', text: 'text-lime-600', ring: 'ring-lime-200' },
+  { name: 'Fuchsia Dream', value: 'bg-fuchsia-50/60 border-fuchsia-200/60', text: 'text-fuchsia-600', ring: 'ring-fuchsia-200' },
+];
+
+export const ZOOM_LEVELS = [160, 220, 280];
+
+export const INITIAL_DATA = {
+  categories: [],
+  tasks: []
+};
+</file>
+
 <file path="src/utils/dateHelpers.js">
 export const formatDateKey = (date) => {
     if (!date) return '';
@@ -1454,6 +1300,198 @@ export const generateGoogleCalendarLink = (task) => {
     "tailwindcss-animate": "^1.0.7",
     "vite": "^7.2.4"
   }
+}
+</file>
+
+<file path="src/components/tasks/TaskCard.jsx">
+import React, { useState } from 'react';
+import { Square, CheckSquare, AlignLeft, Repeat, Clock } from 'lucide-react';
+
+const TaskCard = ({ 
+    task, categoryColor, isSelected, isHighlighted, 
+    onSelect, onUpdate, onDragStart, onDragEnd, setEditingTask,
+    onContextMenu 
+}) => {
+    
+    const [dropPosition, setDropPosition] = useState(null);
+
+    const handleToggleComplete = (e) => {
+        e.stopPropagation();
+        onUpdate({ ...task, isCompleted: !task.isCompleted });
+    };
+
+    const handleRightClick = (e) => {
+        if (onContextMenu) {
+            onContextMenu(e, task);
+        }
+    };
+
+    // Fallback an toàn nếu chưa có màu
+    const finalColorValue = categoryColor?.value || 'bg-white border-gray-200';
+    const finalColorText = categoryColor?.text || 'text-gray-700';
+
+    return (
+        <div 
+            draggable 
+            onDragStart={(e) => onDragStart(e, task)}
+            onDragEnd={onDragEnd} 
+            onClick={(e) => { e.stopPropagation(); onSelect(task.id); }}
+            onDoubleClick={(e) => { e.stopPropagation(); setEditingTask(task); }}
+            onContextMenu={handleRightClick}
+            
+            onDragOver={(e) => {
+                e.preventDefault(); e.stopPropagation();
+                const rect = e.currentTarget.getBoundingClientRect();
+                setDropPosition((e.clientY - rect.top) < (rect.height / 2) ? 'top' : 'bottom');
+            }}
+            onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDropPosition(null); }}
+            onDrop={() => setDropPosition(null)}
+
+            className={`
+                group relative px-3 py-3 mb-2 rounded-2xl border transition-all duration-200 ease-apple select-none
+                
+                cursor-grab active:cursor-grabbing
+                hover:-translate-y-[2px] hover:shadow-md
+                active:scale-105 active:rotate-2 active:shadow-xl active:z-50
+                
+                ${task.isCompleted 
+                    ? 'bg-gray-50/50 border-transparent' 
+                    : `${finalColorValue} shadow-sm backdrop-blur-sm`
+                }
+                
+                ${isSelected ? `ring-2 ring-indigo-500 ring-offset-2 z-10` : ''}
+                ${isHighlighted ? 'ring-4 ring-yellow-400 ring-offset-2 z-20 scale-105 shadow-xl bg-yellow-50' : ''}
+                
+                ${dropPosition === 'top' ? 'border-t-2 border-t-indigo-500 pt-[12px] mt-0' : ''}
+                ${dropPosition === 'bottom' ? 'border-b-2 border-b-indigo-500 pb-[12px] mb-0' : ''}
+            `}
+        >
+            <div className="flex flex-row gap-3">
+                {/* CỘT TRÁI: CHECKBOX + ICONS */}
+                <div className="flex flex-col items-center gap-1.5 pt-0.5 min-w-[24px]">
+                    <button 
+                        onClick={handleToggleComplete} 
+                        className={`
+                            w-[20px] h-[20px] flex items-center justify-center transition-all duration-300 rounded-md
+                            ${task.isCompleted 
+                                ? 'scale-100 animate-check-bounce text-gray-400' 
+                                : `${finalColorText} hover:scale-110 active:scale-90`
+                            }
+                        `}
+                    >
+                        {task.isCompleted 
+                            ? <CheckSquare size={20} weight="fill" /> 
+                            : <Square size={20} />
+                        }
+                    </button>
+
+                    <div className={`flex flex-col items-center gap-1 transition-opacity duration-300 ${task.isCompleted ? 'opacity-30' : 'opacity-60'}`}>
+                        {task.time && (
+                            <div className="text-[9px] font-bold text-indigo-600 bg-white/60 px-0.5 rounded leading-tight text-center tracking-tighter w-full overflow-hidden">
+                                {task.time}
+                            </div>
+                        )}
+                        {task.repeat !== 'none' && <Repeat size={12} className="text-indigo-500" />}
+                        {task.description && <AlignLeft size={12} className="text-slate-500" />}
+                    </div>
+                </div>
+                
+                {/* CỘT PHẢI: NỘI DUNG */}
+                <div className="flex-1 min-w-0 flex flex-col pt-0.5">
+                    <div className="leading-snug break-words">
+                        <span 
+                            className={`
+                                text-[15px] font-semibold task-title
+                                ${task.isCompleted ? 'completed' : 'text-gray-700'}
+                            `}
+                        >
+                            {task.title}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default TaskCard;
+</file>
+
+<file path="src/index.css">
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans bg-[#F5F5F7] text-slate-900 antialiased; 
+  }
+  
+  ::selection {
+    @apply bg-blue-500/20 text-blue-700;
+  }
+
+  input:focus, textarea:focus, select:focus {
+    outline: none !important;
+    box-shadow: none !important; 
+  }
+}
+
+/* --- ANIMATION --- */
+@keyframes check-bounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.3); }
+  80% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+.animate-check-bounce {
+  animation: check-bounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* --- SỬA LỖI GẠCH NGANG CHỮ (MỎNG & TINH TẾ) --- */
+.task-title {
+  display: inline !important; 
+  
+  /* Màu gạch: Dùng slate-300 (nhạt hơn) thay vì slate-400 */
+  background-image: linear-gradient(#cbd5e1, #cbd5e1); 
+  background-repeat: no-repeat;
+  background-position: 0% 55%; 
+  
+  /* Độ dày: 1px (Mỏng tinh tế) */
+  background-size: 0% 1px; 
+  
+  transition: background-size 0.25s ease-out, color 0.25s ease-out;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  padding: 0 1px;
+}
+
+.task-title.completed {
+  background-size: 100% 1px; /* Gạch 100% */
+  color: #94a3b8; /* Chữ mờ đi (slate-400) */
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+  background-color: transparent;
+}
+::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.0); 
+  border-radius: 9999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+  transition: background-color 0.3s;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+.ease-apple {
+  transition-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
 }
 </file>
 

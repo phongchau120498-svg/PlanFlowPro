@@ -8,7 +8,8 @@ import { useUndoableState } from './hooks/useUndoableState';
 // Components
 import Header from './components/layout/Header';
 import ToastContainer from './components/common/ToastContainer';
-import ConfirmModal from './components/common/ConfirmModal'; // <--- IMPORT MỚI
+import ConfirmModal from './components/common/ConfirmModal';
+import ContextMenu from './components/common/ContextMenu';
 import TodoView from './components/views/TodoView';
 import TaskCard from './components/tasks/TaskCard';
 import TaskModal from './components/tasks/TaskModal';
@@ -49,8 +50,11 @@ export default function App() {
   const [toasts, setToasts] = useState([]); 
   const [highlightedTaskId, setHighlightedTaskId] = useState(null);
 
-  // --- STATE CHO MODAL XÁC NHẬN MỚI ---
+  // Confirm Dialog State
   const [confirmDialog, setConfirmDialog] = useState(null); 
+
+  // Context Menu State
+  const [contextMenu, setContextMenu] = useState(null);
 
   // Category Creation State
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
@@ -107,17 +111,17 @@ export default function App() {
     fetchData();
   }, []);
 
-  // --- 4. PHÍM TẮT ---
+  // --- 4. PHÍM TẮT & GLOBAL EVENTS ---
   useEffect(() => {
     const handleKeyDown = (e) => {
         if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
-        if (showAddTaskModal || showRecurringModal || editingTask || editingCategory || confirmDialog) return; // Chặn nếu đang mở modal confirm
+        if (showAddTaskModal || showRecurringModal || editingTask || editingCategory || confirmDialog) return;
 
         if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); if (canUndo) { undo(); addToast('Đã hoàn tác ↩️'); } }
         if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); if (canRedo) { redo(); addToast('Đã làm lại ↪️'); } }
         
         if (e.key === 'Delete' && selectedTaskId) { e.preventDefault(); handleDeleteTask(selectedTaskId); }
-        if (e.key === 'Escape') setSelectedTaskId(null);
+        if (e.key === 'Escape') { setSelectedTaskId(null); setContextMenu(null); }
 
         if (e.key === 'n' || e.key === 'N') {
             e.preventDefault();
@@ -263,13 +267,13 @@ export default function App() {
 
   useEffect(() => { if (scrollContainerRef.current) scrollContainerRef.current.scrollLeft = 7 * dayWidth; }, []);
 
-  // --- 6. LOGIC TASK (OPTIMISTIC UPDATES) ---
+  // --- 6. LOGIC TASK & UPDATES ---
   const handleGenerateRepeats = async (baseTask, repeatType) => {
       if (!baseTask || !repeatType || repeatType === 'none') return;
       const seriesId = baseTask.seriesId || `series-${Date.now()}`;
       const newTasks = [];
       const startDate = new Date(baseTask.date);
-      const count = 12; // Tạo trước 12 lần lặp
+      const count = 12; 
       for (let i = 1; i <= count; i++) {
           const nextDate = new Date(startDate);
           if (repeatType === 'daily') nextDate.setDate(startDate.getDate() + i);
@@ -290,11 +294,8 @@ export default function App() {
       const mappedNewTasks = newTasks.map(t => ({ ...t, isCompleted: false, categoryId: t.category_id, seriesId: t.series_id }));
       const updatedBase = { ...baseTask, seriesId, repeat: repeatType };
       
-      // Update State: Thêm task mới vào
       setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === baseTask.id ? updatedBase : t).concat(mappedNewTasks) }));
       addToast('Đã tạo lịch trình lặp lại', 'success');
-
-      // Update DB
       await supabase.from('tasks').insert(newTasks);
       await supabase.from('tasks').update({ series_id: seriesId, repeat: repeatType }).eq('id', baseTask.id);
   };
@@ -305,7 +306,6 @@ export default function App() {
       
       const hasSeries = !!originalTask.seriesId || (originalTask.repeat && originalTask.repeat !== 'none');
       
-      // Kiểm tra thay đổi nội dung quan trọng
       const isContentChanged = originalTask.title !== updatedTask.title || 
                                originalTask.description !== updatedTask.description || 
                                originalTask.date !== updatedTask.date || 
@@ -328,12 +328,14 @@ export default function App() {
       }
   };
 
+  // --- HÀM ĐÃ ĐƯỢC FIX LỖI: SỬA LẠI FORMAT ĐẨY LÊN DATABASE CHO TASK LẶP ---
   const handleConfirmRecurringUpdate = async (mode) => {
       if (!pendingUpdate) return;
       const { originalTask, updatedTask } = pendingUpdate;
       setShowRecurringModal(false);
       setPendingUpdate(null);
       
+      // Update UI
       setBoardData(prev => ({
           ...prev,
           tasks: prev.tasks.filter(t => {
@@ -343,15 +345,37 @@ export default function App() {
           }).map(t => t.id === updatedTask.id ? updatedTask : t) 
       }));
 
+      // Chuyển đổi dữ liệu chuẩn format của Supabase (snake_case)
+      const dbPayload = {
+          title: updatedTask.title,
+          description: updatedTask.description,
+          date: updatedTask.date,
+          time: updatedTask.time,
+          is_completed: updatedTask.isCompleted,
+          repeat: updatedTask.repeat,
+          category_id: updatedTask.categoryId
+      };
+
       if (mode === 'single') {
-           await supabase.from('tasks').update({ ...updatedTask, series_id: null }).eq('id', updatedTask.id);
-           addToast('Đã cập nhật (Tách riêng công việc)', 'success');
+           const { error } = await supabase.from('tasks').update({ ...dbPayload, series_id: null }).eq('id', updatedTask.id);
+           if (error) {
+               console.error('Update Error:', error);
+               addToast('Lỗi cập nhật dữ liệu!', 'error');
+           } else {
+               addToast('Đã cập nhật (Tách riêng công việc)', 'success');
+           }
       } else if (mode === 'future') {
           await supabase.from('tasks').delete().eq('series_id', originalTask.seriesId).gt('date', originalTask.date);
           const newSeriesId = updatedTask.repeat === 'none' ? null : originalTask.seriesId;
-          await supabase.from('tasks').update({ ...updatedTask, series_id: newSeriesId }).eq('id', updatedTask.id);
-          if (updatedTask.repeat !== 'none') { await handleGenerateRepeats(updatedTask, updatedTask.repeat); } 
-          else { addToast('Đã cập nhật và dừng lặp lại', 'success'); }
+          
+          const { error } = await supabase.from('tasks').update({ ...dbPayload, series_id: newSeriesId }).eq('id', updatedTask.id);
+          if (error) {
+              console.error('Update Error:', error);
+              addToast('Lỗi cập nhật chuỗi dữ liệu!', 'error');
+          } else {
+              if (updatedTask.repeat !== 'none') { await handleGenerateRepeats(updatedTask, updatedTask.repeat); } 
+              else { addToast('Đã cập nhật và dừng lặp lại', 'success'); }
+          }
       }
   };
 
@@ -410,25 +434,20 @@ export default function App() {
     }
   };
 
-  // --- HÀM XÓA HẠNG MỤC (ĐÃ CẬP NHẬT DÙNG CONFIRM MODAL) ---
   const handleDeleteCategory = (catId) => { 
         const category = categories.find(c => c.id === catId);
         const title = category ? category.title : 'hạng mục này';
-
-        // Thay vì window.confirm, ta set state để hiện modal đẹp
         setConfirmDialog({
             title: "Xóa hạng mục?",
             message: `Bạn có chắc chắn muốn xóa "${title}"?\n\nTất cả công việc nằm trong hạng mục này cũng sẽ bị xóa vĩnh viễn!`,
             confirmLabel: "Xóa vĩnh viễn",
             isDangerous: true,
             onConfirm: async () => {
-                // Logic xóa thật sự (chuyển vào trong callback)
                 const originalData = { ...boardData };
                 setBoardData(prev => ({ tasks: prev.tasks.filter(t => t.categoryId !== catId), categories: prev.categories.filter(c => c.id !== catId) }));
                 setEditingCategory(null); 
-                setConfirmDialog(null); // Đóng modal
+                setConfirmDialog(null); 
                 addToast('Đã xóa hạng mục');
-                
                 const { error } = await supabase.from('categories').delete().eq('id', catId);
                 if (error) { setBoardData(originalData); addToast('Lỗi xóa hạng mục - Đã khôi phục', 'error'); }
             }
@@ -478,19 +497,13 @@ export default function App() {
 
     setTimeout(() => {
         if (e.target) {
-            e.target.style.opacity = '0.4'; 
-            e.target.style.transform = 'scale(0.95)'; 
-            e.target.style.filter = 'grayscale(0.5)'; 
+            e.target.style.opacity = '0.4'; e.target.style.transform = 'scale(0.95)'; e.target.style.filter = 'grayscale(0.5)'; 
         }
     }, 0);
   };
 
   const handleDragEnd = (e) => { 
-      if (e.target) {
-          e.target.style.opacity = '1'; 
-          e.target.style.transform = 'none'; 
-          e.target.style.filter = 'none';
-      }
+      if (e.target) { e.target.style.opacity = '1'; e.target.style.transform = 'none'; e.target.style.filter = 'none'; }
       setDraggedTask(null); 
   };
 
@@ -499,11 +512,7 @@ export default function App() {
   const handleDrop = (e, categoryId, dateStr) => { e.preventDefault();
       if (draggedTask) { 
           const draggedEl = document.querySelector(`[draggable="true"][style*="opacity: 0.4"]`); 
-          if (draggedEl) {
-              draggedEl.style.opacity = '1';
-              draggedEl.style.transform = 'none';
-              draggedEl.style.filter = 'none';
-          }
+          if (draggedEl) { draggedEl.style.opacity = '1'; draggedEl.style.transform = 'none'; draggedEl.style.filter = 'none'; }
       }
       if (!draggedTask) return; 
       handleUpdateTask({ ...draggedTask, categoryId, date: dateStr });
@@ -534,8 +543,38 @@ export default function App() {
       return tasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [tasks, searchQuery]);
 
+  // --- HÀM XỬ LÝ CONTEXT MENU ---
+  const handleContextMenu = useCallback((e, task) => {
+      e.preventDefault(); // Chặn menu mặc định
+      setContextMenu({
+          position: { x: e.clientX, y: e.clientY },
+          type: 'TASK',
+          data: task
+      });
+  }, []);
+
+  const handleContextMenuAction = async (action, task) => {
+      switch (action) {
+          case 'EDIT': setEditingTask(task); break;
+          case 'DELETE': handleDeleteTask(task.id); break;
+          case 'TOGGLE_COMPLETE': handleUpdateTask({ ...task, isCompleted: !task.isCompleted }); break;
+          case 'DUPLICATE': {
+              const newTask = { ...task, id: `dup-${Date.now()}`, title: `${task.title} (Sao chép)`, seriesId: null, repeat: 'none' };
+              await handleSaveNewTask({ title: newTask.title, date: newTask.date, categoryId: newTask.categoryId });
+              break;
+          }
+          case 'MOVE_TODAY': {
+             const todayStr = formatDateKey(new Date());
+             handleUpdateTask({ ...task, date: todayStr });
+             addToast('Đã dời sang hôm nay 📅', 'success');
+             break;
+          }
+          default: break;
+      }
+  };
+
   return (
-    <div className="flex flex-col h-screen bg-gray-50 font-sans text-slate-800" onClick={() => setSelectedTaskId(null)}>
+    <div className="flex flex-col h-screen bg-gray-50 font-sans text-slate-800" onClick={() => { setSelectedTaskId(null); setContextMenu(null); }}>
       
       <Header 
         currentDate={currentDate} prevWeek={prevWeek} nextWeek={nextWeek} goToToday={goToToday} onDateSelect={handleDateSelect} zoomIndex={zoomIndex} onZoomChange={handleZoomChange} onUndo={undo} canUndo={canUndo} onRedo={redo} canRedo={canRedo} viewMode={viewMode} setViewMode={setViewMode} onOpenAddTask={handleOpenAddTask} searchQuery={searchQuery} setSearchQuery={setSearchQuery} tasks={tasks} onNavigateToTask={handleNavigateToTask} 
@@ -645,7 +684,8 @@ export default function App() {
                                                 onDelete={handleDeleteTask} 
                                                 onDragStart={handleDragStart} 
                                                 onDragEnd={handleDragEnd} 
-                                                setEditingTask={setEditingTask} 
+                                                setEditingTask={setEditingTask}
+                                                onContextMenu={handleContextMenu}
                                             />
                                         </div>
                                     ))}
@@ -704,13 +744,23 @@ export default function App() {
       {showRecurringModal && <RecurringUpdateModal onClose={() => setShowRecurringModal(false)} onConfirm={handleConfirmRecurringUpdate} />}
       
       {/* --- HIỂN THỊ MODAL CONFIRM MỚI --- */}
-      {/* Chỉ render khi có dữ liệu dialog -> Đảm bảo sạch sẽ bộ nhớ */}
       {confirmDialog && (
           <ConfirmModal 
             isOpen={true} 
             onClose={() => setConfirmDialog(null)}
             {...confirmDialog} 
           />
+      )}
+
+      {/* Context Menu (MỚI) */}
+      {contextMenu && (
+        <ContextMenu 
+            position={contextMenu.position} 
+            type={contextMenu.type} 
+            data={contextMenu.data} 
+            onClose={() => setContextMenu(null)}
+            onAction={handleContextMenuAction}
+        />
       )}
 
       <ToastContainer toasts={toasts} />

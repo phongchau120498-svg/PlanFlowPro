@@ -24,19 +24,14 @@ export default function App() {
   const [boardData, setBoardData, undo, redo, canUndo, canRedo] = useUndoableState(INITIAL_DATA);
   const { categories, tasks } = boardData;
   
-  // Giao diện Matrix
   const [zoomIndex, setZoomIndex] = useState(2); 
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const dayWidth = ZOOM_LEVELS[zoomIndex];
   
-  // Drag & Drop State
   const [draggedTask, setDraggedTask] = useState(null);
   const [draggedCategoryIndex, setDraggedCategoryIndex] = useState(null); 
-
-  // Copy/Paste State
   const [copiedTask, setCopiedTask] = useState(null);
 
-  // Modal & Interaction State
   const [editingTask, setEditingTask] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
   const [quickAddCell, setQuickAddCell] = useState(null);
@@ -50,17 +45,11 @@ export default function App() {
   const [toasts, setToasts] = useState([]); 
   const [highlightedTaskId, setHighlightedTaskId] = useState(null);
 
-  // Confirm Dialog State
   const [confirmDialog, setConfirmDialog] = useState(null); 
-
-  // Context Menu State
   const [contextMenu, setContextMenu] = useState(null);
-
-  // Category Creation State
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
-  // Refs
   const scrollContainerRef = useRef(null);
   const previousDateRef = useRef(currentDate);
   const viewCenterDayIndexRef = useRef(null);
@@ -132,7 +121,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [canUndo, canRedo, selectedTaskId, showAddTaskModal, showRecurringModal, editingTask, editingCategory, undo, redo, currentDate, confirmDialog]);
 
-  // Copy Paste Logic
+  // Logic Copy/Paste
   useEffect(() => {
       const handleCopyPaste = async (e) => {
           if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
@@ -151,15 +140,10 @@ export default function App() {
               try {
                   const text = await navigator.clipboard.readText();
                   if (text && (text.includes('\n') || (copiedTask && text !== copiedTask.title) || !copiedTask)) {
-                      e.preventDefault();
-                      handleBatchPaste(text, hoveredCell);
-                      return;
+                      e.preventDefault(); handleBatchPaste(text, hoveredCell); return;
                   }
               } catch (err) {}
-              if (copiedTask) {
-                  e.preventDefault();
-                  handlePasteInternalTask(copiedTask, hoveredCell);
-              }
+              if (copiedTask) { e.preventDefault(); handlePasteInternalTask(copiedTask, hoveredCell); }
           }
       };
       window.addEventListener('keydown', handleCopyPaste);
@@ -177,7 +161,8 @@ export default function App() {
               category_id: categoryId,
               date: dateStr,
               title: line.trim(),
-              description: '',
+              description: null,
+              time: null,
               is_completed: false,
               repeat: 'none',
               series_id: null
@@ -194,7 +179,18 @@ export default function App() {
       const newId = `paste-internal-${Date.now()}`;
       const newTask = { ...originalTask, id: newId, categoryId: categoryId, date: dateStr, isCompleted: false, seriesId: null };
       setBoardData(prev => ({ ...prev, tasks: [...prev.tasks, newTask] }));
-      const dbTask = { id: newId, category_id: categoryId, date: dateStr, title: newTask.title, description: newTask.description, is_completed: false, repeat: newTask.repeat, series_id: null };
+      
+      const dbTask = { 
+          id: newId, 
+          category_id: categoryId, 
+          date: dateStr, 
+          title: newTask.title || '', 
+          description: newTask.description || null, 
+          time: newTask.time || null,
+          is_completed: false, 
+          repeat: newTask.repeat || 'none', 
+          series_id: null 
+      };
       await supabase.from('tasks').insert([dbTask]);
       addToast('Đã dán công việc', 'success');
   };
@@ -267,13 +263,14 @@ export default function App() {
 
   useEffect(() => { if (scrollContainerRef.current) scrollContainerRef.current.scrollLeft = 7 * dayWidth; }, []);
 
-  // --- 6. LOGIC TASK & UPDATES ---
+  // --- 6. LOGIC TASK & UPDATES (FIX LỖI DATABASE) ---
   const handleGenerateRepeats = async (baseTask, repeatType) => {
       if (!baseTask || !repeatType || repeatType === 'none') return;
       const seriesId = baseTask.seriesId || `series-${Date.now()}`;
       const newTasks = [];
       const startDate = new Date(baseTask.date);
       const count = 12; 
+      
       for (let i = 1; i <= count; i++) {
           const nextDate = new Date(startDate);
           if (repeatType === 'daily') nextDate.setDate(startDate.getDate() + i);
@@ -284,18 +281,21 @@ export default function App() {
               id: `${baseTask.id}-rep-${Date.now()}-${i}`,
               category_id: baseTask.categoryId,
               date: formatDateKey(nextDate), 
-              title: baseTask.title,
-              description: baseTask.description,
+              title: baseTask.title || '',
+              description: baseTask.description || null,
+              time: baseTask.time || null,
               is_completed: false,
               repeat: repeatType, 
               series_id: seriesId, 
           });
       }
+      
       const mappedNewTasks = newTasks.map(t => ({ ...t, isCompleted: false, categoryId: t.category_id, seriesId: t.series_id }));
       const updatedBase = { ...baseTask, seriesId, repeat: repeatType };
       
       setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === baseTask.id ? updatedBase : t).concat(mappedNewTasks) }));
       addToast('Đã tạo lịch trình lặp lại', 'success');
+      
       await supabase.from('tasks').insert(newTasks);
       await supabase.from('tasks').update({ series_id: seriesId, repeat: repeatType }).eq('id', baseTask.id);
   };
@@ -306,20 +306,32 @@ export default function App() {
       
       const hasSeries = !!originalTask.seriesId || (originalTask.repeat && originalTask.repeat !== 'none');
       
+      // Thêm updatedTask.time vào kiểm tra để đảm bảo đổi giờ cũng tính là ContentChanged
       const isContentChanged = originalTask.title !== updatedTask.title || 
                                originalTask.description !== updatedTask.description || 
                                originalTask.date !== updatedTask.date || 
                                originalTask.repeat !== updatedTask.repeat ||
-                               originalTask.categoryId !== updatedTask.categoryId;
+                               originalTask.categoryId !== updatedTask.categoryId ||
+                               originalTask.time !== updatedTask.time;
 
       if (hasSeries && isContentChanged) {
           setPendingUpdate({ originalTask, updatedTask });
           setShowRecurringModal(true);
       } else {
           setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === updatedTask.id ? updatedTask : t) }));
-          const { error } = await supabase.from('tasks').update({
-              title: updatedTask.title, description: updatedTask.description, date: updatedTask.date, is_completed: updatedTask.isCompleted, repeat: updatedTask.repeat, category_id: updatedTask.categoryId 
-          }).eq('id', updatedTask.id);
+          
+          // CHUẨN HÓA DỮ LIỆU ĐẨY LÊN DB (Chuyển undefined thành null)
+          const dbPayload = {
+              title: updatedTask.title || '', 
+              description: updatedTask.description || null, 
+              date: updatedTask.date, 
+              time: updatedTask.time || null,
+              is_completed: Boolean(updatedTask.isCompleted), 
+              repeat: updatedTask.repeat || 'none', 
+              category_id: updatedTask.categoryId 
+          };
+
+          const { error } = await supabase.from('tasks').update(dbPayload).eq('id', updatedTask.id);
           if (error) {
                console.error('Sync Error:', error);
                setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === updatedTask.id ? originalTask : t) }));
@@ -328,14 +340,13 @@ export default function App() {
       }
   };
 
-  // --- HÀM ĐÃ ĐƯỢC FIX LỖI: SỬA LẠI FORMAT ĐẨY LÊN DATABASE CHO TASK LẶP ---
+  // HÀM FIX LỖI 100%: Dành riêng cho Modal Xác nhận Task Lặp
   const handleConfirmRecurringUpdate = async (mode) => {
       if (!pendingUpdate) return;
       const { originalTask, updatedTask } = pendingUpdate;
       setShowRecurringModal(false);
       setPendingUpdate(null);
       
-      // Update UI
       setBoardData(prev => ({
           ...prev,
           tasks: prev.tasks.filter(t => {
@@ -345,36 +356,50 @@ export default function App() {
           }).map(t => t.id === updatedTask.id ? updatedTask : t) 
       }));
 
-      // Chuyển đổi dữ liệu chuẩn format của Supabase (snake_case)
+      // CHUẨN HÓA DỮ LIỆU DB (An toàn tuyệt đối, không undefined)
       const dbPayload = {
-          title: updatedTask.title,
-          description: updatedTask.description,
+          title: updatedTask.title || '',
+          description: updatedTask.description || null,
           date: updatedTask.date,
-          time: updatedTask.time,
-          is_completed: updatedTask.isCompleted,
-          repeat: updatedTask.repeat,
+          time: updatedTask.time || null,
+          is_completed: Boolean(updatedTask.isCompleted),
+          repeat: updatedTask.repeat || 'none',
           category_id: updatedTask.categoryId
       };
 
       if (mode === 'single') {
-           const { error } = await supabase.from('tasks').update({ ...dbPayload, series_id: null }).eq('id', updatedTask.id);
+           dbPayload.series_id = null;
+           const { error } = await supabase.from('tasks').update(dbPayload).eq('id', updatedTask.id);
            if (error) {
-               console.error('Update Error:', error);
-               addToast('Lỗi cập nhật dữ liệu!', 'error');
+               console.error('Lỗi update single:', error);
+               addToast('Lỗi hệ thống khi lưu', 'error');
            } else {
                addToast('Đã cập nhật (Tách riêng công việc)', 'success');
            }
       } else if (mode === 'future') {
-          await supabase.from('tasks').delete().eq('series_id', originalTask.seriesId).gt('date', originalTask.date);
-          const newSeriesId = updatedTask.repeat === 'none' ? null : originalTask.seriesId;
-          
-          const { error } = await supabase.from('tasks').update({ ...dbPayload, series_id: newSeriesId }).eq('id', updatedTask.id);
-          if (error) {
-              console.error('Update Error:', error);
-              addToast('Lỗi cập nhật chuỗi dữ liệu!', 'error');
-          } else {
-              if (updatedTask.repeat !== 'none') { await handleGenerateRepeats(updatedTask, updatedTask.repeat); } 
-              else { addToast('Đã cập nhật và dừng lặp lại', 'success'); }
+          try {
+              // Phải check có originalTask.seriesId mới delete để tránh lỗi xóa nhầm
+              if (originalTask.seriesId) {
+                  await supabase.from('tasks')
+                      .delete()
+                      .eq('series_id', originalTask.seriesId)
+                      .gt('date', originalTask.date);
+              }
+              
+              const newSeriesId = updatedTask.repeat === 'none' ? null : originalTask.seriesId;
+              dbPayload.series_id = newSeriesId;
+              
+              const { error } = await supabase.from('tasks').update(dbPayload).eq('id', updatedTask.id);
+              if (error) throw error;
+
+              if (updatedTask.repeat !== 'none') { 
+                  await handleGenerateRepeats(updatedTask, updatedTask.repeat); 
+              } else { 
+                  addToast('Đã cập nhật và dừng lặp lại', 'success'); 
+              }
+          } catch (err) {
+              console.error('Lỗi update chuỗi:', err);
+              addToast('Lỗi hệ thống khi lưu', 'error');
           }
       }
   };
@@ -390,13 +415,26 @@ export default function App() {
           finalCategoryId = newCatId;
       }
       const newId = `new-${Date.now()}`; 
-      const localTask = { id: newId, categoryId: finalCategoryId, date: date, title: title, description: '', isCompleted: false, repeat: 'none', seriesId: null };
+      const localTask = { id: newId, categoryId: finalCategoryId, date: date, title: title, description: null, time: null, isCompleted: false, repeat: 'none', seriesId: null };
+      
       setBoardData(prev => ({ categories: newCategories, tasks: [...prev.tasks, localTask] }));
       setShowAddTaskModal(false);
       addToast('Đã lưu công việc!', 'success');
+      
       try {
           if (newCategoryObj) await supabase.from('categories').insert([newCategoryObj]);
-          const dbTask = { id: newId, category_id: finalCategoryId, date: date, title: title, description: '', is_completed: false, repeat: 'none', series_id: null };
+          
+          const dbTask = { 
+              id: newId, 
+              category_id: finalCategoryId, 
+              date: date, 
+              title: title || '', 
+              description: null, 
+              time: null, 
+              is_completed: false, 
+              repeat: 'none', 
+              series_id: null 
+          };
           const { error } = await supabase.from('tasks').insert([dbTask]);
           if (error) throw error;
       } catch (error) {
@@ -494,12 +532,7 @@ export default function App() {
     setDraggedTask(task); 
     e.dataTransfer.effectAllowed = 'move'; 
     e.dataTransfer.setData('text/plain', JSON.stringify(task)); 
-
-    setTimeout(() => {
-        if (e.target) {
-            e.target.style.opacity = '0.4'; e.target.style.transform = 'scale(0.95)'; e.target.style.filter = 'grayscale(0.5)'; 
-        }
-    }, 0);
+    setTimeout(() => { if (e.target) { e.target.style.opacity = '0.4'; e.target.style.transform = 'scale(0.95)'; e.target.style.filter = 'grayscale(0.5)'; } }, 0);
   };
 
   const handleDragEnd = (e) => { 
@@ -543,14 +576,9 @@ export default function App() {
       return tasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
   }, [tasks, searchQuery]);
 
-  // --- HÀM XỬ LÝ CONTEXT MENU ---
   const handleContextMenu = useCallback((e, task) => {
-      e.preventDefault(); // Chặn menu mặc định
-      setContextMenu({
-          position: { x: e.clientX, y: e.clientY },
-          type: 'TASK',
-          data: task
-      });
+      e.preventDefault();
+      setContextMenu({ position: { x: e.clientX, y: e.clientY }, type: 'TASK', data: task });
   }, []);
 
   const handleContextMenuAction = async (action, task) => {
@@ -685,7 +713,7 @@ export default function App() {
                                                 onDragStart={handleDragStart} 
                                                 onDragEnd={handleDragEnd} 
                                                 setEditingTask={setEditingTask}
-                                                onContextMenu={handleContextMenu}
+                                                onContextMenu={handleContextMenu} 
                                             />
                                         </div>
                                     ))}
@@ -752,7 +780,7 @@ export default function App() {
           />
       )}
 
-      {/* Context Menu (MỚI) */}
+      {/* Context Menu */}
       {contextMenu && (
         <ContextMenu 
             position={contextMenu.position} 

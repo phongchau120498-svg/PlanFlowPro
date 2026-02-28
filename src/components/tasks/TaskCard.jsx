@@ -66,7 +66,7 @@ const TaskCard = ({
 
     const currentDuration = localDuration !== null ? localDuration : dbDuration;
     
-    // Đã hạ Z-index xuống 10 (bình thường) và 30 (khi kéo dãn) để trượt dưới Sidebar (Sidebar là z-40)
+    // TỐI ƯU: Đã hạ Z-index xuống 10 & 30 để chắc chắn luôn "luồn" dưới Sidebar (Z-40)
     const multiDayStyle = (isMultiDayEnabled && currentDuration > 1) || isResizing ? {
         width: `${currentDuration * dayWidth - 16}px`,
         maxWidth: 'none',
@@ -90,7 +90,7 @@ const TaskCard = ({
             onDoubleClick={(e) => { e.stopPropagation(); setEditingTask(task); }}
             onContextMenu={handleRightClick}
             
-            // XÓA BỎ LỆNH stopPropagation ĐỂ DROP ĐƯỢC XUYÊN THẤU TASK XUỐNG GRID
+            // Xóa stopPropagation để cho phép Drop rơi xuống nền lưới
             onDragOver={(e) => {
                 e.preventDefault(); 
                 const rect = e.currentTarget.getBoundingClientRect();

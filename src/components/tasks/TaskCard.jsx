@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { Square, CheckSquare, AlignLeft, Repeat, Clock } from 'lucide-react';
+import { Square, CheckSquare, AlignLeft, Repeat } from 'lucide-react';
+import { formatDateKey } from '../../utils/dateHelpers';
+
+// Kiểm tra Cờ tính năng từ Vercel
+const isMultiDayEnabled = import.meta.env.VITE_ENABLE_MULTIDAY === 'true';
 
 const TaskCard = ({ 
-    task, categoryColor, isSelected, isHighlighted, 
+    task, categoryColor, dayWidth, isSelected, isHighlighted, 
     onSelect, onUpdate, onDragStart, onDragEnd, setEditingTask,
     onContextMenu 
 }) => {
-    
     const [dropPosition, setDropPosition] = useState(null);
 
     const handleToggleComplete = (e) => {
@@ -15,12 +18,47 @@ const TaskCard = ({
     };
 
     const handleRightClick = (e) => {
-        if (onContextMenu) {
-            onContextMenu(e, task);
-        }
+        if (onContextMenu) onContextMenu(e, task);
     };
 
-    // Fallback an toàn nếu chưa có màu
+    // --- TÍNH TOÁN ĐỘ DÀI NGÀY (MULTI-DAY) ---
+    let duration = 1;
+    if (isMultiDayEnabled && task.endDate) {
+        const start = new Date(task.date);
+        const end = new Date(task.endDate);
+        duration = Math.max(1, Math.round((end - start) / 86400000) + 1);
+    }
+
+    // Nếu kéo dài hơn 1 ngày, tính toán Width trườn sang các ô bên cạnh
+    const multiDayStyle = (isMultiDayEnabled && duration > 1) ? {
+        width: `${duration * dayWidth - 16}px`, // 16px là trừ đi đệm (padding) 2 bên của ô
+        position: 'relative',
+        zIndex: 30,
+    } : {};
+
+    // --- XỬ LÝ KÉO DÃN NGÀY ---
+    const handleResizeStart = (e) => {
+        if (!isMultiDayEnabled) return;
+        e.preventDefault(); e.stopPropagation(); // Chặn việc kéo thả (drag) nguyên thẻ task
+        
+        const startX = e.clientX;
+        const startDuration = duration;
+
+        const handleMouseUp = (upEvent) => {
+            const diffX = upEvent.clientX - startX;
+            const diffDays = Math.round(diffX / dayWidth);
+            const newDuration = Math.max(1, startDuration + diffDays);
+            
+            if (newDuration !== startDuration) {
+                const newEndDate = new Date(task.date);
+                newEndDate.setDate(newEndDate.getDate() + newDuration - 1);
+                onUpdate({ ...task, endDate: formatDateKey(newEndDate) });
+            }
+            document.removeEventListener('mouseup', handleMouseUp);
+        };
+        document.addEventListener('mouseup', handleMouseUp);
+    };
+
     const finalColorValue = categoryColor?.value || 'bg-white border-gray-200';
     const finalColorText = categoryColor?.text || 'text-gray-700';
 
@@ -43,67 +81,48 @@ const TaskCard = ({
 
             className={`
                 group relative px-3 py-3 mb-2 rounded-2xl border transition-all duration-200 ease-apple select-none
+                cursor-grab active:cursor-grabbing hover:-translate-y-[2px] hover:shadow-md
+                active:scale-105 active:rotate-2 active:shadow-xl
                 
-                cursor-grab active:cursor-grabbing
-                hover:-translate-y-[2px] hover:shadow-md
-                active:scale-105 active:rotate-2 active:shadow-xl active:z-50
-                
-                ${task.isCompleted 
-                    ? 'bg-gray-50/50 border-transparent' 
-                    : `${finalColorValue} shadow-sm backdrop-blur-sm`
-                }
-                
-                ${isSelected ? `ring-2 ring-indigo-500 ring-offset-2 z-10` : ''}
-                ${isHighlighted ? 'ring-4 ring-yellow-400 ring-offset-2 z-20 scale-105 shadow-xl bg-yellow-50' : ''}
+                ${task.isCompleted ? 'bg-gray-50/50 border-transparent' : `${finalColorValue} shadow-sm backdrop-blur-sm`}
+                ${isSelected ? `ring-2 ring-indigo-500 ring-offset-2 z-40` : ''}
+                ${isHighlighted ? 'ring-4 ring-yellow-400 ring-offset-2 z-40 scale-105 shadow-xl bg-yellow-50' : ''}
                 
                 ${dropPosition === 'top' ? 'border-t-2 border-t-indigo-500 pt-[12px] mt-0' : ''}
                 ${dropPosition === 'bottom' ? 'border-b-2 border-b-indigo-500 pb-[12px] mb-0' : ''}
             `}
+            style={multiDayStyle}
         >
             <div className="flex flex-row gap-3">
-                {/* CỘT TRÁI: CHECKBOX + ICONS */}
                 <div className="flex flex-col items-center gap-1.5 pt-0.5 min-w-[24px]">
-                    <button 
-                        onClick={handleToggleComplete} 
-                        className={`
-                            w-[20px] h-[20px] flex items-center justify-center transition-all duration-300 rounded-md
-                            ${task.isCompleted 
-                                ? 'scale-100 animate-check-bounce text-gray-400' 
-                                : `${finalColorText} hover:scale-110 active:scale-90`
-                            }
-                        `}
-                    >
-                        {task.isCompleted 
-                            ? <CheckSquare size={20} weight="fill" /> 
-                            : <Square size={20} />
-                        }
+                    <button onClick={handleToggleComplete} className={`w-[20px] h-[20px] flex items-center justify-center transition-all duration-300 rounded-md ${task.isCompleted ? 'scale-100 animate-check-bounce text-gray-400' : `${finalColorText} hover:scale-110 active:scale-90`}`}>
+                        {task.isCompleted ? <CheckSquare size={20} weight="fill" /> : <Square size={20} />}
                     </button>
-
                     <div className={`flex flex-col items-center gap-1 transition-opacity duration-300 ${task.isCompleted ? 'opacity-30' : 'opacity-60'}`}>
-                        {task.time && (
-                            <div className="text-[9px] font-bold text-indigo-600 bg-white/60 px-0.5 rounded leading-tight text-center tracking-tighter w-full overflow-hidden">
-                                {task.time}
-                            </div>
-                        )}
+                        {task.time && <div className="text-[9px] font-bold text-indigo-600 bg-white/60 px-0.5 rounded leading-tight text-center tracking-tighter w-full overflow-hidden">{task.time}</div>}
                         {task.repeat !== 'none' && <Repeat size={12} className="text-indigo-500" />}
                         {task.description && <AlignLeft size={12} className="text-slate-500" />}
                     </div>
                 </div>
                 
-                {/* CỘT PHẢI: NỘI DUNG */}
                 <div className="flex-1 min-w-0 flex flex-col pt-0.5">
                     <div className="leading-snug break-words">
-                        <span 
-                            className={`
-                                text-[15px] font-semibold task-title
-                                ${task.isCompleted ? 'completed' : 'text-gray-700'}
-                            `}
-                        >
+                        <span className={`text-[15px] font-semibold task-title ${task.isCompleted ? 'completed' : 'text-gray-700'}`}>
                             {task.title}
                         </span>
                     </div>
                 </div>
             </div>
+
+            {/* THANH CẦM KÉO DÃN - CHỈ HIỂN THỊ KHI CỜ ĐƯỢC BẬT */}
+            {isMultiDayEnabled && !task.isCompleted && (
+                <div 
+                    className="absolute right-0 top-0 bottom-0 w-4 cursor-e-resize hover:bg-black/10 rounded-r-2xl transition-colors z-50 flex items-center justify-center group/handle"
+                    onMouseDown={handleResizeStart}
+                >
+                    <div className="w-1 h-4 bg-black/20 rounded-full group-hover/handle:bg-black/40 transition-colors"></div>
+                </div>
+            )}
         </div>
     );
 };

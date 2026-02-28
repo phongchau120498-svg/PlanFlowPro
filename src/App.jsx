@@ -25,7 +25,6 @@ const parseDateStr = (dateStr) => {
     return new Date(y, m - 1, d);
 };
 
-// COMPONENT MỚI: Khối tàng hình (Giữ chỗ cho các Task kéo dài đi ngang qua)
 const GhostCard = ({ task, empty }) => (
     <div className="px-3 py-3 mb-2 border border-transparent rounded-2xl opacity-0 pointer-events-none select-none overflow-hidden" aria-hidden="true">
         <div className="flex flex-row gap-3">
@@ -221,7 +220,6 @@ export default function App() {
       return filtered;
   }, [tasks, searchQuery, validCategoryIds]);
 
-  // --- BỘ NÃO TÍNH TOÁN TRACK (Tránh Task Đè Nhau) ---
   const layoutContext = useMemo(() => {
       const context = { taskTracks: {}, maxTracks: {} };
       if (!isMultiDayFeatureEnabled) return context; 
@@ -254,6 +252,37 @@ export default function App() {
       });
       return context;
   }, [filteredMatrixTasks, categories]);
+
+  // BỘ NÃO TÍNH TRACK CHO LỊCH THÁNG (Gắn liền Ribbon)
+  const monthLayoutContext = useMemo(() => {
+      const context = { taskTracks: {}, maxTrack: 0 };
+      if (!isMultiDayFeatureEnabled || calendarView !== 'month') return context;
+      
+      const monthTasks = [...filteredMatrixTasks].sort((a, b) => {
+          if (a.date !== b.date) return a.date.localeCompare(b.date);
+          const durA = a.endDate ? (parseDateStr(a.endDate) - parseDateStr(a.date)) : 0;
+          const durB = b.endDate ? (parseDateStr(b.endDate) - parseDateStr(b.date)) : 0;
+          return durB - durA;
+      });
+
+      const tracks = [];
+      monthTasks.forEach(task => {
+          let assigned = false;
+          for (let i = 0; i < tracks.length; i++) {
+              if (tracks[i] < task.date) {
+                  tracks[i] = task.endDate || task.date;
+                  context.taskTracks[task.id] = i;
+                  assigned = true; break;
+              }
+          }
+          if (!assigned) {
+              context.taskTracks[task.id] = tracks.length;
+              tracks.push(task.endDate || task.date);
+          }
+      });
+      context.maxTrack = tracks.length;
+      return context;
+  }, [filteredMatrixTasks, calendarView]);
 
   const handleGenerateRepeats = async (baseTask, repeatType) => {
       if (!baseTask || !repeatType || repeatType === 'none') return;
@@ -365,7 +394,6 @@ export default function App() {
   };
 
   const handleDeleteCategory = (catId) => { 
-        const category = categories.find(c => c.id === catId); const title = category ? category.title : 'hạng mục này';
         setConfirmDialog({
             title: "Xóa hạng mục?", message: `Tất cả công việc nằm trong hạng mục này cũng sẽ bị xóa vĩnh viễn!`, confirmLabel: "Xóa vĩnh viễn", isDangerous: true,
             onConfirm: async () => {
@@ -474,9 +502,10 @@ export default function App() {
       />
       
       {viewMode === 'list' && (
-          <TodoView tasks={tasks} categories={categories} onUpdateTask={handleUpdateTask} setEditingTask={setEditingTask} onDeleteTask={handleDeleteTask} onOpenAddTask={handleOpenAddTask} searchQuery={searchQuery} />
+          <TodoView tasks={tasks} categories={categories} currentDate={currentDate} onUpdateTask={handleUpdateTask} setEditingTask={setEditingTask} onDeleteTask={handleDeleteTask} onOpenAddTask={handleOpenAddTask} quickAddCell={quickAddCell} setQuickAddCell={setQuickAddCell} onConfirmQuickAdd={handleConfirmQuickAdd} searchQuery={searchQuery} onSaveNewTask={handleSaveNewTask} />
       )}
 
+      {/* CHẾ ĐỘ THÁNG: Ribbon liền mạch */}
       {viewMode === 'matrix' && calendarView === 'month' && (
           <div className="flex-1 flex flex-col overflow-hidden bg-white">
               <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/80">
@@ -489,17 +518,11 @@ export default function App() {
                       const dateStr = formatDateKey(day);
                       const isToday = dateStr === formatDateKey(new Date());
                       const isCurrentMonth = day.getMonth() === currentDate.getMonth();
-                      
-                      // Month View: Hiện các thẻ trải dài cho tất cả các ngày mà nó thuộc về
-                      const dayTasks = filteredMatrixTasks.filter(t => {
-                          if (!isMultiDayFeatureEnabled) return t.date === dateStr;
-                          return t.date <= dateStr && (t.endDate || t.date) >= dateStr;
-                      });
 
                       return (
                           <div 
                               key={`${dateStr}-${idx}`}
-                              className={`bg-white p-1.5 flex flex-col transition-colors min-h-[90px] ${!isCurrentMonth ? 'bg-gray-50/50' : ''} hover:bg-gray-50/80 cursor-pointer`}
+                              className={`bg-white p-1.5 flex flex-col transition-colors min-h-[90px] ${!isCurrentMonth ? 'bg-gray-50/50' : ''} hover:bg-gray-50/80 cursor-pointer overflow-hidden`}
                               onDragOver={handleDragOver}
                               onDrop={(e) => handleDrop(e, null, dateStr)} 
                               onDoubleClick={() => handleOpenAddTask({ date: dateStr })}
@@ -509,25 +532,65 @@ export default function App() {
                                       {day.getDate()}
                                   </div>
                               </div>
-                              <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar pr-1">
-                                  {dayTasks.map(task => {
-                                      const catColor = categories.find(c => c.id === task.categoryId)?.color?.value.split(' ')[0] || 'bg-gray-200';
-                                      return (
-                                          <div
-                                              key={task.id}
-                                              draggable
-                                              onDragStart={(e) => handleDragStart(e, task)}
-                                              onDragEnd={handleDragEnd}
-                                              onClick={(e) => { e.stopPropagation(); setSelectedTaskId(task.id); }}
-                                              onDoubleClick={(e) => { e.stopPropagation(); setEditingTask(task); }}
-                                              onContextMenu={(e) => handleContextMenu(e, task)}
-                                              className={`text-[10px] font-semibold p-1.5 rounded truncate cursor-grab active:cursor-grabbing hover:opacity-80 transition-all select-none ${catColor} bg-opacity-30 text-slate-800 ${task.isCompleted ? 'opacity-40 line-through' : ''} ${selectedTaskId === task.id ? 'ring-2 ring-indigo-500 shadow-md' : ''}`}
-                                              title={task.title}
-                                          >
-                                              {task.title}
-                                          </div>
-                                      );
-                                  })}
+                              <div className="flex-1 overflow-y-auto space-y-[2px] custom-scrollbar pt-1 relative">
+                                  {(() => {
+                                      let renderItems = [];
+                                      if (!isMultiDayFeatureEnabled) {
+                                          renderItems = filteredMatrixTasks.filter(t => t.date === dateStr).map(t => ({ type: 'task', task: t }));
+                                      } else {
+                                          for (let i = 0; i < monthLayoutContext.maxTrack; i++) {
+                                              const taskStartsHere = filteredMatrixTasks.find(t => monthLayoutContext.taskTracks[t.id] === i && t.date === dateStr);
+                                              const taskSpansHere = filteredMatrixTasks.find(t => monthLayoutContext.taskTracks[t.id] === i && t.date < dateStr && (t.endDate || t.date) >= dateStr);
+                                              
+                                              if (taskStartsHere) renderItems.push({ type: 'task', task: taskStartsHere, isStart: true });
+                                              else if (taskSpansHere) renderItems.push({ type: 'task', task: taskSpansHere, isStart: false });
+                                              else renderItems.push({ type: 'empty' });
+                                          }
+                                          while (renderItems.length > 0 && renderItems[renderItems.length - 1].type === 'empty') renderItems.pop();
+                                      }
+
+                                      return renderItems.map((item, idxx) => {
+                                          if (item.type === 'empty') return <div key={`empty-${idxx}`} className="h-[22px]"></div>;
+                                          
+                                          const task = item.task;
+                                          const catColor = categories.find(c => c.id === task.categoryId)?.color?.value.split(' ')[0] || 'bg-gray-200';
+                                          
+                                          const isStart = item.isStart !== undefined ? item.isStart : true;
+                                          const isEnd = (task.endDate || task.date) === dateStr;
+                                          const isMultiDay = task.endDate && task.endDate !== task.date;
+                                          const isMonday = day.getDay() === 1;
+                                          
+                                          // Thuật toán CSS gài mép thẻ tạo cảm giác liền mạch
+                                          let classes = `text-[10px] font-semibold py-1 px-1.5 h-[22px] truncate cursor-grab active:cursor-grabbing transition-all select-none ${catColor} bg-opacity-40 text-slate-800 ${task.isCompleted ? 'opacity-40 line-through' : ''}`;
+                                          
+                                          if (isMultiDayFeatureEnabled && isMultiDay) {
+                                              if (!isStart) classes += ' rounded-l-none ml-[-7px] pl-[8px] border-l-0';
+                                              else classes += ' rounded-l-md';
+                                              
+                                              if (!isEnd) classes += ' rounded-r-none mr-[-7px] pr-[8px] border-r-0 relative z-10';
+                                              else classes += ' rounded-r-md';
+                                          } else {
+                                              classes += ' rounded-md';
+                                          }
+                                          
+                                          // Chỉ hiện chữ ở ngày bắt đầu hoặc Thứ 2 đầu tuần
+                                          const showText = !isMultiDay || isStart || isMonday;
+
+                                          return (
+                                              <div
+                                                  key={task.id} draggable
+                                                  onDragStart={(e) => handleDragStart(e, task)}
+                                                  onDragEnd={handleDragEnd}
+                                                  onClick={(e) => { e.stopPropagation(); setSelectedTaskId(task.id); }}
+                                                  onDoubleClick={(e) => { e.stopPropagation(); setEditingTask(task); }}
+                                                  onContextMenu={(e) => handleContextMenu(e, task)}
+                                                  className={classes} title={task.title}
+                                              >
+                                                  {showText ? task.title : '\u00A0'}
+                                              </div>
+                                          );
+                                      });
+                                  })()}
                               </div>
                           </div>
                       );
@@ -536,12 +599,14 @@ export default function App() {
           </div>
       )}
 
+      {/* CHẾ ĐỘ TUẦN */}
       {viewMode === 'matrix' && calendarView === 'week' && (
           <div className="flex-1 overflow-hidden relative flex flex-col">
             <div ref={scrollContainerRef} className="flex-1 overflow-auto custom-scrollbar" onScroll={handleScroll}>
-              <div className="inline-block min-w-full">
+              <div className="inline-block min-w-full relative z-0">
                 
-                <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md flex border-b border-gray-200/60 shadow-sm transition-all">
+                {/* Đỉnh Góc Trái Cố Định: Đã đẩy Z-index lên 50 */}
+                <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-md flex border-b border-gray-200/60 shadow-sm transition-all">
                   <div className="sticky left-0 z-50 bg-white/95 backdrop-blur-md border-r border-gray-200/60 p-4 flex items-center font-bold text-gray-500 bg-gray-50/50 box-border group" style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
                     Hạng Mục / Deadline
                     <div className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-indigo-500 group-hover:bg-gray-300 transition-colors z-30" onMouseDown={startResizingSidebar} />
@@ -566,7 +631,8 @@ export default function App() {
 
                   return (
                   <div key={category.id} className={`flex border-b border-gray-300 group ${draggedCategoryIndex === index ? 'opacity-40 border-dashed border-indigo-400' : ''}`} onDragOver={handleCategoryDragOver} onDrop={(e) => handleCategoryDrop(e, index)}>
-                    <div draggable onDragStart={(e) => handleCategoryDragStart(e, index)} className={`sticky left-0 z-30 bg-white/95 backdrop-blur-sm border-r border-gray-200/60 p-4 flex flex-col justify-center group-hover:bg-gray-50 transition-colors border-l-4 ${category.color.value.replace('bg-', 'border-').split(' ')[0]} shadow-[4px_0_24px_rgba(0,0,0,0.02)]`} style={{ width: sidebarWidth, minWidth: sidebarWidth, borderLeftColor: category.color?.hex || '#ccc' }}>
+                    {/* Cột Cố định Hạng Mục: Đã đẩy Z-index lên 40 để TaskCard trượt xuống dưới */}
+                    <div draggable onDragStart={(e) => handleCategoryDragStart(e, index)} className={`sticky left-0 z-40 bg-white/95 backdrop-blur-sm border-r border-gray-200/60 p-4 flex flex-col justify-center group-hover:bg-gray-50 transition-colors border-l-4 ${category.color.value.replace('bg-', 'border-').split(' ')[0]} shadow-[4px_0_24px_rgba(0,0,0,0.02)]`} style={{ width: sidebarWidth, minWidth: sidebarWidth, borderLeftColor: category.color?.hex || '#ccc' }}>
                       <div className="font-semibold text-gray-800 flex items-center justify-between group/header overflow-hidden">
                         <div className="flex items-center gap-2 truncate pr-2 cursor-pointer" onDoubleClick={() => setEditingCategory(category)}>
                              <button onClick={(e) => { e.stopPropagation(); toggleCategoryCollapse(category.id); }} className="text-gray-400 hover:text-indigo-600 transition-colors">{category.collapsed ? <ChevronRightIcon size={16} /> : <CornerDownLeft size={16} className="rotate-0" />}</button>
@@ -587,7 +653,6 @@ export default function App() {
                         const isToday = dateStr === formatDateKey(new Date()); 
                         const isWeekend = day.getDay() === 0 || day.getDay() === 6;
                         
-                        // CƠ CHẾ GANTT CHART: Tính toán khoảng trống và các Task cho ô ngày
                         let renderItems = [];
                         if (!isMultiDayFeatureEnabled) {
                             renderItems = catTasks.filter(t => t.date === dateStr).map(t => ({ type: 'task', task: t }));

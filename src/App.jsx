@@ -442,7 +442,6 @@ export default function App() {
   const handleDragEnd = (e) => { if (e.target) { e.target.style.opacity = '1'; e.target.style.transform = 'none'; e.target.style.filter = 'none'; } setDraggedTask(null); };
   const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
   
-  // TỐI ƯU TUYỆT ĐỐI BẮT TỌA ĐỘ TRỰC TIẾP TỪ CHUỘT
   const handleDrop = (e, targetCategoryId, bubbledDateStr) => { 
       e.preventDefault();
       if (draggedTask) { const draggedEl = document.querySelector(`[draggable="true"][style*="opacity: 0.4"]`); if (draggedEl) { draggedEl.style.opacity = '1'; draggedEl.style.transform = 'none'; draggedEl.style.filter = 'none'; } }
@@ -450,7 +449,6 @@ export default function App() {
       
       let dropDateStr = bubbledDateStr;
 
-      // Bẻ khóa lỗi thẻ đè nhau: Tính X Coordinate trên lưới thay vì lấy từ DOM
       if (calendarView === 'week' && scrollContainerRef.current) {
           const rect = scrollContainerRef.current.getBoundingClientRect();
           const scrollLeft = scrollContainerRef.current.scrollLeft;
@@ -522,7 +520,7 @@ export default function App() {
           <TodoView tasks={tasks} categories={categories} currentDate={currentDate} onUpdateTask={handleUpdateTask} setEditingTask={setEditingTask} onDeleteTask={handleDeleteTask} onOpenAddTask={handleOpenAddTask} quickAddCell={quickAddCell} setQuickAddCell={setQuickAddCell} onConfirmQuickAdd={handleConfirmQuickAdd} searchQuery={searchQuery} onSaveNewTask={handleSaveNewTask} />
       )}
 
-      {/* CHẾ ĐỘ THÁNG: Nối Ribbon liền mạch đè lên vạch phân cách */}
+      {/* CHẾ ĐỘ THÁNG: Fix màu hiển thị chuẩn */}
       {viewMode === 'matrix' && calendarView === 'month' && (
           <div className="flex-1 flex flex-col overflow-hidden bg-white">
               <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/80">
@@ -570,24 +568,26 @@ export default function App() {
                                           if (item.type === 'empty') return <div key={`empty-${idxx}`} className="h-[22px]"></div>;
                                           
                                           const task = item.task;
-                                          const catColor = categories.find(c => c.id === task.categoryId)?.color?.value.split(' ')[0] || 'bg-gray-200';
+                                          const catColorObj = categories.find(c => c.id === task.categoryId)?.color;
+                                          
+                                          // SỬ DỤNG MÀU GỐC, KHÔNG DÙNG OPACITY HAY LÓT TRẮNG NỮA
+                                          const catBg = catColorObj?.value?.split(' ')[0] || 'bg-gray-200';
+                                          const catText = catColorObj?.text || 'text-slate-700';
                                           
                                           const isStart = item.isStart !== undefined ? item.isStart : true;
                                           const isEnd = (task.endDate || task.date) === dateStr;
                                           const isMultiDay = task.endDate && task.endDate !== task.date;
                                           
-                                          // Thuật toán nhận diện mép Grid lưới 7x5
                                           const isEndOfWeek = day.getDay() === 0;
                                           const isStartOfWeek = day.getDay() === 1;
                                           
-                                          // CSS Lót nền trắng để che đứt vạch ngăn cách
-                                          let classes = `relative isolate text-[10px] font-semibold py-1 px-1.5 h-[22px] truncate cursor-grab active:cursor-grabbing transition-all select-none ${catColor} bg-opacity-40 text-slate-800 before:absolute before:inset-0 before:bg-white before:-z-10 ${task.isCompleted ? 'opacity-40 line-through' : ''}`;
+                                          let classes = `text-[10px] font-semibold py-1 px-1.5 h-[22px] truncate cursor-grab active:cursor-grabbing transition-all select-none ${catBg} ${catText} ${task.isCompleted ? 'opacity-50 line-through' : ''}`;
                                           
                                           if (isMultiDayFeatureEnabled && isMultiDay) {
-                                              if (!isStart && !isStartOfWeek) classes += ' rounded-l-none !ml-[-6px] !pl-[7px] border-l-0';
+                                              if (!isStart && !isStartOfWeek) classes += ' rounded-l-none !ml-[-7px] !pl-[8px] border-l-0';
                                               else classes += ' rounded-l-md';
                                               
-                                              if (!isEnd && !isEndOfWeek) classes += ' rounded-r-none !mr-[-7px] !pr-[8px] border-r-0';
+                                              if (!isEnd && !isEndOfWeek) classes += ' rounded-r-none !mr-[-7px] !pr-[8px] border-r-0 relative z-10';
                                               else classes += ' rounded-r-md';
                                           } else {
                                               classes += ' rounded-md';
@@ -624,7 +624,6 @@ export default function App() {
             <div ref={scrollContainerRef} className="flex-1 overflow-auto custom-scrollbar" onScroll={handleScroll}>
               <div className="inline-block min-w-full relative z-0">
                 
-                {/* Thanh ngày tháng ngang */}
                 <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-md flex border-b border-gray-200/60 shadow-sm transition-all">
                   <div className="sticky left-0 z-50 bg-white/95 backdrop-blur-md border-r border-gray-200/60 p-4 flex items-center font-bold text-gray-500 bg-gray-50/50 box-border group" style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
                     Hạng Mục / Deadline
@@ -650,7 +649,6 @@ export default function App() {
 
                   return (
                   <div key={category.id} className={`flex border-b border-gray-300 group ${draggedCategoryIndex === index ? 'opacity-40 border-dashed border-indigo-400' : ''}`} onDragOver={handleCategoryDragOver} onDrop={(e) => handleCategoryDrop(e, index)}>
-                    {/* CỘT HẠNG MỤC: Z-Index 40 để TaskCard trượt xuống gầm */}
                     <div draggable onDragStart={(e) => handleCategoryDragStart(e, index)} className={`sticky left-0 z-40 bg-white/95 backdrop-blur-sm border-r border-gray-200/60 p-4 flex flex-col justify-center group-hover:bg-gray-50 transition-colors border-l-4 ${category.color.value.replace('bg-', 'border-').split(' ')[0]} shadow-[4px_0_24px_rgba(0,0,0,0.02)]`} style={{ width: sidebarWidth, minWidth: sidebarWidth, borderLeftColor: category.color?.hex || '#ccc' }}>
                       <div className="font-semibold text-gray-800 flex items-center justify-between group/header overflow-hidden">
                         <div className="flex items-center gap-2 truncate pr-2 cursor-pointer" onDoubleClick={() => setEditingCategory(category)}>

@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef, useCallback, useLayoutEffe
 import { Plus, GripVertical, CornerDownLeft, Trash2, Palette, ChevronRight as ChevronRightIcon, X, Check } from 'lucide-react';
 import { supabase } from './lib/supabaseClient';
 import { COLORS, ZOOM_LEVELS, INITIAL_DATA } from './constants/theme';
-import { formatDateKey, getMonday, getInfiniteWeekWindow, getDayName, formatDateDisplay } from './utils/dateHelpers';
+import { formatDateKey, getMonday, getInfiniteWeekWindow, getDayName, formatDateDisplay, getMonthGridDays } from './utils/dateHelpers';
 import { useUndoableState } from './hooks/useUndoableState';
 
 // Components
@@ -21,22 +21,19 @@ export default function App() {
   // --- 1. STATE & CONFIG ---
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState('matrix');
+  const [calendarView, setCalendarView] = useState('week'); 
+  
   const [boardData, setBoardData, undo, redo, canUndo, canRedo] = useUndoableState(INITIAL_DATA);
   const { categories, tasks } = boardData;
   
-  // Giao diện Matrix
   const [zoomIndex, setZoomIndex] = useState(2); 
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const dayWidth = ZOOM_LEVELS[zoomIndex];
   
-  // Drag & Drop State
   const [draggedTask, setDraggedTask] = useState(null);
   const [draggedCategoryIndex, setDraggedCategoryIndex] = useState(null); 
-
-  // Copy/Paste State
   const [copiedTask, setCopiedTask] = useState(null);
 
-  // Modal & Interaction State
   const [editingTask, setEditingTask] = useState(null);
   const [editingCategory, setEditingCategory] = useState(null);
   const [quickAddCell, setQuickAddCell] = useState(null);
@@ -50,17 +47,11 @@ export default function App() {
   const [toasts, setToasts] = useState([]); 
   const [highlightedTaskId, setHighlightedTaskId] = useState(null);
 
-  // Confirm Dialog State
   const [confirmDialog, setConfirmDialog] = useState(null); 
-
-  // Context Menu State
   const [contextMenu, setContextMenu] = useState(null);
-
-  // Category Creation State
   const [isCreatingCategory, setIsCreatingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
 
-  // Refs
   const scrollContainerRef = useRef(null);
   const previousDateRef = useRef(currentDate);
   const viewCenterDayIndexRef = useRef(null);
@@ -90,19 +81,15 @@ export default function App() {
                 title: t.title,
                 description: t.description,
                 date: t.date,
+                time: t.time,
                 isCompleted: t.is_completed,
                 categoryId: t.category_id,
                 repeat: t.repeat,
-                seriesId: t.series_id,
-                time: t.time
+                seriesId: t.series_id
             }));
 
             const mappedCategories = (catData || []).map(c => ({
-                id: c.id,
-                title: c.title,
-                color: c.color,
-                collapsed: c.collapsed,
-                position: c.position || 0
+                id: c.id, title: c.title, color: c.color, collapsed: c.collapsed, position: c.position || 0
             }));
 
             setBoardData({ categories: mappedCategories, tasks: mappedTasks });
@@ -119,31 +106,20 @@ export default function App() {
 
         if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); if (canUndo) { undo(); addToast('Đã hoàn tác ↩️'); } }
         if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); if (canRedo) { redo(); addToast('Đã làm lại ↪️'); } }
-        
         if (e.key === 'Delete' && selectedTaskId) { e.preventDefault(); handleDeleteTask(selectedTaskId); }
         if (e.key === 'Escape') { setSelectedTaskId(null); setContextMenu(null); }
-
-        if (e.key === 'n' || e.key === 'N') {
-            e.preventDefault();
-            handleOpenAddTask({ date: formatDateKey(currentDate) });
-        }
+        if (e.key === 'n' || e.key === 'N') { e.preventDefault(); handleOpenAddTask({ date: formatDateKey(currentDate) }); }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown); return () => window.removeEventListener('keydown', handleKeyDown);
   }, [canUndo, canRedo, selectedTaskId, showAddTaskModal, showRecurringModal, editingTask, editingCategory, undo, redo, currentDate, confirmDialog]);
 
-  // Copy Paste Logic
   useEffect(() => {
       const handleCopyPaste = async (e) => {
           if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
           if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
               if (selectedTaskId) {
                   const taskToCopy = tasks.find(t => t.id === selectedTaskId);
-                  if (taskToCopy) {
-                      setCopiedTask(taskToCopy);
-                      addToast('Đã sao chép công việc 📋', 'info');
-                      navigator.clipboard.writeText(taskToCopy.title).catch(() => {});
-                  }
+                  if (taskToCopy) { setCopiedTask(taskToCopy); addToast('Đã sao chép công việc 📋', 'info'); navigator.clipboard.writeText(taskToCopy.title).catch(() => {}); }
               }
           }
           if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
@@ -151,37 +127,20 @@ export default function App() {
               try {
                   const text = await navigator.clipboard.readText();
                   if (text && (text.includes('\n') || (copiedTask && text !== copiedTask.title) || !copiedTask)) {
-                      e.preventDefault();
-                      handleBatchPaste(text, hoveredCell);
-                      return;
+                      e.preventDefault(); handleBatchPaste(text, hoveredCell); return;
                   }
               } catch (err) {}
-              if (copiedTask) {
-                  e.preventDefault();
-                  handlePasteInternalTask(copiedTask, hoveredCell);
-              }
+              if (copiedTask) { e.preventDefault(); handlePasteInternalTask(copiedTask, hoveredCell); }
           }
       };
-      window.addEventListener('keydown', handleCopyPaste);
-      return () => window.removeEventListener('keydown', handleCopyPaste);
+      window.addEventListener('keydown', handleCopyPaste); return () => window.removeEventListener('keydown', handleCopyPaste);
   }, [selectedTaskId, hoveredCell, copiedTask, tasks]);
 
   const handleBatchPaste = async (text, targetCell) => {
-      const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
-      if (lines.length === 0) return;
-      const newTasks = [];
-      const { categoryId, dateStr } = targetCell;
+      const lines = text.split(/\r?\n/).filter(line => line.trim() !== ''); if (lines.length === 0) return;
+      const newTasks = []; const { categoryId, dateStr } = targetCell;
       lines.forEach((line, index) => {
-          newTasks.push({
-              id: `paste-${Date.now()}-${index}`,
-              category_id: categoryId,
-              date: dateStr,
-              title: line.trim(),
-              description: '',
-              is_completed: false,
-              repeat: 'none',
-              series_id: null
-          });
+          newTasks.push({ id: `paste-${Date.now()}-${index}`, category_id: categoryId, date: dateStr, title: line.trim(), description: '', is_completed: false, repeat: 'none', series_id: null });
       });
       const mappedNewTasks = newTasks.map(t => ({ ...t, id: t.id, categoryId: t.category_id, isCompleted: t.is_completed, seriesId: t.series_id }));
       setBoardData(prev => ({ ...prev, tasks: [...prev.tasks, ...mappedNewTasks] }));
@@ -190,55 +149,46 @@ export default function App() {
   };
 
   const handlePasteInternalTask = async (originalTask, targetCell) => {
-      const { categoryId, dateStr } = targetCell;
-      const newId = `paste-internal-${Date.now()}`;
+      const { categoryId, dateStr } = targetCell; const newId = `paste-internal-${Date.now()}`;
       const newTask = { ...originalTask, id: newId, categoryId: categoryId, date: dateStr, isCompleted: false, seriesId: null };
       setBoardData(prev => ({ ...prev, tasks: [...prev.tasks, newTask] }));
-      const dbTask = { id: newId, category_id: categoryId, date: dateStr, title: newTask.title, description: newTask.description, is_completed: false, repeat: newTask.repeat, series_id: null };
-      await supabase.from('tasks').insert([dbTask]);
-      addToast('Đã dán công việc', 'success');
+      const dbTask = { id: newId, category_id: categoryId, date: dateStr, title: newTask.title || '', description: newTask.description || null, time: newTask.time || null, is_completed: false, repeat: newTask.repeat || 'none', series_id: null };
+      await supabase.from('tasks').insert([dbTask]); addToast('Đã dán công việc', 'success');
   };
 
   // --- 5. LOGIC SCROLL & VIEW ---
   useEffect(() => {
-      if (viewMode === 'matrix') {
-          const today = new Date();
-          setCurrentDate(today);
-          previousDateRef.current = today;
-          scrollActionRef.current = 'jump';
+      if (viewMode === 'matrix' && calendarView === 'week') {
+          const today = new Date(); setCurrentDate(today); previousDateRef.current = today; scrollActionRef.current = 'jump';
           setTimeout(() => { if (scrollContainerRef.current) scrollContainerRef.current.scrollLeft = 7 * dayWidth; }, 10);
       }
-  }, [viewMode, dayWidth]);
+  }, [viewMode, calendarView, dayWidth]);
 
   const handleZoomChange = (e) => {
       const newIndex = parseInt(e.target.value);
-      if (scrollContainerRef.current) {
+      if (scrollContainerRef.current && calendarView === 'week') {
           const { scrollLeft, clientWidth } = scrollContainerRef.current;
-          const centerPixel = scrollLeft + clientWidth / 2;
-          viewCenterDayIndexRef.current = centerPixel / dayWidth; 
+          viewCenterDayIndexRef.current = (scrollLeft + clientWidth / 2) / dayWidth; 
       }
       setZoomIndex(newIndex);
   };
 
   useLayoutEffect(() => {
-      if (scrollContainerRef.current && viewCenterDayIndexRef.current !== null) {
+      if (scrollContainerRef.current && viewCenterDayIndexRef.current !== null && calendarView === 'week') {
           const { clientWidth } = scrollContainerRef.current;
-          const newScrollLeft = (viewCenterDayIndexRef.current * dayWidth) - (clientWidth / 2);
-          scrollContainerRef.current.scrollLeft = newScrollLeft;
+          scrollContainerRef.current.scrollLeft = (viewCenterDayIndexRef.current * dayWidth) - (clientWidth / 2);
           viewCenterDayIndexRef.current = null;
       }
-  }, [dayWidth]);
+  }, [dayWidth, calendarView]);
 
   const visibleDays = useMemo(() => getInfiniteWeekWindow(currentDate), [currentDate]);
+  const monthGridDays = useMemo(() => getMonthGridDays(currentDate), [currentDate]); 
 
   const handleScroll = useCallback(() => {
-      if (!scrollContainerRef.current || isProgrammaticScroll.current) return;
-      const now = Date.now();
-      if (now - lastScrollTimeRef.current < 50) return;
-      lastScrollTimeRef.current = now;
+      if (calendarView !== 'week' || !scrollContainerRef.current || isProgrammaticScroll.current) return;
+      const now = Date.now(); if (now - lastScrollTimeRef.current < 50) return; lastScrollTimeRef.current = now;
       const { scrollLeft, clientWidth } = scrollContainerRef.current;
-      const scrollCenter = scrollLeft + clientWidth / 2;
-      const dayIndex = Math.floor(scrollCenter / dayWidth);
+      const dayIndex = Math.floor((scrollLeft + clientWidth / 2) / dayWidth);
       if (dayIndex >= 0 && dayIndex < visibleDays.length) {
           const currentMonday = getMonday(currentDate);
           if (dayIndex < 7) {
@@ -249,13 +199,11 @@ export default function App() {
               if (previousDateRef.current.getTime() === currentDate.getTime()) { previousDateRef.current = currentDate; scrollActionRef.current = 'maintain'; setCurrentDate(nextMonday); }
           }
       }
-  }, [currentDate, visibleDays, dayWidth]);
+  }, [currentDate, visibleDays, dayWidth, calendarView]);
 
   useLayoutEffect(() => {
-      if (!scrollContainerRef.current) return;
-      const prevDate = previousDateRef.current;
-      const action = scrollActionRef.current;
-      isProgrammaticScroll.current = true;
+      if (calendarView !== 'week' || !scrollContainerRef.current) return;
+      const prevDate = previousDateRef.current; const action = scrollActionRef.current; isProgrammaticScroll.current = true;
       if (action === 'jump') { scrollContainerRef.current.scrollLeft = 7 * dayWidth; previousDateRef.current = currentDate; } 
       else if (action === 'maintain') {
           if (currentDate > prevDate) scrollContainerRef.current.scrollLeft -= 7 * dayWidth;
@@ -263,336 +211,219 @@ export default function App() {
           previousDateRef.current = currentDate;
       }
       setTimeout(() => { isProgrammaticScroll.current = false; scrollActionRef.current = 'maintain'; }, 100); 
-  }, [currentDate, dayWidth]);
+  }, [currentDate, dayWidth, calendarView]);
 
-  useEffect(() => { if (scrollContainerRef.current) scrollContainerRef.current.scrollLeft = 7 * dayWidth; }, []);
+  useEffect(() => { if (scrollContainerRef.current && viewMode === 'matrix' && calendarView === 'week') scrollContainerRef.current.scrollLeft = 7 * dayWidth; }, []);
+
+  // --- MỚI: BỘ LỌC CỐT LÕI (XÓA BỎ TASK MA MỌI NƠI) ---
+  const validCategoryIds = useMemo(() => new Set(categories.map(c => c.id)), [categories]);
+  
+  const filteredMatrixTasks = useMemo(() => { 
+      // Chỉ lấy những task thuộc về category ĐANG TỒN TẠI
+      let filtered = tasks.filter(t => validCategoryIds.has(t.categoryId));
+      if (searchQuery) {
+          filtered = filtered.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
+      }
+      return filtered;
+  }, [tasks, searchQuery, validCategoryIds]);
+
 
   // --- 6. LOGIC TASK & UPDATES ---
   const handleGenerateRepeats = async (baseTask, repeatType) => {
       if (!baseTask || !repeatType || repeatType === 'none') return;
-      const seriesId = baseTask.seriesId || `series-${Date.now()}`;
-      const newTasks = [];
-      const startDate = new Date(baseTask.date);
-      const count = 12; 
-      for (let i = 1; i <= count; i++) {
-          const nextDate = new Date(startDate);
-          if (repeatType === 'daily') nextDate.setDate(startDate.getDate() + i);
-          else if (repeatType === 'weekly') nextDate.setDate(startDate.getDate() + (i * 7));
-          else if (repeatType === 'monthly') nextDate.setMonth(startDate.getMonth() + i);
-          
-          newTasks.push({ 
-              id: `${baseTask.id}-rep-${Date.now()}-${i}`,
-              category_id: baseTask.categoryId,
-              date: formatDateKey(nextDate), 
-              title: baseTask.title,
-              description: baseTask.description,
-              time: baseTask.time,
-              is_completed: false,
-              repeat: repeatType, 
-              series_id: seriesId, 
-          });
+      const seriesId = baseTask.seriesId || `series-${Date.now()}`; const newTasks = [];
+      const [year, month, day] = baseTask.date.split('-').map(Number); let currentIterDate = new Date(year, month - 1, day);
+      for (let i = 1; i <= 12; i++) {
+          if (repeatType === 'daily') currentIterDate.setDate(currentIterDate.getDate() + 1);
+          else if (repeatType === 'weekly') currentIterDate.setDate(currentIterDate.getDate() + 7);
+          else if (repeatType === 'monthly') currentIterDate.setMonth(currentIterDate.getMonth() + 1);
+          newTasks.push({ id: `${baseTask.id}-rep-${Date.now()}-${i}`, category_id: baseTask.categoryId, date: formatDateKey(currentIterDate), title: baseTask.title || '', description: baseTask.description || null, time: baseTask.time || null, is_completed: false, repeat: repeatType, series_id: seriesId });
       }
-      const mappedNewTasks = newTasks.map(t => ({ ...t, isCompleted: false, categoryId: t.category_id, seriesId: t.series_id }));
+      const mappedNewTasks = newTasks.map(t => ({ id: t.id, title: t.title, description: t.description, date: t.date, time: t.time, isCompleted: t.is_completed, categoryId: t.category_id, repeat: t.repeat, seriesId: t.series_id }));
       const updatedBase = { ...baseTask, seriesId, repeat: repeatType };
-      
       setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === baseTask.id ? updatedBase : t).concat(mappedNewTasks) }));
-      addToast('Đã tạo lịch trình lặp lại', 'success');
       await supabase.from('tasks').insert(newTasks);
       await supabase.from('tasks').update({ series_id: seriesId, repeat: repeatType }).eq('id', baseTask.id);
   };
 
   const handleUpdateTask = async (updatedTask) => {
-      const originalTask = tasks.find(t => t.id === updatedTask.id);
-      if (!originalTask) return;
-      
+      const originalTask = tasks.find(t => t.id === updatedTask.id); if (!originalTask) return;
       const hasSeries = !!originalTask.seriesId || (originalTask.repeat && originalTask.repeat !== 'none');
-      
-      const isContentChanged = originalTask.title !== updatedTask.title || 
-                               originalTask.description !== updatedTask.description || 
-                               originalTask.date !== updatedTask.date || 
-                               originalTask.repeat !== updatedTask.repeat ||
-                               originalTask.time !== updatedTask.time ||
-                               originalTask.categoryId !== updatedTask.categoryId;
+      const isNowSeries = updatedTask.repeat !== 'none';
+      const isContentChanged = originalTask.title !== updatedTask.title || (originalTask.description || '') !== (updatedTask.description || '') || originalTask.date !== updatedTask.date || originalTask.repeat !== updatedTask.repeat || originalTask.categoryId !== updatedTask.categoryId || (originalTask.time || '') !== (updatedTask.time || '');
 
       if (hasSeries && isContentChanged) {
-          setPendingUpdate({ originalTask, updatedTask });
-          setShowRecurringModal(true);
+          setPendingUpdate({ originalTask, updatedTask }); setShowRecurringModal(true);
       } else {
           setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === updatedTask.id ? updatedTask : t) }));
-          const { error } = await supabase.from('tasks').update({
-              title: updatedTask.title, 
-              description: updatedTask.description, 
-              date: updatedTask.date, 
-              time: updatedTask.time, // Bổ sung time
-              is_completed: updatedTask.isCompleted, 
-              repeat: updatedTask.repeat, 
-              category_id: updatedTask.categoryId 
-          }).eq('id', updatedTask.id);
-
-          if (error) {
-               console.error('Sync Error:', error);
-               setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === updatedTask.id ? originalTask : t) }));
-               addToast('Lỗi đồng bộ, đã hoàn tác', 'error');
-          }
+          const dbPayload = { title: updatedTask.title || '', description: updatedTask.description || null, date: updatedTask.date, time: updatedTask.time || null, is_completed: Boolean(updatedTask.isCompleted), repeat: updatedTask.repeat || 'none', category_id: updatedTask.categoryId };
+          const { error } = await supabase.from('tasks').update(dbPayload).eq('id', updatedTask.id);
+          if (error) { setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === updatedTask.id ? originalTask : t) })); addToast(`Lỗi: ${error.message}`, 'error'); } 
+          else { if (!hasSeries && isNowSeries) await handleGenerateRepeats(updatedTask, updatedTask.repeat); }
       }
   };
 
-  // --- HÀM FIX LỖI KHÔNG LƯU TASK LẶP LẠI (F5 MẤT HẾT) ---
   const handleConfirmRecurringUpdate = async (mode) => {
       if (!pendingUpdate) return;
-      const { originalTask, updatedTask } = pendingUpdate;
-      setShowRecurringModal(false);
-      setPendingUpdate(null);
+      const { originalTask, updatedTask } = pendingUpdate; setShowRecurringModal(false); setPendingUpdate(null);
+      let finalUpdatedTask = { ...updatedTask };
       
-      // Sửa lỗi xoá nhầm UI: Chỉ xoá các task nếu nó thuộc cùng series và ở tương lai
-      setBoardData(prev => ({
-          ...prev,
-          tasks: prev.tasks.filter(t => {
-              if (t.id === updatedTask.id) return true;
-              if (originalTask.seriesId && t.seriesId === originalTask.seriesId && t.date > originalTask.date) {
-                  return false; // Xoá task tương lai của chuỗi này
-              }
-              return true; // Giữ nguyên các task khác
-          }).map(t => t.id === updatedTask.id ? updatedTask : t) 
-      }));
-
-      // CHUẨN HÓA SANG SNAKE_CASE CHO SUPABASE (Fix lỗi F5 mất)
-      const dbPayload = {
-          title: updatedTask.title,
-          description: updatedTask.description,
-          date: updatedTask.date,
-          time: updatedTask.time,
-          is_completed: updatedTask.isCompleted,
-          repeat: updatedTask.repeat,
-          category_id: updatedTask.categoryId
-      };
-
       if (mode === 'single') {
-           dbPayload.series_id = null; // Tách khỏi chuỗi
-           const { error } = await supabase.from('tasks').update(dbPayload).eq('id', updatedTask.id);
-           
-           if (error) {
-               console.error(error);
-               addToast('Lỗi lưu công việc', 'error');
-           } else {
-               addToast('Đã cập nhật (Tách riêng công việc)', 'success');
-           }
+          finalUpdatedTask.seriesId = null;
+          setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === finalUpdatedTask.id ? finalUpdatedTask : t) }));
+          const dbPayload = { title: finalUpdatedTask.title || '', description: finalUpdatedTask.description || null, date: finalUpdatedTask.date, time: finalUpdatedTask.time || null, is_completed: Boolean(finalUpdatedTask.isCompleted), repeat: finalUpdatedTask.repeat || 'none', category_id: finalUpdatedTask.categoryId, series_id: null };
+          const { error } = await supabase.from('tasks').update(dbPayload).eq('id', finalUpdatedTask.id);
+          if (error) { addToast(`Lỗi: ${error.message}`, 'error'); } else { addToast('Đã cập nhật (Tách riêng)', 'success'); }
+      
       } else if (mode === 'future') {
-          // Xoá chuỗi cũ (Chỉ xoá nếu có mã series_id)
-          if (originalTask.seriesId) {
-              await supabase.from('tasks').delete().eq('series_id', originalTask.seriesId).gt('date', originalTask.date);
-          }
-          
-          const newSeriesId = updatedTask.repeat === 'none' ? null : (originalTask.seriesId || `series-${Date.now()}`);
-          dbPayload.series_id = newSeriesId;
+          const isStoppingRepeat = finalUpdatedTask.repeat === 'none'; // Kích hoạt lệnh MẠNH MẼ
+          const newSeriesId = isStoppingRepeat ? null : (originalTask.seriesId || `series-${Date.now()}`);
+          finalUpdatedTask.seriesId = newSeriesId;
 
-          // Lưu gốc mới
-          const { error } = await supabase.from('tasks').update(dbPayload).eq('id', updatedTask.id);
+          // Cập nhật UI: Dọn sạch mọi vết tích nếu chọn Không lặp lại
+          setBoardData(prev => ({ 
+              ...prev, 
+              tasks: prev.tasks.filter(t => { 
+                  if (t.id === finalUpdatedTask.id) return true; 
+                  if (originalTask.seriesId && t.seriesId === originalTask.seriesId) { 
+                      if (isStoppingRepeat) return false; // Lệnh mạnh mẽ: Xoá SẠCH UI
+                      if (t.date > originalTask.date) return false; // Xóa tương lai
+                  } 
+                  return true; 
+              }).map(t => t.id === finalUpdatedTask.id ? finalUpdatedTask : t) 
+          }));
+
+          const dbPayload = { title: finalUpdatedTask.title || '', description: finalUpdatedTask.description || null, date: finalUpdatedTask.date, time: finalUpdatedTask.time || null, is_completed: Boolean(finalUpdatedTask.isCompleted), repeat: finalUpdatedTask.repeat || 'none', category_id: finalUpdatedTask.categoryId, series_id: newSeriesId };
           
-          if (error) {
-              console.error(error);
-              addToast('Lỗi lưu chuỗi công việc', 'error');
-          } else {
-              if (updatedTask.repeat !== 'none') { 
-                  // Phát sinh chuỗi mới
-                  await handleGenerateRepeats({ ...updatedTask, seriesId: newSeriesId }, updatedTask.repeat); 
-              } else { 
-                  addToast('Đã cập nhật và dừng lặp lại', 'success'); 
+          try {
+              if (originalTask.seriesId) { 
+                  if (isStoppingRepeat) {
+                      // LỆNH MẠNH MẼ: Xóa SẠCH Database các task chung chuỗi (trừ task hiện tại)
+                      const { error: delError } = await supabase.from('tasks')
+                          .delete()
+                          .eq('series_id', originalTask.seriesId)
+                          .neq('id', finalUpdatedTask.id);
+                      if (delError) throw delError;
+                  } else {
+                      // Xóa các task tương lai như bình thường
+                      const { error: delError } = await supabase.from('tasks')
+                          .delete()
+                          .eq('series_id', originalTask.seriesId)
+                          .gt('date', originalTask.date);
+                      if (delError) throw delError;
+                  }
               }
+              const { error: updError } = await supabase.from('tasks').update(dbPayload).eq('id', finalUpdatedTask.id); 
+              if (updError) throw updError;
+
+              if (!isStoppingRepeat) { 
+                  await handleGenerateRepeats(finalUpdatedTask, finalUpdatedTask.repeat); 
+              } else { 
+                  addToast('Đã hủy lặp lại & xoá sạch các task liên quan', 'success'); 
+              }
+          } catch (err) { 
+              addToast(`Lỗi DB: ${err.message}`, 'error'); 
           }
       }
   };
 
   const handleSaveNewTask = async ({ title, date, categoryId, newCategoryTitle }) => {
-      let finalCategoryId = categoryId;
-      let newCategories = [...categories];
-      let newCategoryObj = null;
+      let finalCategoryId = categoryId || categories[0]?.id;
+      let newCategories = [...categories]; let newCategoryObj = null;
       if (newCategoryTitle) {
           const newCatId = `cat-${Date.now()}`;
           newCategoryObj = { id: newCatId, title: newCategoryTitle, color: COLORS[Math.floor(Math.random() * COLORS.length)], collapsed: false, position: categories.length };
-          newCategories.push(newCategoryObj);
-          finalCategoryId = newCatId;
+          newCategories.push(newCategoryObj); finalCategoryId = newCatId;
       }
       const newId = `new-${Date.now()}`; 
-      const localTask = { id: newId, categoryId: finalCategoryId, date: date, title: title, description: '', isCompleted: false, repeat: 'none', seriesId: null };
-      setBoardData(prev => ({ categories: newCategories, tasks: [...prev.tasks, localTask] }));
-      setShowAddTaskModal(false);
-      addToast('Đã lưu công việc!', 'success');
+      const localTask = { id: newId, categoryId: finalCategoryId, date: date, title: title, description: null, time: null, isCompleted: false, repeat: 'none', seriesId: null };
+      setBoardData(prev => ({ categories: newCategories, tasks: [...prev.tasks, localTask] })); setShowAddTaskModal(false); addToast('Đã lưu công việc!', 'success');
       try {
           if (newCategoryObj) await supabase.from('categories').insert([newCategoryObj]);
-          const dbTask = { id: newId, category_id: finalCategoryId, date: date, title: title, description: '', is_completed: false, repeat: 'none', series_id: null };
-          const { error } = await supabase.from('tasks').insert([dbTask]);
-          if (error) throw error;
+          const dbTask = { id: newId, category_id: finalCategoryId, date: date, title: title || '', description: null, time: null, is_completed: false, repeat: 'none', series_id: null };
+          const { error } = await supabase.from('tasks').insert([dbTask]); if (error) throw error;
       } catch (error) {
-          console.error("Lỗi lưu:", error);
-          setBoardData(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== newId), categories: newCategoryObj ? prev.categories.filter(c => c.id !== newCategoryObj.id) : prev.categories }));
-          addToast('Lỗi lưu dữ liệu - Đã hoàn tác', 'error');
+          setBoardData(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== newId), categories: newCategoryObj ? prev.categories.filter(c => c.id !== newCategoryObj.id) : prev.categories })); addToast(`Lỗi lưu: ${error.message}`, 'error');
       }
   };
 
   const handleDeleteTask = async (taskId) => { 
-      const originalTasks = [...tasks];
-      setBoardData(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== taskId) })); 
-      setEditingTask(null);
-      addToast('Đã xóa công việc 🗑️');
+      const originalTasks = [...tasks]; setBoardData(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== taskId) })); setEditingTask(null); addToast('Đã xóa công việc 🗑️');
       const { error } = await supabase.from('tasks').delete().eq('id', taskId);
-      if (error) {
-        setBoardData(prev => ({ ...prev, tasks: originalTasks }));
-        addToast('Lỗi xóa công việc - Đã khôi phục', 'error'); 
-      }
+      if (error) { setBoardData(prev => ({ ...prev, tasks: originalTasks })); addToast(`Lỗi xóa: ${error.message}`, 'error'); }
   };
 
   const handleSaveCategory = async () => {
     if (newCategoryName && newCategoryName.trim()) {
         const newCat = { id: `cat-${Date.now()}`, title: newCategoryName.trim(), color: COLORS[Math.floor(Math.random() * COLORS.length)], collapsed: false, position: categories.length };
-        setBoardData(prev => ({ ...prev, categories: [...prev.categories, newCat] }));
-        setNewCategoryName(''); 
-        setIsCreatingCategory(false);
-        addToast('Đã thêm hạng mục', 'success');
+        setBoardData(prev => ({ ...prev, categories: [...prev.categories, newCat] })); setNewCategoryName(''); setIsCreatingCategory(false); addToast('Đã thêm hạng mục', 'success');
         const { error } = await supabase.from('categories').insert([newCat]);
-        if (error) {
-              console.error(error);
-              setBoardData(prev => ({ ...prev, categories: prev.categories.filter(c => c.id !== newCat.id) })); 
-              addToast('Lỗi server', 'error');
-        }
+        if (error) { setBoardData(prev => ({ ...prev, categories: prev.categories.filter(c => c.id !== newCat.id) })); addToast('Lỗi server', 'error'); }
     }
   };
 
   const handleDeleteCategory = (catId) => { 
-        const category = categories.find(c => c.id === catId);
-        const title = category ? category.title : 'hạng mục này';
+        const category = categories.find(c => c.id === catId); const title = category ? category.title : 'hạng mục này';
         setConfirmDialog({
-            title: "Xóa hạng mục?",
-            message: `Bạn có chắc chắn muốn xóa "${title}"?\n\nTất cả công việc nằm trong hạng mục này cũng sẽ bị xóa vĩnh viễn!`,
-            confirmLabel: "Xóa vĩnh viễn",
-            isDangerous: true,
+            title: "Xóa hạng mục?", message: `Tất cả công việc nằm trong hạng mục này cũng sẽ bị xóa vĩnh viễn!`, confirmLabel: "Xóa vĩnh viễn", isDangerous: true,
             onConfirm: async () => {
-                const originalData = { ...boardData };
-                setBoardData(prev => ({ tasks: prev.tasks.filter(t => t.categoryId !== catId), categories: prev.categories.filter(c => c.id !== catId) }));
-                setEditingCategory(null); 
-                setConfirmDialog(null); 
-                addToast('Đã xóa hạng mục');
-                const { error } = await supabase.from('categories').delete().eq('id', catId);
-                if (error) { setBoardData(originalData); addToast('Lỗi xóa hạng mục - Đã khôi phục', 'error'); }
+                const originalData = { ...boardData }; setBoardData(prev => ({ tasks: prev.tasks.filter(t => t.categoryId !== catId), categories: prev.categories.filter(c => c.id !== catId) })); setEditingCategory(null); setConfirmDialog(null); addToast('Đã xóa hạng mục');
+                const { error } = await supabase.from('categories').delete().eq('id', catId); if (error) { setBoardData(originalData); addToast(`Lỗi: ${error.message}`, 'error'); }
             }
         });
   };
 
-  const handleUpdateCategory = async (updatedCat) => { 
-      setBoardData(prev => ({ ...prev, categories: prev.categories.map(c => c.id === updatedCat.id ? updatedCat : c) }));
-      await supabase.from('categories').update({ title: updatedCat.title, color: updatedCat.color }).eq('id', updatedCat.id);
-  };
-
-  const toggleCategoryCollapse = async (catId) => {
-      const cat = categories.find(c => c.id === catId);
-      if (cat) {
-          const newCollapsedState = !cat.collapsed;
-          setBoardData(prev => ({ ...prev, categories: prev.categories.map(c => c.id === catId ? { ...c, collapsed: newCollapsedState } : c) }));
-          await supabase.from('categories').update({ collapsed: newCollapsedState }).eq('id', catId);
-      }
-  };
-
+  const handleUpdateCategory = async (updatedCat) => { setBoardData(prev => ({ ...prev, categories: prev.categories.map(c => c.id === updatedCat.id ? updatedCat : c) })); await supabase.from('categories').update({ title: updatedCat.title, color: updatedCat.color }).eq('id', updatedCat.id); };
+  const toggleCategoryCollapse = async (catId) => { const cat = categories.find(c => c.id === catId); if (cat) { const newCollapsedState = !cat.collapsed; setBoardData(prev => ({ ...prev, categories: prev.categories.map(c => c.id === catId ? { ...c, collapsed: newCollapsedState } : c) })); await supabase.from('categories').update({ collapsed: newCollapsedState }).eq('id', catId); } };
+  
   const handleCategoryDragStart = (e, index) => { setDraggedCategoryIndex(index); e.dataTransfer.effectAllowed = "move"; };
   const handleCategoryDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; };
-  
   const handleCategoryDrop = async (e, dropIndex) => {
-      e.preventDefault();
-      if (draggedCategoryIndex === null || draggedCategoryIndex === dropIndex) return;
-      const newCategories = [...categories];
-      const [movedCategory] = newCategories.splice(draggedCategoryIndex, 1);
-      newCategories.splice(dropIndex, 0, movedCategory);
-      const orderedCategories = newCategories.map((cat, index) => ({ ...cat, position: index }));
-      setBoardData(prev => ({ ...prev, categories: orderedCategories }));
-      setDraggedCategoryIndex(null);
-      addToast('Đã sắp xếp lại thứ tự hạng mục', 'success');
-      const updates = orderedCategories.map(c => ({ id: c.id, title: c.title, color: c.color, collapsed: c.collapsed, position: c.position }));
-      await supabase.from('categories').upsert(updates);
+      e.preventDefault(); if (draggedCategoryIndex === null || draggedCategoryIndex === dropIndex) return;
+      const newCategories = [...categories]; const [movedCategory] = newCategories.splice(draggedCategoryIndex, 1); newCategories.splice(dropIndex, 0, movedCategory);
+      const orderedCategories = newCategories.map((cat, index) => ({ ...cat, position: index })); setBoardData(prev => ({ ...prev, categories: orderedCategories })); setDraggedCategoryIndex(null); addToast('Đã sắp xếp lại thứ tự hạng mục', 'success');
+      const updates = orderedCategories.map(c => ({ id: c.id, title: c.title, color: c.color, collapsed: c.collapsed, position: c.position })); await supabase.from('categories').upsert(updates);
   };
 
-  const startResizingSidebar = (e) => { e.preventDefault(); const startX = e.clientX; const startWidth = sidebarWidth;
-    const onMouseMove = (ev) => setSidebarWidth(Math.max(150, Math.min(500, startWidth + (ev.clientX - startX)))); const onMouseUp = () => { document.removeEventListener('mousemove', onMouseMove);
-    document.removeEventListener('mouseup', onMouseUp); }; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); };
+  const startResizingSidebar = (e) => { e.preventDefault(); const startX = e.clientX; const startWidth = sidebarWidth; const onMouseMove = (ev) => setSidebarWidth(Math.max(150, Math.min(500, startWidth + (ev.clientX - startX)))); const onMouseUp = () => { document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); }; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); };
   
-  const handleDragStart = (e, task) => { 
-    e.stopPropagation(); 
-    setDraggedTask(task); 
-    e.dataTransfer.effectAllowed = 'move'; 
-    e.dataTransfer.setData('text/plain', JSON.stringify(task)); 
-
-    setTimeout(() => {
-        if (e.target) {
-            e.target.style.opacity = '0.4'; e.target.style.transform = 'scale(0.95)'; e.target.style.filter = 'grayscale(0.5)'; 
-        }
-    }, 0);
-  };
-
-  const handleDragEnd = (e) => { 
-      if (e.target) { e.target.style.opacity = '1'; e.target.style.transform = 'none'; e.target.style.filter = 'none'; }
-      setDraggedTask(null); 
-  };
-
+  const handleDragStart = (e, task) => { e.stopPropagation(); setDraggedTask(task); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', JSON.stringify(task)); setTimeout(() => { if (e.target) { e.target.style.opacity = '0.4'; e.target.style.transform = 'scale(0.95)'; e.target.style.filter = 'grayscale(0.5)'; } }, 0); };
+  const handleDragEnd = (e) => { if (e.target) { e.target.style.opacity = '1'; e.target.style.transform = 'none'; e.target.style.filter = 'none'; } setDraggedTask(null); };
   const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
-  
-  const handleDrop = (e, categoryId, dateStr) => { e.preventDefault();
-      if (draggedTask) { 
-          const draggedEl = document.querySelector(`[draggable="true"][style*="opacity: 0.4"]`); 
-          if (draggedEl) { draggedEl.style.opacity = '1'; draggedEl.style.transform = 'none'; draggedEl.style.filter = 'none'; }
-      }
+  const handleDrop = (e, targetCategoryId, dateStr) => { 
+      e.preventDefault();
+      if (draggedTask) { const draggedEl = document.querySelector(`[draggable="true"][style*="opacity: 0.4"]`); if (draggedEl) { draggedEl.style.opacity = '1'; draggedEl.style.transform = 'none'; draggedEl.style.filter = 'none'; } }
       if (!draggedTask) return; 
-      handleUpdateTask({ ...draggedTask, categoryId, date: dateStr });
+      const finalCategoryId = targetCategoryId || draggedTask.categoryId;
+      handleUpdateTask({ ...draggedTask, categoryId: finalCategoryId, date: dateStr });
       setDraggedTask(null); 
   };
 
-  const handleConfirmQuickAdd = (title) => { if (!title || !title.trim()) { setQuickAddCell(null); return; } 
-    handleSaveNewTask({ title: title.trim(), date: quickAddCell.dateStr, categoryId: quickAddCell.categoryId });
-    setQuickAddCell(null); 
+  const handleConfirmQuickAdd = (title) => { if (!title || !title.trim()) { setQuickAddCell(null); return; } handleSaveNewTask({ title: title.trim(), date: quickAddCell.dateStr, categoryId: quickAddCell.categoryId }); setQuickAddCell(null); };
+  
+  const prevWeek = () => { 
+      const d = new Date(currentDate); 
+      if (calendarView === 'month') d.setMonth(d.getMonth() - 1); else d.setDate(d.getDate() - 7);
+      previousDateRef.current = currentDate; scrollActionRef.current = 'jump'; setCurrentDate(d); 
   };
-  const prevWeek = () => { const d = new Date(currentDate); d.setDate(d.getDate() - 7); previousDateRef.current = currentDate; scrollActionRef.current = 'jump'; setCurrentDate(d); };
-  const nextWeek = () => { const d = new Date(currentDate); d.setDate(d.getDate() + 7); previousDateRef.current = currentDate; scrollActionRef.current = 'jump'; setCurrentDate(d); };
+  const nextWeek = () => { 
+      const d = new Date(currentDate); 
+      if (calendarView === 'month') d.setMonth(d.getMonth() + 1); else d.setDate(d.getDate() + 7);
+      previousDateRef.current = currentDate; scrollActionRef.current = 'jump'; setCurrentDate(d); 
+  };
   const goToToday = () => { previousDateRef.current = currentDate; scrollActionRef.current = 'jump'; setCurrentDate(new Date()); };
   const handleDateSelect = (date) => { previousDateRef.current = currentDate; scrollActionRef.current = 'jump'; setCurrentDate(date); };
   const handleOpenAddTask = (defaults = {}) => { setNewTaskDefaults(defaults); setShowAddTaskModal(true); };
-  const handleNavigateToTask = (task) => {
-      const targetDate = new Date(task.date);
-      setCurrentDate(targetDate);
-      previousDateRef.current = targetDate;
-      scrollActionRef.current = 'jump';
-      setHighlightedTaskId(task.id);
-      setTimeout(() => setHighlightedTaskId(null), 2000); 
-      setSearchQuery(''); 
-  };
-  
-  const filteredMatrixTasks = useMemo(() => {
-      if (!searchQuery) return tasks;
-      return tasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
-  }, [tasks, searchQuery]);
+  const handleNavigateToTask = (task) => { const targetDate = new Date(task.date); setCurrentDate(targetDate); previousDateRef.current = targetDate; scrollActionRef.current = 'jump'; setHighlightedTaskId(task.id); setTimeout(() => setHighlightedTaskId(null), 2000); setSearchQuery(''); };
 
-  // Context Menu
-  const handleContextMenu = useCallback((e, task) => {
-      e.preventDefault();
-      setContextMenu({
-          position: { x: e.clientX, y: e.clientY },
-          type: 'TASK',
-          data: task
-      });
-  }, []);
-
+  const handleContextMenu = useCallback((e, task) => { e.preventDefault(); setContextMenu({ position: { x: e.clientX, y: e.clientY }, type: 'TASK', data: task }); }, []);
   const handleContextMenuAction = async (action, task) => {
       switch (action) {
           case 'EDIT': setEditingTask(task); break;
           case 'DELETE': handleDeleteTask(task.id); break;
           case 'TOGGLE_COMPLETE': handleUpdateTask({ ...task, isCompleted: !task.isCompleted }); break;
-          case 'DUPLICATE': {
-              const newTask = { ...task, id: `dup-${Date.now()}`, title: `${task.title} (Sao chép)`, seriesId: null, repeat: 'none' };
-              await handleSaveNewTask({ title: newTask.title, date: newTask.date, categoryId: newTask.categoryId });
-              break;
-          }
-          case 'MOVE_TODAY': {
-             const todayStr = formatDateKey(new Date());
-             handleUpdateTask({ ...task, date: todayStr });
-             addToast('Đã dời sang hôm nay 📅', 'success');
-             break;
-          }
+          case 'DUPLICATE': { const newTask = { ...task, id: `dup-${Date.now()}`, title: `${task.title} (Sao chép)`, seriesId: null, repeat: 'none' }; await handleSaveNewTask({ title: newTask.title, date: newTask.date, categoryId: newTask.categoryId }); break; }
+          case 'MOVE_TODAY': { const todayStr = formatDateKey(new Date()); handleUpdateTask({ ...task, date: todayStr }); addToast('Đã dời sang hôm nay 📅', 'success'); break; }
           default: break;
       }
   };
@@ -601,31 +432,82 @@ export default function App() {
     <div className="flex flex-col h-screen bg-gray-50 font-sans text-slate-800" onClick={() => { setSelectedTaskId(null); setContextMenu(null); }}>
       
       <Header 
-        currentDate={currentDate} prevWeek={prevWeek} nextWeek={nextWeek} goToToday={goToToday} onDateSelect={handleDateSelect} zoomIndex={zoomIndex} onZoomChange={handleZoomChange} onUndo={undo} canUndo={canUndo} onRedo={redo} canRedo={canRedo} viewMode={viewMode} setViewMode={setViewMode} onOpenAddTask={handleOpenAddTask} searchQuery={searchQuery} setSearchQuery={setSearchQuery} tasks={tasks} onNavigateToTask={handleNavigateToTask} 
-        categories={categories} 
+        currentDate={currentDate} prevWeek={prevWeek} nextWeek={nextWeek} goToToday={goToToday} onDateSelect={handleDateSelect} zoomIndex={zoomIndex} onZoomChange={handleZoomChange} onUndo={undo} canUndo={canUndo} onRedo={redo} canRedo={canRedo} 
+        viewMode={viewMode} setViewMode={setViewMode} calendarView={calendarView} setCalendarView={setCalendarView} 
+        onOpenAddTask={handleOpenAddTask} searchQuery={searchQuery} setSearchQuery={setSearchQuery} tasks={tasks} onNavigateToTask={handleNavigateToTask} categories={categories} 
       />
       
-      {viewMode === 'list' ? (
-          <TodoView 
-            tasks={tasks} categories={categories} currentDate={currentDate} onUpdateTask={handleUpdateTask} setEditingTask={setEditingTask} onDeleteTask={handleDeleteTask} onOpenAddTask={handleOpenAddTask} quickAddCell={quickAddCell} setQuickAddCell={setQuickAddCell} onConfirmQuickAdd={handleConfirmQuickAdd} searchQuery={searchQuery} onSaveNewTask={handleSaveNewTask}
-          />
-      ) : (
+      {viewMode === 'list' && (
+          <TodoView tasks={tasks} categories={categories} currentDate={currentDate} onUpdateTask={handleUpdateTask} setEditingTask={setEditingTask} onDeleteTask={handleDeleteTask} onOpenAddTask={handleOpenAddTask} quickAddCell={quickAddCell} setQuickAddCell={setQuickAddCell} onConfirmQuickAdd={handleConfirmQuickAdd} searchQuery={searchQuery} onSaveNewTask={handleSaveNewTask} />
+      )}
+
+      {viewMode === 'matrix' && calendarView === 'month' && (
+          <div className="flex-1 flex flex-col overflow-hidden bg-white">
+              <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50/80">
+                  {['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'].map(d => (
+                      <div key={d} className="p-3 text-center text-[11px] font-bold text-gray-500 uppercase tracking-widest">{d}</div>
+                  ))}
+              </div>
+              <div className="flex-1 grid grid-cols-7 grid-rows-6 bg-gray-200 gap-px overflow-y-auto">
+                  {monthGridDays.map((day, idx) => {
+                      const dateStr = formatDateKey(day);
+                      const isToday = dateStr === formatDateKey(new Date());
+                      const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+                      const dayTasks = filteredMatrixTasks.filter(t => t.date === dateStr);
+
+                      return (
+                          <div 
+                              key={`${dateStr}-${idx}`}
+                              className={`bg-white p-1.5 flex flex-col transition-colors min-h-[90px] ${!isCurrentMonth ? 'bg-gray-50/50' : ''} hover:bg-gray-50/80 cursor-pointer`}
+                              onDragOver={handleDragOver}
+                              onDrop={(e) => handleDrop(e, null, dateStr)} 
+                              onDoubleClick={() => handleOpenAddTask({ date: dateStr })}
+                          >
+                              <div className="flex justify-center mb-1">
+                                  <div className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${isToday ? 'bg-indigo-600 text-white shadow-md' : (!isCurrentMonth ? 'text-gray-400' : 'text-slate-700')}`}>
+                                      {day.getDate()}
+                                  </div>
+                              </div>
+                              <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar pr-1">
+                                  {dayTasks.map(task => {
+                                      const catColor = categories.find(c => c.id === task.categoryId)?.color?.value.split(' ')[0] || 'bg-gray-200';
+                                      return (
+                                          <div
+                                              key={task.id}
+                                              draggable
+                                              onDragStart={(e) => handleDragStart(e, task)}
+                                              onDragEnd={handleDragEnd}
+                                              onClick={(e) => { e.stopPropagation(); setSelectedTaskId(task.id); }}
+                                              onDoubleClick={(e) => { e.stopPropagation(); setEditingTask(task); }}
+                                              onContextMenu={(e) => handleContextMenu(e, task)}
+                                              className={`text-[10px] font-semibold p-1.5 rounded truncate cursor-grab active:cursor-grabbing hover:opacity-80 transition-all select-none ${catColor} bg-opacity-30 text-slate-800 ${task.isCompleted ? 'opacity-40 line-through' : ''} ${selectedTaskId === task.id ? 'ring-2 ring-indigo-500 shadow-md' : ''}`}
+                                              title={task.title}
+                                          >
+                                              {task.title}
+                                          </div>
+                                      );
+                                  })}
+                              </div>
+                          </div>
+                      );
+                  })}
+              </div>
+          </div>
+      )}
+
+      {viewMode === 'matrix' && calendarView === 'week' && (
           <div className="flex-1 overflow-hidden relative flex flex-col">
             <div ref={scrollContainerRef} className="flex-1 overflow-auto custom-scrollbar" onScroll={handleScroll}>
               <div className="inline-block min-w-full">
                 
-                {/* --- HEADER NGÀY THÁNG --- */}
                 <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md flex border-b border-gray-200/60 shadow-sm transition-all">
                   <div className="sticky left-0 z-50 bg-white/95 backdrop-blur-md border-r border-gray-200/60 p-4 flex items-center font-bold text-gray-500 bg-gray-50/50 box-border group" style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
                     Hạng Mục / Deadline
                     <div className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-indigo-500 group-hover:bg-gray-300 transition-colors z-30" onMouseDown={startResizingSidebar} />
                   </div>
                   {visibleDays.map((day, index) => {
-                        const dayKey = formatDateKey(day);
-                        const isTodayDate = dayKey === formatDateKey(new Date()); 
-                        const isMonday = index % 7 === 0;
-                        const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-
+                        const dayKey = formatDateKey(day); const isTodayDate = dayKey === formatDateKey(new Date()); 
+                        const isMonday = index % 7 === 0; const isWeekend = day.getDay() === 0 || day.getDay() === 6;
                         return (
                           <div key={dayKey} style={{ width: dayWidth, minWidth: dayWidth }} className={`flex-shrink-0 p-3 text-center flex flex-col justify-center transition-all duration-200 ease-out relative ${isTodayDate ? 'bg-indigo-50/50' : (isWeekend ? 'bg-slate-50/50' : 'bg-white')}`}>
                             {isMonday && (<div className="absolute top-0 left-0 right-0 -mt-1 text-[10px] font-bold text-indigo-400 uppercase tracking-widest text-center">Tuần {day.getDate()} - {new Date(day.getTime() + 6*86400000).getDate()}/{day.getMonth() + 1}</div>)}
@@ -636,26 +518,12 @@ export default function App() {
                   })}
                 </div>
 
-                {/* --- ROWS --- */}
                 {categories.map((category, index) => (
-                  <div 
-                    key={category.id} 
-                    className={`flex border-b border-gray-300 group ${draggedCategoryIndex === index ? 'opacity-40 border-dashed border-indigo-400' : ''}`}
-                    onDragOver={handleCategoryDragOver}
-                    onDrop={(e) => handleCategoryDrop(e, index)}
-                  >
-                    {/* SIDEBAR CELL */}
-                    <div 
-                        draggable 
-                        onDragStart={(e) => handleCategoryDragStart(e, index)}
-                        className={`sticky left-0 z-30 bg-white/95 backdrop-blur-sm border-r border-gray-200/60 p-4 flex flex-col justify-center group-hover:bg-gray-50 transition-colors border-l-4 ${category.color.value.replace('bg-', 'border-').split(' ')[0]} shadow-[4px_0_24px_rgba(0,0,0,0.02)]`} 
-                        style={{ width: sidebarWidth, minWidth: sidebarWidth, borderLeftColor: category.color?.hex || '#ccc' }}
-                    >
+                  <div key={category.id} className={`flex border-b border-gray-300 group ${draggedCategoryIndex === index ? 'opacity-40 border-dashed border-indigo-400' : ''}`} onDragOver={handleCategoryDragOver} onDrop={(e) => handleCategoryDrop(e, index)}>
+                    <div draggable onDragStart={(e) => handleCategoryDragStart(e, index)} className={`sticky left-0 z-30 bg-white/95 backdrop-blur-sm border-r border-gray-200/60 p-4 flex flex-col justify-center group-hover:bg-gray-50 transition-colors border-l-4 ${category.color.value.replace('bg-', 'border-').split(' ')[0]} shadow-[4px_0_24px_rgba(0,0,0,0.02)]`} style={{ width: sidebarWidth, minWidth: sidebarWidth, borderLeftColor: category.color?.hex || '#ccc' }}>
                       <div className="font-semibold text-gray-800 flex items-center justify-between group/header overflow-hidden">
                         <div className="flex items-center gap-2 truncate pr-2 cursor-pointer" onDoubleClick={() => setEditingCategory(category)}>
-                             <button onClick={(e) => { e.stopPropagation(); toggleCategoryCollapse(category.id); }} className="text-gray-400 hover:text-indigo-600 transition-colors">
-                                 {category.collapsed ? <ChevronRightIcon size={16} /> : <CornerDownLeft size={16} className="rotate-0" />}
-                             </button>
+                             <button onClick={(e) => { e.stopPropagation(); toggleCategoryCollapse(category.id); }} className="text-gray-400 hover:text-indigo-600 transition-colors">{category.collapsed ? <ChevronRightIcon size={16} /> : <CornerDownLeft size={16} className="rotate-0" />}</button>
                              <span className="truncate hover:underline decoration-dashed underline-offset-4">{category.title}</span>
                         </div>
                          <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
@@ -664,53 +532,19 @@ export default function App() {
                             <div className="text-gray-400 cursor-grab active:cursor-grabbing hover:text-gray-700" title="Kéo để sắp xếp"><GripVertical size={14}/></div>
                         </div>
                       </div>
-                      
-                      <div className="text-xs text-gray-400 mt-1 flex items-center gap-2 ml-6">
-                        <span className={`w-2 h-2 rounded-full ${category.color.value.split(' ')[0].replace('bg-', 'bg-')}`}></span>
-                      </div>
+                      <div className="text-xs text-gray-400 mt-1 flex items-center gap-2 ml-6"><span className={`w-2 h-2 rounded-full ${category.color.value.split(' ')[0].replace('bg-', 'bg-')}`}></span></div>
                       <div className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-indigo-500 z-30" onMouseDown={startResizingSidebar} />
                     </div>
 
-                    {/* TASK CELLS */}
                     {!category.collapsed && visibleDays.map((day) => {
-                        const dateStr = formatDateKey(day);
-                        const cellTasks = filteredMatrixTasks.filter(t => t.categoryId === category.id && t.date === dateStr);
-                        const isToday = dateStr === formatDateKey(new Date());
-                        const isWeekend = day.getDay() === 0 || day.getDay() === 6;
-
+                        const dateStr = formatDateKey(day); const cellTasks = filteredMatrixTasks.filter(t => t.categoryId === category.id && t.date === dateStr);
+                        const isToday = dateStr === formatDateKey(new Date()); const isWeekend = day.getDay() === 0 || day.getDay() === 6;
                         return (
-                            <div 
-                                key={`${category.id}-${dateStr}`} 
-                                style={{ width: dayWidth, minWidth: dayWidth }} 
-                                className={`
-                                    flex-shrink-0 min-h-[120px] p-2 transition-all duration-300 group/cell relative
-                                    ${isToday ? 'bg-indigo-50/40' : (isWeekend ? 'bg-slate-50/30' : 'bg-transparent')} 
-                                    hover:bg-gray-50/80 cursor-pointer
-                                `}
-                                onDragOver={handleDragOver} 
-                                onDrop={(e) => handleDrop(e, category.id, dateStr)} 
-                                onMouseEnter={() => setHoveredCell({ categoryId: category.id, dateStr })} 
-                                onMouseLeave={() => setHoveredCell(null)} 
-                                onClick={() => setSelectedTaskId(null)} 
-                                onDoubleClick={(e) => { handleOpenAddTask({ date: dateStr, categoryId: category.id }); }}
-                            >
+                            <div key={`${category.id}-${dateStr}`} style={{ width: dayWidth, minWidth: dayWidth }} className={`flex-shrink-0 min-h-[120px] p-2 transition-all duration-300 group/cell relative ${isToday ? 'bg-indigo-50/40' : (isWeekend ? 'bg-slate-50/30' : 'bg-transparent')} hover:bg-gray-50/80 cursor-pointer`} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, category.id, dateStr)} onMouseEnter={() => setHoveredCell({ categoryId: category.id, dateStr })} onMouseLeave={() => setHoveredCell(null)} onClick={() => setSelectedTaskId(null)} onDoubleClick={(e) => { handleOpenAddTask({ date: dateStr, categoryId: category.id }); }}>
                                 <div className="flex flex-col gap-2 h-full relative z-10">
                                     {cellTasks.map((task) => (
                                         <div className="pointer-events-auto" key={task.id}>
-                                            <TaskCard 
-                                                task={task} 
-                                                categoryColor={category.color} 
-                                                dayWidth={dayWidth} 
-                                                isSelected={selectedTaskId === task.id} 
-                                                isHighlighted={highlightedTaskId === task.id} 
-                                                onSelect={setSelectedTaskId} 
-                                                onUpdate={handleUpdateTask} 
-                                                onDelete={handleDeleteTask} 
-                                                onDragStart={handleDragStart} 
-                                                onDragEnd={handleDragEnd} 
-                                                setEditingTask={setEditingTask}
-                                                onContextMenu={handleContextMenu}
-                                            />
+                                            <TaskCard task={task} categoryColor={category.color} dayWidth={dayWidth} isSelected={selectedTaskId === task.id} isHighlighted={highlightedTaskId === task.id} onSelect={setSelectedTaskId} onUpdate={handleUpdateTask} onDelete={handleDeleteTask} onDragStart={handleDragStart} onDragEnd={handleDragEnd} setEditingTask={setEditingTask} onContextMenu={handleContextMenu} />
                                         </div>
                                     ))}
                                 </div>
@@ -721,40 +555,21 @@ export default function App() {
                   </div>
                 ))}
                 
-                {/* Khu vực tạo Category mới */}
                 <div className="flex border-b border-gray-300 group">
                     <div className="sticky left-0 z-30 bg-white/95 backdrop-blur-sm border-r border-gray-200/60 flex flex-col justify-center border-l-4 border-transparent shadow-[4px_0_24px_rgba(0,0,0,0.02)]" style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
                         {isCreatingCategory ? (
                             <div className="p-3 m-2 bg-white border border-indigo-200 rounded-xl shadow-lg animate-in zoom-in-95 duration-200">
-                                <input 
-                                    autoFocus
-                                    type="text" 
-                                    value={newCategoryName}
-                                    onChange={(e) => setNewCategoryName(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveCategory();
-                                        if (e.key === 'Escape') setIsCreatingCategory(false);
-                                    }}
-                                    placeholder="Tên hạng mục..."
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                                />
+                                <input autoFocus type="text" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleSaveCategory(); if (e.key === 'Escape') setIsCreatingCategory(false); }} placeholder="Tên hạng mục..." className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
                                 <div className="flex gap-2 justify-end">
                                     <button onClick={() => setIsCreatingCategory(false)} className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"><X size={16}/></button>
                                     <button onClick={handleSaveCategory} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-xs font-bold hover:bg-indigo-700 transition-colors flex items-center gap-1"><Check size={14}/> Lưu</button>
                                 </div>
                             </div>
                         ) : (
-                            <button onClick={() => setIsCreatingCategory(true)} className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 font-bold transition-colors w-full p-4">
-                                <div className="p-1 rounded-md bg-gray-100 group-hover:bg-indigo-100 text-gray-500 group-hover:text-indigo-600 transition-colors">
-                                    <Plus size={16} />
-                                </div>
-                                <span>Thêm hạng mục mới</span>
-                            </button>
+                            <button onClick={() => setIsCreatingCategory(true)} className="flex items-center gap-2 text-gray-500 hover:text-indigo-600 font-bold transition-colors w-full p-4"><div className="p-1 rounded-md bg-gray-100 group-hover:bg-indigo-100 text-gray-500 group-hover:text-indigo-600 transition-colors"><Plus size={16} /></div><span>Thêm hạng mục mới</span></button>
                         )}
                     </div>
-                    {visibleDays.map((day) => (
-                        <div key={`empty-${formatDateKey(day)}`} style={{ width: dayWidth, minWidth: dayWidth }} className="flex-shrink-0 border-r border-transparent bg-gray-50/20" />
-                    ))}
+                    {visibleDays.map((day) => (<div key={`empty-${formatDateKey(day)}`} style={{ width: dayWidth, minWidth: dayWidth }} className="flex-shrink-0 border-r border-transparent bg-gray-50/20" />))}
                 </div>
 
               </div>
@@ -762,31 +577,12 @@ export default function App() {
           </div>
       )}
 
-      {editingTask && <TaskModal task={editingTask} onClose={() => setEditingTask(null)} onUpdate={handleUpdateTask} onDelete={handleDeleteTask} categories={categories} onGenerateRepeats={handleGenerateRepeats} />}
+      {editingTask && <TaskModal task={editingTask} onClose={() => setEditingTask(null)} onUpdate={handleUpdateTask} onDelete={handleDeleteTask} categories={categories} />}
       {showAddTaskModal && <AddTaskModal onClose={() => setShowAddTaskModal(false)} onSave={handleSaveNewTask} categories={categories} initialDate={newTaskDefaults.date} initialCategoryId={newTaskDefaults.categoryId} />}
       {editingCategory && <CategoryModal category={editingCategory} onClose={() => setEditingCategory(null)} onUpdate={handleUpdateCategory} onDelete={handleDeleteCategory} />}
       {showRecurringModal && <RecurringUpdateModal onClose={() => setShowRecurringModal(false)} onConfirm={handleConfirmRecurringUpdate} />}
-      
-      {/* --- HIỂN THỊ MODAL CONFIRM MỚI --- */}
-      {confirmDialog && (
-          <ConfirmModal 
-            isOpen={true} 
-            onClose={() => setConfirmDialog(null)}
-            {...confirmDialog} 
-          />
-      )}
-
-      {/* Context Menu */}
-      {contextMenu && (
-        <ContextMenu 
-            position={contextMenu.position} 
-            type={contextMenu.type} 
-            data={contextMenu.data} 
-            onClose={() => setContextMenu(null)}
-            onAction={handleContextMenuAction}
-        />
-      )}
-
+      {confirmDialog && <ConfirmModal isOpen={true} onClose={() => setConfirmDialog(null)} {...confirmDialog} />}
+      {contextMenu && <ContextMenu position={contextMenu.position} type={contextMenu.type} data={contextMenu.data} onClose={() => setContextMenu(null)} onAction={handleContextMenuAction} />}
       <ToastContainer toasts={toasts} />
     </div>
   );

@@ -28,6 +28,26 @@ export const getInfiniteWeekWindow = (currentDate) => {
     return days;
 };
 
+// --- MỚI: TẠO LƯỚI NGÀY CHO LỊCH THÁNG ---
+export const getMonthGridDays = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDayOfMonth = new Date(year, month, 1);
+    
+    let start = new Date(firstDayOfMonth);
+    const dayOfWeek = start.getDay(); 
+    const diff = start.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    start.setDate(diff);
+
+    const days = [];
+    for (let i = 0; i < 42; i++) { 
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        days.push(d);
+    }
+    return days;
+};
+
 export const formatDateDisplay = (date) => date.getDate();
 
 export const getDayName = (date) => {
@@ -40,13 +60,10 @@ export const getFullDateDisplay = (date) => {
 };
 
 export const generateGoogleCalendarLink = (task) => {
-    // Mặc định set giờ là 9h sáng đến 10h sáng
     const startTime = task.date.replace(/-/g, '') + 'T090000';
     const endTime = task.date.replace(/-/g, '') + 'T100000';
     
     const details = encodeURIComponent(`${task.description || ''} \n\n[PlanFlow App]`);
-    
-    // ĐÃ SỬA: Chỉ lấy tên task, bỏ chữ DEADLINE: ở trước
     const title = encodeURIComponent(task.title);
     
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startTime}/${endTime}&details=${details}`;

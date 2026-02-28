@@ -1512,7 +1512,7 @@ import { CalendarPlus, Trash2, X, CheckSquare, Square, Repeat, Calendar, AlignLe
 import { generateGoogleCalendarLink } from '../../utils/dateHelpers';
 import { COLORS } from '../../constants/theme';
 
-const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRepeats }) => {
+const TaskModal = ({ task, onClose, onUpdate, onDelete, categories }) => {
   if (!task) return null;
   const [localTask, setLocalTask] = useState(task);
   const descriptionRef = useRef(null);
@@ -1522,32 +1522,24 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
 
   useEffect(() => { setLocalTask(task); }, [task.id]);
 
+  // --- ĐÃ FIX: Chỉ gọi onUpdate, giao toàn quyền xử lý chuỗi lặp cho App.jsx ---
   const handleSaveAndClose = () => {
-      if (localTask.repeat !== task.repeat && localTask.repeat !== 'none') {
-           onGenerateRepeats(localTask, localTask.repeat);
-      }
       onUpdate(localTask);
       onClose();
   };
 
-  // --- XỬ LÝ PHÍM TẮT CHUNG (ESC & ENTER TOÀN CỤC) ---
   useEffect(() => {
     const handleGlobalKeyDown = (e) => {
         if (e.key === 'Escape') {
             onClose();
             return;
         }
-        // Phím Enter toàn cục:
-        // - Nếu đang ở ô Title (Tiêu đề): Đã có hàm handleTitleKeyDown xử lý riêng bên dưới.
-        // - Nếu đang ở ô Description (Ghi chú): Bỏ qua để cho phép xuống dòng.
-        // - Các trường hợp khác (Date, Select...): Bấm Enter là Lưu.
         if (e.key === 'Enter') {
-            if (e.target.tagName === 'TEXTAREA') return; // Bỏ qua textarea (Title & Desc) để xử lý riêng
+            if (e.target.tagName === 'TEXTAREA') return; 
             e.preventDefault();
             handleSaveAndClose();
         }
     };
-
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [localTask]); 
@@ -1561,53 +1553,42 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
       setLocalTask(prev => ({ ...prev, repeat: e.target.value }));
   };
 
-  // --- XỬ LÝ RIÊNG CHO Ô TIÊU ĐỀ: ENTER LÀ LƯU ---
   const handleTitleKeyDown = (e) => {
     if (e.key === 'Enter') {
-      e.preventDefault(); // Chặn hành vi xuống dòng mặc định của textarea
-      handleSaveAndClose(); // Lưu ngay lập tức
+      e.preventDefault(); 
+      handleSaveAndClose(); 
     }
   };
 
-  // --- LOGIC THÔNG MINH CHO Ô GHI CHÚ (Giữ nguyên) ---
   const handleDescriptionKeyDown = (e) => {
       if (e.key === 'Enter') {
           const textarea = descriptionRef.current;
           if (!textarea) return;
-
           const start = textarea.selectionStart;
           const value = localTask.description || '';
-          
           const lastNewLine = value.lastIndexOf('\n', start - 1);
           const currentLineStart = lastNewLine + 1;
           const currentLineText = value.substring(currentLineStart, start);
-
           const match = currentLineText.match(/^(\s*)(• |\d+\. )/);
 
           if (match) {
               const fullPrefix = match[0]; 
               const content = currentLineText.substring(fullPrefix.length);
-
               if (!content.trim()) {
                   e.preventDefault();
                   const newValue = value.substring(0, currentLineStart) + value.substring(start);
                   setLocalTask(prev => ({...prev, description: newValue}));
-                  setTimeout(() => {
-                      textarea.selectionStart = textarea.selectionEnd = currentLineStart;
-                  }, 0);
+                  setTimeout(() => { textarea.selectionStart = textarea.selectionEnd = currentLineStart; }, 0);
                   return;
               }
-
               e.preventDefault();
               let nextPrefix = match[2]; 
               if (nextPrefix.match(/\d+\./)) {
                   const num = parseInt(nextPrefix);
                   nextPrefix = `${num + 1}. `;
               }
-
               const insertText = '\n' + match[1] + nextPrefix; 
               const newValue = value.substring(0, start) + insertText + value.substring(textarea.selectionEnd);
-              
               setLocalTask(prev => ({...prev, description: newValue}));
               setTimeout(() => {
                   textarea.selectionStart = textarea.selectionEnd = start + insertText.length;
@@ -1620,7 +1601,6 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
   const toggleLineFormat = (type) => { 
       const textarea = descriptionRef.current;
       if (!textarea) return;
-      // ... (Logic format giữ nguyên) ...
       const start = textarea.selectionStart;
       const value = localTask.description || '';
       const lastNewLine = value.lastIndexOf('\n', start - 1);
@@ -1665,7 +1645,6 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
       <div className="absolute inset-0 bg-gray-900/20 backdrop-blur-sm transition-opacity duration-300" />
       <div className="relative bg-[#FBFBFD] w-full max-w-2xl h-auto max-h-[90vh] rounded-[32px] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300 ease-apple border border-white/50 ring-1 ring-black/5" onClick={(e) => e.stopPropagation()}>
         
-        {/* HEADER */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/50 bg-white/60 backdrop-blur-xl sticky top-0 z-10 shrink-0">
           <div className="flex items-center gap-3">
               <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest ${currentCategoryColor.value} border border-black/5 shadow-sm`}>
@@ -1679,7 +1658,6 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
           </div>
         </div>
 
-        {/* BODY */}
         <div className="flex-1 overflow-y-auto p-6 sm:p-8 custom-scrollbar space-y-6">
            <div className="flex flex-wrap items-center gap-3">
                 <button onClick={() => setLocalTask(prev => ({...prev, isCompleted: !prev.isCompleted}))} className={`flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-sm font-bold transition-all border shadow-sm active:scale-95 duration-200 ${localTask.isCompleted ? 'bg-gray-100 text-gray-500 border-transparent' : 'bg-emerald-50 text-emerald-600 border-emerald-100 hover:bg-emerald-100'}`}>
@@ -1697,11 +1675,10 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
                 </div>
            </div>
 
-          {/* Ô TIÊU ĐỀ: Thêm onKeyDown để chặn xuống dòng */}
           <textarea 
             value={localTask.title} 
             onChange={(e) => setLocalTask(prev => ({...prev, title: e.target.value}))} 
-            onKeyDown={handleTitleKeyDown} // <--- QUAN TRỌNG: Gắn hàm xử lý riêng
+            onKeyDown={handleTitleKeyDown} 
             className={`w-full text-3xl sm:text-4xl font-bold border-none outline-none focus:ring-0 placeholder-gray-300 p-0 bg-transparent tracking-tight resize-none overflow-hidden ${localTask.isCompleted ? 'text-gray-400 line-through' : 'text-slate-900'}`} 
             placeholder="Tên công việc..." 
             rows={1}
@@ -1741,7 +1718,6 @@ const TaskModal = ({ task, onClose, onUpdate, onDelete, categories, onGenerateRe
           </div>
         </div>
 
-        {/* FOOTER */}
         <div className="p-6 border-t border-gray-200/50 bg-white/80 backdrop-blur-md flex justify-end shrink-0">
            <button onClick={handleSaveAndClose} className="flex items-center gap-2 px-8 py-3.5 bg-slate-900 text-white rounded-2xl hover:bg-black font-bold shadow-lg shadow-slate-300 transition-all transform active:scale-[0.98]">
                <Save size={18}/> Lưu thay đổi
@@ -1775,7 +1751,6 @@ import RecurringUpdateModal from './components/tasks/RecurringUpdateModal';
 import CategoryModal from './components/tasks/CategoryModal';
 
 export default function App() {
-  // --- 1. STATE & CONFIG ---
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState('matrix');
   const [boardData, setBoardData, undo, redo, canUndo, canRedo] = useUndoableState(INITIAL_DATA);
@@ -1814,22 +1789,19 @@ export default function App() {
   const isProgrammaticScroll = useRef(false);
   const lastScrollTimeRef = useRef(0);
 
-  // --- 2. HÀM TIỆN ÍCH ---
   const addToast = (message, type = 'info') => {
       const id = Date.now();
       setToasts(prev => [...prev, { id, message, type }]);
       setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
   };
 
-  // --- 3. FETCH DỮ LIỆU ---
   useEffect(() => {
     const fetchData = async () => {
         const { data: catData, error: catError } = await supabase.from('categories').select('*').order('position', { ascending: true });
         const { data: taskData, error: taskError } = await supabase.from('tasks').select('*');
 
         if (catError || taskError) {
-            console.error('Lỗi tải dữ liệu:', catError || taskError);
-            addToast('Lỗi tải dữ liệu từ server', 'error');
+            addToast(`Lỗi tải dữ liệu: ${catError?.message || taskError?.message}`, 'error');
         } else {
             const mappedTasks = (taskData || []).map(t => ({
                 id: t.id,
@@ -1857,7 +1829,6 @@ export default function App() {
     fetchData();
   }, []);
 
-  // --- 4. PHÍM TẮT & GLOBAL EVENTS ---
   useEffect(() => {
     const handleKeyDown = (e) => {
         if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
@@ -1878,7 +1849,6 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [canUndo, canRedo, selectedTaskId, showAddTaskModal, showRecurringModal, editingTask, editingCategory, undo, redo, currentDate, confirmDialog]);
 
-  // Logic Copy/Paste
   useEffect(() => {
       const handleCopyPaste = async (e) => {
           if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
@@ -1928,7 +1898,7 @@ export default function App() {
       const mappedNewTasks = newTasks.map(t => ({ ...t, id: t.id, categoryId: t.category_id, isCompleted: t.is_completed, seriesId: t.series_id }));
       setBoardData(prev => ({ ...prev, tasks: [...prev.tasks, ...mappedNewTasks] }));
       const { error } = await supabase.from('tasks').insert(newTasks);
-      if (error) { console.error(error); addToast('Lỗi dán dữ liệu', 'error'); } else { addToast(`Đã dán ${lines.length} công việc mới`, 'success'); }
+      if (error) { addToast(`Lỗi dán dữ liệu: ${error.message}`, 'error'); } else { addToast(`Đã dán ${lines.length} công việc mới`, 'success'); }
   };
 
   const handlePasteInternalTask = async (originalTask, targetCell) => {
@@ -1952,7 +1922,6 @@ export default function App() {
       addToast('Đã dán công việc', 'success');
   };
 
-  // --- 5. LOGIC SCROLL & VIEW ---
   useEffect(() => {
       if (viewMode === 'matrix') {
           const today = new Date();
@@ -2020,24 +1989,27 @@ export default function App() {
 
   useEffect(() => { if (scrollContainerRef.current) scrollContainerRef.current.scrollLeft = 7 * dayWidth; }, []);
 
-  // --- 6. LOGIC TASK & UPDATES (FIX LỖI DATABASE) ---
+  // --- LOGIC SINH TASK LẶP LẠI ---
   const handleGenerateRepeats = async (baseTask, repeatType) => {
       if (!baseTask || !repeatType || repeatType === 'none') return;
+      
       const seriesId = baseTask.seriesId || `series-${Date.now()}`;
       const newTasks = [];
-      const startDate = new Date(baseTask.date);
+      
+      // FIX LỖI TIMEZONE: Bóc tách ngày tháng thủ công để không bị lệch múi giờ
+      const [year, month, day] = baseTask.date.split('-').map(Number);
+      let currentIterDate = new Date(year, month - 1, day);
       const count = 12; 
       
       for (let i = 1; i <= count; i++) {
-          const nextDate = new Date(startDate);
-          if (repeatType === 'daily') nextDate.setDate(startDate.getDate() + i);
-          else if (repeatType === 'weekly') nextDate.setDate(startDate.getDate() + (i * 7));
-          else if (repeatType === 'monthly') nextDate.setMonth(startDate.getMonth() + i);
+          if (repeatType === 'daily') currentIterDate.setDate(currentIterDate.getDate() + 1);
+          else if (repeatType === 'weekly') currentIterDate.setDate(currentIterDate.getDate() + 7);
+          else if (repeatType === 'monthly') currentIterDate.setMonth(currentIterDate.getMonth() + 1);
           
           newTasks.push({ 
               id: `${baseTask.id}-rep-${Date.now()}-${i}`,
               category_id: baseTask.categoryId,
-              date: formatDateKey(nextDate), 
+              date: formatDateKey(currentIterDate), 
               title: baseTask.title || '',
               description: baseTask.description || null,
               time: baseTask.time || null,
@@ -2047,37 +2019,53 @@ export default function App() {
           });
       }
       
-      const mappedNewTasks = newTasks.map(t => ({ ...t, isCompleted: false, categoryId: t.category_id, seriesId: t.series_id }));
+      const mappedNewTasks = newTasks.map(t => ({ 
+          id: t.id, title: t.title, description: t.description, date: t.date, 
+          time: t.time, isCompleted: t.is_completed, categoryId: t.category_id, 
+          repeat: t.repeat, seriesId: t.series_id 
+      }));
+      
       const updatedBase = { ...baseTask, seriesId, repeat: repeatType };
       
-      setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === baseTask.id ? updatedBase : t).concat(mappedNewTasks) }));
-      addToast('Đã tạo lịch trình lặp lại', 'success');
+      setBoardData(prev => ({ 
+          ...prev, 
+          tasks: prev.tasks.map(t => t.id === baseTask.id ? updatedBase : t).concat(mappedNewTasks) 
+      }));
       
-      await supabase.from('tasks').insert(newTasks);
-      await supabase.from('tasks').update({ series_id: seriesId, repeat: repeatType }).eq('id', baseTask.id);
+      const { error: insErr } = await supabase.from('tasks').insert(newTasks);
+      if (insErr) { addToast(`Lỗi tạo chuỗi: ${insErr.message}`, 'error'); return; }
+      
+      const { error: updErr } = await supabase.from('tasks').update({ series_id: seriesId, repeat: repeatType }).eq('id', baseTask.id);
+      if (updErr) { addToast(`Lỗi cập nhật gốc: ${updErr.message}`, 'error'); } 
+      else { addToast('Đã tạo lịch trình lặp lại', 'success'); }
   };
 
+  // --- LOGIC KIỂM TRA SỰ THAY ĐỔI & LƯU DB ---
   const handleUpdateTask = async (updatedTask) => {
       const originalTask = tasks.find(t => t.id === updatedTask.id);
       if (!originalTask) return;
       
-      const hasSeries = !!originalTask.seriesId || (originalTask.repeat && originalTask.repeat !== 'none');
+      const wasSeries = !!originalTask.seriesId || (originalTask.repeat && originalTask.repeat !== 'none');
+      const isNowSeries = updatedTask.repeat !== 'none';
       
-      // Thêm updatedTask.time vào kiểm tra để đảm bảo đổi giờ cũng tính là ContentChanged
-      const isContentChanged = originalTask.title !== updatedTask.title || 
-                               originalTask.description !== updatedTask.description || 
-                               originalTask.date !== updatedTask.date || 
-                               originalTask.repeat !== updatedTask.repeat ||
-                               originalTask.categoryId !== updatedTask.categoryId ||
-                               originalTask.time !== updatedTask.time;
+      // FIX LỖI NHẬN DIỆN NHẦM: So sánh cẩn thận string vs null
+      const isContentChanged = 
+            originalTask.title !== updatedTask.title || 
+            (originalTask.description || '') !== (updatedTask.description || '') || 
+            originalTask.date !== updatedTask.date || 
+            originalTask.repeat !== updatedTask.repeat ||
+            originalTask.categoryId !== updatedTask.categoryId ||
+            (originalTask.time || '') !== (updatedTask.time || '');
 
-      if (hasSeries && isContentChanged) {
+      // Nếu đã là chuỗi lặp và có thay đổi Nội dung (Title, Date, Time, Note...)
+      if (wasSeries && isContentChanged) {
           setPendingUpdate({ originalTask, updatedTask });
           setShowRecurringModal(true);
-      } else {
+      } 
+      // Cập nhật bình thường (Chỉ check isCompleted, HOẶC task thường)
+      else {
           setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === updatedTask.id ? updatedTask : t) }));
           
-          // CHUẨN HÓA DỮ LIỆU ĐẨY LÊN DB (Chuyển undefined thành null)
           const dbPayload = {
               title: updatedTask.title || '', 
               description: updatedTask.description || null, 
@@ -2089,74 +2077,102 @@ export default function App() {
           };
 
           const { error } = await supabase.from('tasks').update(dbPayload).eq('id', updatedTask.id);
+          
           if (error) {
-               console.error('Sync Error:', error);
+               console.error('Update Error:', error);
                setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === updatedTask.id ? originalTask : t) }));
-               addToast('Lỗi đồng bộ, đã hoàn tác', 'error');
+               addToast(`Lỗi: ${error.message}`, 'error');
+          } else {
+               // Nếu trước đây chưa phải series, nhưng giờ user chọn lặp -> Tự động sinh
+               if (!wasSeries && isNowSeries) {
+                   await handleGenerateRepeats(updatedTask, updatedTask.repeat);
+               }
           }
       }
   };
 
-  // HÀM FIX LỖI 100%: Dành riêng cho Modal Xác nhận Task Lặp
+  // --- LOGIC SỬA TASK LẶP LẠI KHI CÓ MODAL ---
   const handleConfirmRecurringUpdate = async (mode) => {
       if (!pendingUpdate) return;
       const { originalTask, updatedTask } = pendingUpdate;
       setShowRecurringModal(false);
       setPendingUpdate(null);
       
-      setBoardData(prev => ({
-          ...prev,
-          tasks: prev.tasks.filter(t => {
-              if (t.id === updatedTask.id) return true;
-              if (t.seriesId !== originalTask.seriesId) return true;
-              return t.date < originalTask.date;
-          }).map(t => t.id === updatedTask.id ? updatedTask : t) 
-      }));
-
-      // CHUẨN HÓA DỮ LIỆU DB (An toàn tuyệt đối, không undefined)
-      const dbPayload = {
-          title: updatedTask.title || '',
-          description: updatedTask.description || null,
-          date: updatedTask.date,
-          time: updatedTask.time || null,
-          is_completed: Boolean(updatedTask.isCompleted),
-          repeat: updatedTask.repeat || 'none',
-          category_id: updatedTask.categoryId
-      };
+      let finalUpdatedTask = { ...updatedTask };
 
       if (mode === 'single') {
-           dbPayload.series_id = null;
-           const { error } = await supabase.from('tasks').update(dbPayload).eq('id', updatedTask.id);
-           if (error) {
-               console.error('Lỗi update single:', error);
-               addToast('Lỗi hệ thống khi lưu', 'error');
-           } else {
-               addToast('Đã cập nhật (Tách riêng công việc)', 'success');
-           }
+          finalUpdatedTask.seriesId = null;
+
+          setBoardData(prev => ({
+              ...prev,
+              tasks: prev.tasks.map(t => t.id === finalUpdatedTask.id ? finalUpdatedTask : t) 
+          }));
+
+          const dbPayload = {
+              title: finalUpdatedTask.title || '',
+              description: finalUpdatedTask.description || null,
+              date: finalUpdatedTask.date,
+              time: finalUpdatedTask.time || null,
+              is_completed: Boolean(finalUpdatedTask.isCompleted),
+              repeat: finalUpdatedTask.repeat || 'none',
+              category_id: finalUpdatedTask.categoryId,
+              series_id: null
+          };
+
+          const { error } = await supabase.from('tasks').update(dbPayload).eq('id', finalUpdatedTask.id);
+          if (error) { addToast(`Lỗi: ${error.message}`, 'error'); } 
+          else { addToast('Đã cập nhật (Tách riêng)', 'success'); }
+
       } else if (mode === 'future') {
+          const newSeriesId = finalUpdatedTask.repeat === 'none' ? null : (originalTask.seriesId || `series-${Date.now()}`);
+          finalUpdatedTask.seriesId = newSeriesId;
+
+          // Dọn giao diện các task cũ
+          setBoardData(prev => ({
+              ...prev,
+              tasks: prev.tasks.filter(t => {
+                  if (t.id === finalUpdatedTask.id) return true;
+                  if (originalTask.seriesId && t.seriesId === originalTask.seriesId && t.date > originalTask.date) {
+                      return false;
+                  }
+                  return true;
+              }).map(t => t.id === finalUpdatedTask.id ? finalUpdatedTask : t) 
+          }));
+
+          const dbPayload = {
+              title: finalUpdatedTask.title || '',
+              description: finalUpdatedTask.description || null,
+              date: finalUpdatedTask.date,
+              time: finalUpdatedTask.time || null,
+              is_completed: Boolean(finalUpdatedTask.isCompleted),
+              repeat: finalUpdatedTask.repeat || 'none',
+              category_id: finalUpdatedTask.categoryId,
+              series_id: newSeriesId
+          };
+
           try {
-              // Phải check có originalTask.seriesId mới delete để tránh lỗi xóa nhầm
+              // 1. Xóa các task tương lai
               if (originalTask.seriesId) {
-                  await supabase.from('tasks')
+                  const { error: delError } = await supabase.from('tasks')
                       .delete()
                       .eq('series_id', originalTask.seriesId)
                       .gt('date', originalTask.date);
+                  if (delError) throw delError;
               }
               
-              const newSeriesId = updatedTask.repeat === 'none' ? null : originalTask.seriesId;
-              dbPayload.series_id = newSeriesId;
-              
-              const { error } = await supabase.from('tasks').update(dbPayload).eq('id', updatedTask.id);
-              if (error) throw error;
+              // 2. Cập nhật task hiện tại
+              const { error: updError } = await supabase.from('tasks').update(dbPayload).eq('id', finalUpdatedTask.id);
+              if (updError) throw updError;
 
-              if (updatedTask.repeat !== 'none') { 
-                  await handleGenerateRepeats(updatedTask, updatedTask.repeat); 
+              // 3. Sinh các task mới thay thế
+              if (finalUpdatedTask.repeat !== 'none') { 
+                  await handleGenerateRepeats(finalUpdatedTask, finalUpdatedTask.repeat); 
               } else { 
-                  addToast('Đã cập nhật và dừng lặp lại', 'success'); 
+                  addToast('Đã cập nhật', 'success'); 
               }
           } catch (err) {
-              console.error('Lỗi update chuỗi:', err);
-              addToast('Lỗi hệ thống khi lưu', 'error');
+              console.error('Update chuỗi lỗi:', err);
+              addToast(`Lỗi DB: ${err.message}`, 'error');
           }
       }
   };
@@ -2195,9 +2211,8 @@ export default function App() {
           const { error } = await supabase.from('tasks').insert([dbTask]);
           if (error) throw error;
       } catch (error) {
-          console.error("Lỗi lưu:", error);
           setBoardData(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== newId), categories: newCategoryObj ? prev.categories.filter(c => c.id !== newCategoryObj.id) : prev.categories }));
-          addToast('Lỗi lưu dữ liệu - Đã hoàn tác', 'error');
+          addToast(`Lỗi lưu: ${error.message}`, 'error');
       }
   };
 
@@ -2209,7 +2224,7 @@ export default function App() {
       const { error } = await supabase.from('tasks').delete().eq('id', taskId);
       if (error) {
         setBoardData(prev => ({ ...prev, tasks: originalTasks }));
-        addToast('Lỗi xóa công việc - Đã khôi phục', 'error'); 
+        addToast(`Lỗi xóa: ${error.message}`, 'error'); 
       }
   };
 
@@ -2222,9 +2237,8 @@ export default function App() {
         addToast('Đã thêm hạng mục', 'success');
         const { error } = await supabase.from('categories').insert([newCat]);
         if (error) {
-              console.error(error);
               setBoardData(prev => ({ ...prev, categories: prev.categories.filter(c => c.id !== newCat.id) })); 
-              addToast('Lỗi server', 'error');
+              addToast(`Lỗi tạo DM: ${error.message}`, 'error');
         }
     }
   };
@@ -2244,7 +2258,7 @@ export default function App() {
                 setConfirmDialog(null); 
                 addToast('Đã xóa hạng mục');
                 const { error } = await supabase.from('categories').delete().eq('id', catId);
-                if (error) { setBoardData(originalData); addToast('Lỗi xóa hạng mục - Đã khôi phục', 'error'); }
+                if (error) { setBoardData(originalData); addToast(`Lỗi: ${error.message}`, 'error'); }
             }
         });
   };
@@ -2523,7 +2537,7 @@ export default function App() {
           </div>
       )}
 
-      {editingTask && <TaskModal task={editingTask} onClose={() => setEditingTask(null)} onUpdate={handleUpdateTask} onDelete={handleDeleteTask} categories={categories} onGenerateRepeats={handleGenerateRepeats} />}
+      {editingTask && <TaskModal task={editingTask} onClose={() => setEditingTask(null)} onUpdate={handleUpdateTask} onDelete={handleDeleteTask} categories={categories} />}
       {showAddTaskModal && <AddTaskModal onClose={() => setShowAddTaskModal(false)} onSave={handleSaveNewTask} categories={categories} initialDate={newTaskDefaults.date} initialCategoryId={newTaskDefaults.categoryId} />}
       {editingCategory && <CategoryModal category={editingCategory} onClose={() => setEditingCategory(null)} onUpdate={handleUpdateCategory} onDelete={handleDeleteCategory} />}
       {showRecurringModal && <RecurringUpdateModal onClose={() => setShowRecurringModal(false)} onConfirm={handleConfirmRecurringUpdate} />}

@@ -2,17 +2,24 @@ import React, { useState } from 'react';
 import { Square, CheckSquare, AlignLeft, Repeat } from 'lucide-react';
 import { formatDateKey } from '../../utils/dateHelpers';
 
-// Kích hoạt cờ từ Vercel hoặc URL (?multiday=true)
 const isMultiDayEnabled = import.meta.env.VITE_ENABLE_MULTIDAY === 'true' || 
     (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('multiday') === 'true');
+
+// --- HÀM BẺ KHÓA LỖI MÚI GIỜ KHI KÉO THẢ NHIỀU LẦN ---
+const parseDateStr = (dateStr) => {
+    if (!dateStr) return new Date();
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+};
 
 const TaskCard = ({ 
     task, categoryColor, dayWidth, isSelected, isHighlighted, 
     onSelect, onUpdate, onDragStart, onDragEnd, setEditingTask,
-    onContextMenu 
+    onContextMenu, renderDate 
 }) => {
     const [dropPosition, setDropPosition] = useState(null);
-    const [localWidth, setLocalWidth] = useState(null); // State phục vụ kéo dãn
+    const [isResizing, setIsResizing] = useState(false); // Khóa animation
+    const [localDuration, setLocalDuration] = useState(null); 
 
     const handleToggleComplete = (e) => {
         e.stopPropagation();
@@ -23,46 +30,43 @@ const TaskCard = ({
         if (onContextMenu) onContextMenu(e, task);
     };
 
-    // --- TÍNH TOÁN ĐỘ DÀI NGÀY ---
-    let duration = 1;
+    // Tính toán độ dài chuẩn dựa trên ngày đang render (Tránh lỗi trôi thẻ khi cuộn)
+    let dbDuration = 1;
     if (isMultiDayEnabled && task.endDate) {
-        const start = new Date(task.date);
-        const end = new Date(task.endDate);
-        duration = Math.max(1, Math.round((end - start) / 86400000) + 1);
+        const start = parseDateStr(renderDate || task.date);
+        const end = parseDateStr(task.endDate);
+        dbDuration = Math.max(1, Math.round((end - start) / 86400000) + 1);
     }
 
-    // --- XỬ LÝ KÉO DÃN (NHƯ GOOGLE CALENDAR) ---
     const handleResizeStart = (e) => {
         if (!isMultiDayEnabled) return;
         e.preventDefault(); 
-        e.stopPropagation(); // Chặn sự kiện nhấc cả thẻ task lên
+        e.stopPropagation(); 
         
+        setIsResizing(true); 
         const startX = e.clientX;
-        const startDuration = duration;
+        const startDuration = dbDuration;
 
         const handleMouseMove = (moveEvent) => {
             const diffX = moveEvent.clientX - startX;
             const diffDays = Math.round(diffX / dayWidth);
-            
-            // Tính toán số ngày đang nháp, không cho nhỏ hơn 1 ngày
-            const tempDuration = Math.max(1, startDuration + diffDays);
-            
-            // SNAP-TO-GRID: Chiều rộng nhảy theo từng ô chuẩn xác như Calendar
-            setLocalWidth(tempDuration * dayWidth - 16);
+            // Snap to grid (Hít theo ô lịch)
+            setLocalDuration(Math.max(1, startDuration + diffDays));
         };
 
         const handleMouseUp = (upEvent) => {
             const diffX = upEvent.clientX - startX;
-            const diffDays = Math.round(diffX / dayWidth); // Chốt sổ số ngày thay đổi
-            const newDuration = Math.max(1, startDuration + diffDays);
+            const diffDays = Math.round(diffX / dayWidth);
+            const finalDuration = Math.max(1, startDuration + diffDays);
 
-            if (newDuration !== startDuration) {
-                const newEndDate = new Date(task.date);
-                newEndDate.setDate(newEndDate.getDate() + newDuration - 1);
+            if (finalDuration !== startDuration) {
+                const newEndDate = parseDateStr(renderDate || task.date);
+                newEndDate.setDate(newEndDate.getDate() + finalDuration - 1);
                 onUpdate({ ...task, endDate: formatDateKey(newEndDate) });
             }
             
-            setLocalWidth(null); // Trả lại quyền quản lý cho CSS gốc
+            setIsResizing(false);
+            setLocalDuration(null); 
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         };
@@ -71,13 +75,13 @@ const TaskCard = ({
         document.addEventListener('mouseup', handleMouseUp);
     };
 
-    // Chuyển đổi linh hoạt giữa chiều rộng lưu trong DB và chiều rộng lúc đang kéo
-    const currentWidth = localWidth !== null ? localWidth : (duration * dayWidth - 16);
-    const multiDayStyle = (isMultiDayEnabled && duration > 1) || localWidth !== null ? {
-        width: `${currentWidth}px`,
+    const currentDuration = localDuration !== null ? localDuration : dbDuration;
+    
+    const multiDayStyle = (isMultiDayEnabled && currentDuration > 1) || isResizing ? {
+        width: `${currentDuration * dayWidth - 16}px`,
         maxWidth: 'none',
         position: 'relative',
-        zIndex: localWidth !== null ? 60 : 30, // Nổi lên trên cùng khi đang thao tác
+        zIndex: isResizing ? 60 : 30, // Nổi lên trên cùng khi thao tác
     } : {
         width: `${dayWidth - 16}px`,
         maxWidth: 'none',
@@ -89,8 +93,8 @@ const TaskCard = ({
 
     return (
         <div 
-            draggable={localWidth === null} // Tắt tính năng kéo nguyên card khi đang kéo dãn ngày
-            onDragStart={(e) => onDragStart(e, task)}
+            draggable={!isResizing} 
+            onDragStart={(e) => { if (!isResizing) onDragStart(e, task); }}
             onDragEnd={onDragEnd} 
             onClick={(e) => { e.stopPropagation(); onSelect(task.id); }}
             onDoubleClick={(e) => { e.stopPropagation(); setEditingTask(task); }}
@@ -104,16 +108,18 @@ const TaskCard = ({
             onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setDropPosition(null); }}
             onDrop={() => setDropPosition(null)}
 
+            // SỬA LỖI ANIMATION CHỖ NÀY: Khóa nghiêng khi đang kéo (isResizing)
             className={`
                 group relative px-3 py-3 mb-2 rounded-2xl border ease-apple select-none
-                cursor-grab active:cursor-grabbing hover:-translate-y-[2px] hover:shadow-md
-                active:scale-105 active:rotate-2 active:shadow-xl
                 
-                ${localWidth !== null ? '!transition-none' : 'transition-all duration-200'}
+                ${isResizing 
+                    ? '!scale-100 !rotate-0 ring-2 ring-indigo-400 shadow-xl opacity-95 transition-none' 
+                    : 'transition-all duration-200 cursor-grab active:cursor-grabbing hover:-translate-y-[2px] hover:shadow-md active:scale-105 active:rotate-2 active:shadow-xl'
+                }
                 
                 ${task.isCompleted ? 'bg-gray-50/50 border-transparent' : `${finalColorValue} shadow-sm backdrop-blur-sm`}
-                ${isSelected ? `ring-2 ring-indigo-500 ring-offset-2 z-40` : ''}
-                ${isHighlighted ? 'ring-4 ring-yellow-400 ring-offset-2 z-40 scale-105 shadow-xl bg-yellow-50' : ''}
+                ${isSelected && !isResizing ? `ring-2 ring-indigo-500 ring-offset-2 z-40` : ''}
+                ${isHighlighted && !isResizing ? 'ring-4 ring-yellow-400 ring-offset-2 z-40 scale-105 shadow-xl bg-yellow-50' : ''}
                 
                 ${dropPosition === 'top' ? 'border-t-2 border-t-indigo-500 pt-[12px] mt-0' : ''}
                 ${dropPosition === 'bottom' ? 'border-b-2 border-b-indigo-500 pb-[12px] mb-0' : ''}
@@ -141,14 +147,12 @@ const TaskCard = ({
                 </div>
             </div>
 
-            {/* NÚT CẦM KÉO DÃN HIỂN THỊ KHI BẬT CỜ */}
             {isMultiDayEnabled && !task.isCompleted && (
                 <div 
-                    className="absolute right-0 top-0 bottom-0 w-5 cursor-e-resize hover:bg-black/10 rounded-r-2xl transition-colors flex items-center justify-center group/handle"
-                    style={{ zIndex: 60 }} 
+                    className="absolute right-0 top-0 bottom-0 w-5 cursor-e-resize hover:bg-black/10 rounded-r-2xl transition-colors flex items-center justify-center z-[100]"
                     onMouseDown={handleResizeStart}
                 >
-                    <div className="w-1 h-5 bg-black/20 rounded-full group-hover/handle:bg-black/40 transition-colors pointer-events-none"></div>
+                    <div className="w-1 h-5 bg-black/20 rounded-full transition-colors pointer-events-none"></div>
                 </div>
             )}
         </div>

@@ -16,9 +16,33 @@ import AddTaskModal from './components/tasks/AddTaskModal';
 import RecurringUpdateModal from './components/tasks/RecurringUpdateModal';
 import CategoryModal from './components/tasks/CategoryModal';
 
-// Cờ Feature
 const isMultiDayFeatureEnabled = import.meta.env.VITE_ENABLE_MULTIDAY === 'true' || 
     (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('multiday') === 'true');
+
+const parseDateStr = (dateStr) => {
+    if (!dateStr) return new Date();
+    const [y, m, d] = dateStr.split('-').map(Number);
+    return new Date(y, m - 1, d);
+};
+
+// COMPONENT MỚI: Khối tàng hình (Giữ chỗ cho các Task kéo dài đi ngang qua)
+const GhostCard = ({ task, empty }) => (
+    <div className="px-3 py-3 mb-2 border border-transparent rounded-2xl opacity-0 pointer-events-none select-none overflow-hidden" aria-hidden="true">
+        <div className="flex flex-row gap-3">
+            <div className="flex flex-col items-center gap-1.5 pt-0.5 min-w-[24px]">
+                <div className="w-[20px] h-[20px]"></div>
+                {task?.time && <div className="text-[9px] w-full px-0.5">&nbsp;</div>}
+                {task?.repeat && task.repeat !== 'none' && !empty && <div className="w-3 h-3"></div>}
+                {task?.description && !empty && <div className="w-3 h-3"></div>}
+            </div>
+            <div className="flex-1 min-w-0 flex flex-col pt-0.5">
+                <div className="leading-snug break-words">
+                    <span className="text-[15px] font-semibold">{empty ? '\u00A0' : (task?.title || '\u00A0')}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+);
 
 export default function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -33,7 +57,7 @@ export default function App() {
   const dayWidth = ZOOM_LEVELS[zoomIndex];
   
   const [draggedTask, setDraggedTask] = useState(null);
-  const [draggedTaskOffset, setDraggedTaskOffset] = useState(0); // MỚI: Tính xem user nắm ở khúc nào của Task
+  const [draggedTaskOffset, setDraggedTaskOffset] = useState(0); 
   const [draggedCategoryIndex, setDraggedCategoryIndex] = useState(null); 
   const [copiedTask, setCopiedTask] = useState(null);
 
@@ -197,6 +221,40 @@ export default function App() {
       return filtered;
   }, [tasks, searchQuery, validCategoryIds]);
 
+  // --- BỘ NÃO TÍNH TOÁN TRACK (Tránh Task Đè Nhau) ---
+  const layoutContext = useMemo(() => {
+      const context = { taskTracks: {}, maxTracks: {} };
+      if (!isMultiDayFeatureEnabled) return context; 
+      
+      categories.forEach(cat => {
+          const catTasks = filteredMatrixTasks.filter(t => t.categoryId === cat.id);
+          catTasks.sort((a, b) => {
+              if (a.date !== b.date) return a.date.localeCompare(b.date);
+              const durA = a.endDate ? (parseDateStr(a.endDate) - parseDateStr(a.date)) : 0;
+              const durB = b.endDate ? (parseDateStr(b.endDate) - parseDateStr(b.date)) : 0;
+              return durB - durA; 
+          });
+          
+          const tracks = [];
+          catTasks.forEach(task => {
+              let assigned = false;
+              for (let i = 0; i < tracks.length; i++) {
+                  if (tracks[i] < task.date) {
+                      tracks[i] = task.endDate || task.date;
+                      context.taskTracks[task.id] = i;
+                      assigned = true; break;
+                  }
+              }
+              if (!assigned) {
+                  context.taskTracks[task.id] = tracks.length;
+                  tracks.push(task.endDate || task.date);
+              }
+          });
+          context.maxTracks[cat.id] = tracks.length;
+      });
+      return context;
+  }, [filteredMatrixTasks, categories]);
+
   const handleGenerateRepeats = async (baseTask, repeatType) => {
       if (!baseTask || !repeatType || repeatType === 'none') return;
       const seriesId = baseTask.seriesId || `series-${Date.now()}`; const newTasks = [];
@@ -307,11 +365,12 @@ export default function App() {
   };
 
   const handleDeleteCategory = (catId) => { 
+        const category = categories.find(c => c.id === catId); const title = category ? category.title : 'hạng mục này';
         setConfirmDialog({
             title: "Xóa hạng mục?", message: `Tất cả công việc nằm trong hạng mục này cũng sẽ bị xóa vĩnh viễn!`, confirmLabel: "Xóa vĩnh viễn", isDangerous: true,
             onConfirm: async () => {
                 const originalData = { ...boardData }; setBoardData(prev => ({ tasks: prev.tasks.filter(t => t.categoryId !== catId), categories: prev.categories.filter(c => c.id !== catId) })); setEditingCategory(null); setConfirmDialog(null); addToast('Đã xóa hạng mục');
-                const { error } = await supabase.from('categories').delete().eq('id', catId); if (error) { setBoardData(originalData); addToast('Lỗi', 'error'); }
+                const { error } = await supabase.from('categories').delete().eq('id', catId); if (error) { setBoardData(originalData); addToast(`Lỗi: ${error.message}`, 'error'); }
             }
         });
   };
@@ -330,16 +389,17 @@ export default function App() {
 
   const startResizingSidebar = (e) => { e.preventDefault(); const startX = e.clientX; const startWidth = sidebarWidth; const onMouseMove = (ev) => setSidebarWidth(Math.max(150, Math.min(500, startWidth + (ev.clientX - startX)))); const onMouseUp = () => { document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); }; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); };
   
-  // --- NÂNG CẤP KÉO THẢ TỪ BẤT KỲ ĐÂU ---
   const handleDragStart = (e, task) => { 
       e.stopPropagation(); 
       setDraggedTask(task); 
       
-      // Bắt tọa độ chuột để biết user nắm ở đoạn nào của thẻ (Chỉ tính cho thẻ multi-day)
       if (isMultiDayFeatureEnabled && task.endDate) {
           const rect = e.currentTarget.getBoundingClientRect();
           const offsetX = e.clientX - rect.left;
-          const maxDuration = Math.round((new Date(task.endDate) - new Date(task.date)) / 86400000) + 1;
+          const start = parseDateStr(task.date);
+          const end = parseDateStr(task.endDate);
+          const maxDuration = Math.round((end - start) / 86400000) + 1;
+          
           let offsetDays = Math.floor(offsetX / dayWidth);
           offsetDays = Math.max(0, Math.min(offsetDays, maxDuration - 1));
           setDraggedTaskOffset(offsetDays);
@@ -360,21 +420,19 @@ export default function App() {
       if (!draggedTask) return; 
       
       const finalCategoryId = targetCategoryId || draggedTask.categoryId;
-      
-      // TRẢ MỌI THỨ VỀ ĐÚNG VỊ TRÍ (Giữ nguyên form khi kéo)
-      const dropDate = new Date(dateStr);
+      const dropDate = parseDateStr(dateStr);
       dropDate.setDate(dropDate.getDate() - draggedTaskOffset);
 
-      const oldStart = new Date(draggedTask.date);
-      const oldEnd = new Date(draggedTask.endDate || draggedTask.date);
-      const duration = Math.round((oldEnd - oldStart) / 86400000);
+      const oldStart = parseDateStr(draggedTask.date);
+      const oldEnd = parseDateStr(draggedTask.endDate || draggedTask.date);
+      const durationDays = Math.round((oldEnd - oldStart) / 86400000);
 
-      const newEnd = new Date(dropDate);
-      newEnd.setDate(newEnd.getDate() + duration);
+      const newEnd = parseDateStr(formatDateKey(dropDate));
+      newEnd.setDate(newEnd.getDate() + durationDays);
 
       handleUpdateTask({ ...draggedTask, categoryId: finalCategoryId, date: formatDateKey(dropDate), endDate: formatDateKey(newEnd) });
       setDraggedTask(null); 
-      setDraggedTaskOffset(0); // Reset
+      setDraggedTaskOffset(0); 
   };
 
   const handleConfirmQuickAdd = (title) => { if (!title || !title.trim()) { setQuickAddCell(null); return; } handleSaveNewTask({ title: title.trim(), date: quickAddCell.dateStr, categoryId: quickAddCell.categoryId }); setQuickAddCell(null); };
@@ -416,7 +474,7 @@ export default function App() {
       />
       
       {viewMode === 'list' && (
-          <TodoView tasks={tasks} categories={categories} currentDate={currentDate} onUpdateTask={handleUpdateTask} setEditingTask={setEditingTask} onDeleteTask={handleDeleteTask} onOpenAddTask={handleOpenAddTask} quickAddCell={quickAddCell} setQuickAddCell={setQuickAddCell} onConfirmQuickAdd={handleConfirmQuickAdd} searchQuery={searchQuery} onSaveNewTask={handleSaveNewTask} />
+          <TodoView tasks={tasks} categories={categories} onUpdateTask={handleUpdateTask} setEditingTask={setEditingTask} onDeleteTask={handleDeleteTask} onOpenAddTask={handleOpenAddTask} searchQuery={searchQuery} />
       )}
 
       {viewMode === 'matrix' && calendarView === 'month' && (
@@ -431,7 +489,12 @@ export default function App() {
                       const dateStr = formatDateKey(day);
                       const isToday = dateStr === formatDateKey(new Date());
                       const isCurrentMonth = day.getMonth() === currentDate.getMonth();
-                      const dayTasks = filteredMatrixTasks.filter(t => t.date === dateStr);
+                      
+                      // Month View: Hiện các thẻ trải dài cho tất cả các ngày mà nó thuộc về
+                      const dayTasks = filteredMatrixTasks.filter(t => {
+                          if (!isMultiDayFeatureEnabled) return t.date === dateStr;
+                          return t.date <= dateStr && (t.endDate || t.date) >= dateStr;
+                      });
 
                       return (
                           <div 
@@ -496,7 +559,12 @@ export default function App() {
                   })}
                 </div>
 
-                {categories.map((category, index) => (
+                {categories.map((category, index) => {
+                  const maxTrack = layoutContext.maxTracks[category.id] || 0;
+                  const catTasks = filteredMatrixTasks.filter(t => t.categoryId === category.id);
+                  const firstVisibleDateStr = formatDateKey(visibleDays[0]);
+
+                  return (
                   <div key={category.id} className={`flex border-b border-gray-300 group ${draggedCategoryIndex === index ? 'opacity-40 border-dashed border-indigo-400' : ''}`} onDragOver={handleCategoryDragOver} onDrop={(e) => handleCategoryDrop(e, index)}>
                     <div draggable onDragStart={(e) => handleCategoryDragStart(e, index)} className={`sticky left-0 z-30 bg-white/95 backdrop-blur-sm border-r border-gray-200/60 p-4 flex flex-col justify-center group-hover:bg-gray-50 transition-colors border-l-4 ${category.color.value.replace('bg-', 'border-').split(' ')[0]} shadow-[4px_0_24px_rgba(0,0,0,0.02)]`} style={{ width: sidebarWidth, minWidth: sidebarWidth, borderLeftColor: category.color?.hex || '#ccc' }}>
                       <div className="font-semibold text-gray-800 flex items-center justify-between group/header overflow-hidden">
@@ -515,23 +583,62 @@ export default function App() {
                     </div>
 
                     {!category.collapsed && visibleDays.map((day) => {
-                        const dateStr = formatDateKey(day); const cellTasks = filteredMatrixTasks.filter(t => t.categoryId === category.id && t.date === dateStr);
-                        const isToday = dateStr === formatDateKey(new Date()); const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                        const dateStr = formatDateKey(day); 
+                        const isToday = dateStr === formatDateKey(new Date()); 
+                        const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                        
+                        // CƠ CHẾ GANTT CHART: Tính toán khoảng trống và các Task cho ô ngày
+                        let renderItems = [];
+                        if (!isMultiDayFeatureEnabled) {
+                            renderItems = catTasks.filter(t => t.date === dateStr).map(t => ({ type: 'task', task: t }));
+                        } else {
+                            for (let i = 0; i < maxTrack; i++) {
+                                const taskStartsHere = catTasks.find(t => {
+                                    if (layoutContext.taskTracks[t.id] !== i) return false;
+                                    if (t.date === dateStr) return true; 
+                                    if (dateStr === firstVisibleDateStr && t.date < firstVisibleDateStr && (t.endDate || t.date) >= dateStr) return true;
+                                    return false;
+                                });
+
+                                const taskSpansHere = catTasks.find(t => {
+                                    if (layoutContext.taskTracks[t.id] !== i) return false;
+                                    if (t.date < dateStr && (t.endDate || t.date) >= dateStr) {
+                                        if (dateStr === firstVisibleDateStr && t.date < firstVisibleDateStr) return false;
+                                        return true;
+                                    }
+                                    return false;
+                                });
+                                
+                                if (taskStartsHere) renderItems.push({ type: 'task', task: taskStartsHere });
+                                else if (taskSpansHere) renderItems.push({ type: 'spacer', task: taskSpansHere });
+                                else renderItems.push({ type: 'empty' });
+                            }
+                            while (renderItems.length > 0 && renderItems[renderItems.length - 1].type === 'empty') renderItems.pop();
+                        }
+
                         return (
-                            <div key={`${category.id}-${dateStr}`} style={{ width: dayWidth, minWidth: dayWidth }} className={`flex-shrink-0 min-h-[120px] p-2 transition-all duration-300 group/cell relative ${isToday ? 'bg-indigo-50/40' : (isWeekend ? 'bg-slate-50/30' : 'bg-transparent')} hover:bg-gray-50/80 cursor-pointer`} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, category.id, dateStr)} onMouseEnter={() => setHoveredCell({ categoryId: category.id, dateStr })} onMouseLeave={() => setHoveredCell(null)} onClick={() => setSelectedTaskId(null)} onDoubleClick={(e) => { handleOpenAddTask({ date: dateStr, categoryId: category.id }); }}>
-                                <div className="flex flex-col gap-2 h-full relative z-10">
-                                    {cellTasks.map((task) => (
-                                        <div className="pointer-events-auto" key={task.id}>
-                                            <TaskCard task={task} categoryColor={category.color} dayWidth={dayWidth} isSelected={selectedTaskId === task.id} isHighlighted={highlightedTaskId === task.id} onSelect={setSelectedTaskId} onUpdate={handleUpdateTask} onDelete={handleDeleteTask} onDragStart={handleDragStart} onDragEnd={handleDragEnd} setEditingTask={setEditingTask} onContextMenu={handleContextMenu} />
-                                        </div>
-                                    ))}
+                            <div key={`${category.id}-${dateStr}`} style={{ width: dayWidth, minWidth: dayWidth }} className={`flex-shrink-0 min-h-[120px] p-2 transition-all duration-300 group/cell relative ${isToday ? 'bg-indigo-50/40' : (isWeekend ? 'bg-slate-50/30' : 'bg-transparent')} hover:bg-gray-50/80 cursor-pointer`} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, category.id, dateStr)} onDoubleClick={(e) => { handleOpenAddTask({ date: dateStr, categoryId: category.id }); }}>
+                                <div className="flex flex-col gap-2 h-full relative">
+                                    {renderItems.map((item, idx) => {
+                                        if (item.type === 'task') {
+                                            return (
+                                                <div className="pointer-events-auto h-max" key={item.task.id}>
+                                                    <TaskCard task={item.task} categoryColor={category.color} dayWidth={dayWidth} isSelected={selectedTaskId === item.task.id} isHighlighted={highlightedTaskId === item.task.id} onSelect={setSelectedTaskId} onUpdate={handleUpdateTask} onDelete={handleDeleteTask} onDragStart={handleDragStart} onDragEnd={handleDragEnd} setEditingTask={setEditingTask} onContextMenu={handleContextMenu} renderDate={dateStr} />
+                                                </div>
+                                            );
+                                        } else if (item.type === 'spacer') {
+                                            return <GhostCard key={`spacer-${item.task.id}`} task={item.task} />;
+                                        } else {
+                                            return <GhostCard key={`empty-${idx}`} empty />;
+                                        }
+                                    })}
                                 </div>
                             </div>
                         );
                     })}
                     {category.collapsed && <div className="flex-1 bg-gray-50/50 flex items-center justify-center text-gray-400 text-sm italic">Đã thu gọn</div>}
                   </div>
-                ))}
+                )})}
                 
                 <div className="flex border-b border-gray-300 group">
                     <div className="sticky left-0 z-30 bg-white/95 backdrop-blur-sm border-r border-gray-200/60 flex flex-col justify-center border-l-4 border-transparent shadow-[4px_0_24px_rgba(0,0,0,0.02)]" style={{ width: sidebarWidth, minWidth: sidebarWidth }}>

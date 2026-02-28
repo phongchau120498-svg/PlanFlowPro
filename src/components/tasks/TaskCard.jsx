@@ -12,7 +12,7 @@ const TaskCard = ({
     onContextMenu 
 }) => {
     const [dropPosition, setDropPosition] = useState(null);
-    const [localWidth, setLocalWidth] = useState(null); // State phục vụ việc kéo thả dãn mượt mà
+    const [localWidth, setLocalWidth] = useState(null); // State phục vụ kéo dãn
 
     const handleToggleComplete = (e) => {
         e.stopPropagation();
@@ -31,34 +31,38 @@ const TaskCard = ({
         duration = Math.max(1, Math.round((end - start) / 86400000) + 1);
     }
 
-    // --- XỬ LÝ KÉO DÃN (RESIZE) SIÊU MƯỢT ---
+    // --- XỬ LÝ KÉO DÃN (NHƯ GOOGLE CALENDAR) ---
     const handleResizeStart = (e) => {
         if (!isMultiDayEnabled) return;
         e.preventDefault(); 
-        e.stopPropagation(); // Chặn sự kiện Drag Card
+        e.stopPropagation(); // Chặn sự kiện nhấc cả thẻ task lên
         
         const startX = e.clientX;
-        const initialWidth = duration * dayWidth - 16;
-        setLocalWidth(initialWidth); // Kích hoạt mode Resize
+        const startDuration = duration;
 
         const handleMouseMove = (moveEvent) => {
             const diffX = moveEvent.clientX - startX;
-            // Cho phép kéo mượt theo pixel, nhưng không được nhỏ hơn 1 ô ngày
-            setLocalWidth(Math.max(dayWidth - 16, initialWidth + diffX));
+            const diffDays = Math.round(diffX / dayWidth);
+            
+            // Tính toán số ngày đang nháp, không cho nhỏ hơn 1 ngày
+            const tempDuration = Math.max(1, startDuration + diffDays);
+            
+            // SNAP-TO-GRID: Chiều rộng nhảy theo từng ô chuẩn xác như Calendar
+            setLocalWidth(tempDuration * dayWidth - 16);
         };
 
         const handleMouseUp = (upEvent) => {
             const diffX = upEvent.clientX - startX;
-            const diffDays = Math.round(diffX / dayWidth); // Làm tròn số ngày dãn ra
-            const newDuration = Math.max(1, duration + diffDays);
+            const diffDays = Math.round(diffX / dayWidth); // Chốt sổ số ngày thay đổi
+            const newDuration = Math.max(1, startDuration + diffDays);
 
-            if (newDuration !== duration) {
+            if (newDuration !== startDuration) {
                 const newEndDate = new Date(task.date);
                 newEndDate.setDate(newEndDate.getDate() + newDuration - 1);
                 onUpdate({ ...task, endDate: formatDateKey(newEndDate) });
             }
             
-            setLocalWidth(null); // Tắt mode Resize
+            setLocalWidth(null); // Trả lại quyền quản lý cho CSS gốc
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         };
@@ -67,14 +71,13 @@ const TaskCard = ({
         document.addEventListener('mouseup', handleMouseUp);
     };
 
-    // Style giúp card nổi lên và trườn qua các ô khác
+    // Chuyển đổi linh hoạt giữa chiều rộng lưu trong DB và chiều rộng lúc đang kéo
     const currentWidth = localWidth !== null ? localWidth : (duration * dayWidth - 16);
     const multiDayStyle = (isMultiDayEnabled && duration > 1) || localWidth !== null ? {
-        width: `${Math.max(dayWidth - 16, currentWidth)}px`,
+        width: `${currentWidth}px`,
         maxWidth: 'none',
         position: 'relative',
-        zIndex: localWidth !== null ? 60 : 30, // Nổi bật khi đang kéo
-        transition: localWidth !== null ? 'none' : 'width 0.2s ease-out', // Bỏ delay khi kéo pixel
+        zIndex: localWidth !== null ? 60 : 30, // Nổi lên trên cùng khi đang thao tác
     } : {
         width: `${dayWidth - 16}px`,
         maxWidth: 'none',
@@ -86,7 +89,7 @@ const TaskCard = ({
 
     return (
         <div 
-            draggable={localWidth === null} // Tắt drag card khi đang kéo dãn
+            draggable={localWidth === null} // Tắt tính năng kéo nguyên card khi đang kéo dãn ngày
             onDragStart={(e) => onDragStart(e, task)}
             onDragEnd={onDragEnd} 
             onClick={(e) => { e.stopPropagation(); onSelect(task.id); }}
@@ -102,9 +105,11 @@ const TaskCard = ({
             onDrop={() => setDropPosition(null)}
 
             className={`
-                group relative px-3 py-3 mb-2 rounded-2xl border transition-all duration-200 ease-apple select-none
+                group relative px-3 py-3 mb-2 rounded-2xl border ease-apple select-none
                 cursor-grab active:cursor-grabbing hover:-translate-y-[2px] hover:shadow-md
                 active:scale-105 active:rotate-2 active:shadow-xl
+                
+                ${localWidth !== null ? '!transition-none' : 'transition-all duration-200'}
                 
                 ${task.isCompleted ? 'bg-gray-50/50 border-transparent' : `${finalColorValue} shadow-sm backdrop-blur-sm`}
                 ${isSelected ? `ring-2 ring-indigo-500 ring-offset-2 z-40` : ''}
@@ -127,7 +132,7 @@ const TaskCard = ({
                     </div>
                 </div>
                 
-                <div className="flex-1 min-w-0 flex flex-col pt-0.5">
+                <div className="flex-1 min-w-0 flex flex-col pt-0.5 pointer-events-none">
                     <div className="leading-snug break-words">
                         <span className={`text-[15px] font-semibold task-title ${task.isCompleted ? 'completed' : 'text-gray-700'}`}>
                             {task.title}
@@ -140,10 +145,10 @@ const TaskCard = ({
             {isMultiDayEnabled && !task.isCompleted && (
                 <div 
                     className="absolute right-0 top-0 bottom-0 w-5 cursor-e-resize hover:bg-black/10 rounded-r-2xl transition-colors flex items-center justify-center group/handle"
-                    style={{ zIndex: 60 }} // Cực quan trọng để không bị khối khác đè lên
+                    style={{ zIndex: 60 }} 
                     onMouseDown={handleResizeStart}
                 >
-                    <div className="w-1 h-5 bg-black/20 rounded-full group-hover/handle:bg-black/40 transition-colors"></div>
+                    <div className="w-1 h-5 bg-black/20 rounded-full group-hover/handle:bg-black/40 transition-colors pointer-events-none"></div>
                 </div>
             )}
         </div>

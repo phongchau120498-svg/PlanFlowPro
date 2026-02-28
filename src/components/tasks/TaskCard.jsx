@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { Square, CheckSquare, AlignLeft, Repeat } from 'lucide-react';
 import { formatDateKey } from '../../utils/dateHelpers';
 
-// Kiểm tra Cờ tính năng từ Vercel
-const isMultiDayEnabled = import.meta.env.VITE_ENABLE_MULTIDAY === 'true';
+// Kích hoạt cờ từ Vercel hoặc URL (?multiday=true)
+const isMultiDayEnabled = import.meta.env.VITE_ENABLE_MULTIDAY === 'true' || 
+    (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('multiday') === 'true');
 
 const TaskCard = ({ 
     task, categoryColor, dayWidth, isSelected, isHighlighted, 
@@ -11,6 +12,7 @@ const TaskCard = ({
     onContextMenu 
 }) => {
     const [dropPosition, setDropPosition] = useState(null);
+    const [localWidth, setLocalWidth] = useState(null); // State phục vụ việc kéo thả dãn mượt mà
 
     const handleToggleComplete = (e) => {
         e.stopPropagation();
@@ -21,7 +23,7 @@ const TaskCard = ({
         if (onContextMenu) onContextMenu(e, task);
     };
 
-    // --- TÍNH TOÁN ĐỘ DÀI NGÀY (MULTI-DAY) ---
+    // --- TÍNH TOÁN ĐỘ DÀI NGÀY ---
     let duration = 1;
     if (isMultiDayEnabled && task.endDate) {
         const start = new Date(task.date);
@@ -29,34 +31,54 @@ const TaskCard = ({
         duration = Math.max(1, Math.round((end - start) / 86400000) + 1);
     }
 
-    // Nếu kéo dài hơn 1 ngày, tính toán Width trườn sang các ô bên cạnh
-    const multiDayStyle = (isMultiDayEnabled && duration > 1) ? {
-        width: `${duration * dayWidth - 16}px`, // 16px là trừ đi đệm (padding) 2 bên của ô
-        position: 'relative',
-        zIndex: 30,
-    } : {};
-
-    // --- XỬ LÝ KÉO DÃN NGÀY ---
+    // --- XỬ LÝ KÉO DÃN (RESIZE) SIÊU MƯỢT ---
     const handleResizeStart = (e) => {
         if (!isMultiDayEnabled) return;
-        e.preventDefault(); e.stopPropagation(); // Chặn việc kéo thả (drag) nguyên thẻ task
+        e.preventDefault(); 
+        e.stopPropagation(); // Chặn sự kiện Drag Card
         
         const startX = e.clientX;
-        const startDuration = duration;
+        const initialWidth = duration * dayWidth - 16;
+        setLocalWidth(initialWidth); // Kích hoạt mode Resize
+
+        const handleMouseMove = (moveEvent) => {
+            const diffX = moveEvent.clientX - startX;
+            // Cho phép kéo mượt theo pixel, nhưng không được nhỏ hơn 1 ô ngày
+            setLocalWidth(Math.max(dayWidth - 16, initialWidth + diffX));
+        };
 
         const handleMouseUp = (upEvent) => {
             const diffX = upEvent.clientX - startX;
-            const diffDays = Math.round(diffX / dayWidth);
-            const newDuration = Math.max(1, startDuration + diffDays);
-            
-            if (newDuration !== startDuration) {
+            const diffDays = Math.round(diffX / dayWidth); // Làm tròn số ngày dãn ra
+            const newDuration = Math.max(1, duration + diffDays);
+
+            if (newDuration !== duration) {
                 const newEndDate = new Date(task.date);
                 newEndDate.setDate(newEndDate.getDate() + newDuration - 1);
                 onUpdate({ ...task, endDate: formatDateKey(newEndDate) });
             }
+            
+            setLocalWidth(null); // Tắt mode Resize
+            document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         };
+
+        document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', handleMouseUp);
+    };
+
+    // Style giúp card nổi lên và trườn qua các ô khác
+    const currentWidth = localWidth !== null ? localWidth : (duration * dayWidth - 16);
+    const multiDayStyle = (isMultiDayEnabled && duration > 1) || localWidth !== null ? {
+        width: `${Math.max(dayWidth - 16, currentWidth)}px`,
+        maxWidth: 'none',
+        position: 'relative',
+        zIndex: localWidth !== null ? 60 : 30, // Nổi bật khi đang kéo
+        transition: localWidth !== null ? 'none' : 'width 0.2s ease-out', // Bỏ delay khi kéo pixel
+    } : {
+        width: `${dayWidth - 16}px`,
+        maxWidth: 'none',
+        position: 'relative'
     };
 
     const finalColorValue = categoryColor?.value || 'bg-white border-gray-200';
@@ -64,7 +86,7 @@ const TaskCard = ({
 
     return (
         <div 
-            draggable 
+            draggable={localWidth === null} // Tắt drag card khi đang kéo dãn
             onDragStart={(e) => onDragStart(e, task)}
             onDragEnd={onDragEnd} 
             onClick={(e) => { e.stopPropagation(); onSelect(task.id); }}
@@ -114,13 +136,14 @@ const TaskCard = ({
                 </div>
             </div>
 
-            {/* THANH CẦM KÉO DÃN - CHỈ HIỂN THỊ KHI CỜ ĐƯỢC BẬT */}
+            {/* NÚT CẦM KÉO DÃN HIỂN THỊ KHI BẬT CỜ */}
             {isMultiDayEnabled && !task.isCompleted && (
                 <div 
-                    className="absolute right-0 top-0 bottom-0 w-4 cursor-e-resize hover:bg-black/10 rounded-r-2xl transition-colors z-50 flex items-center justify-center group/handle"
+                    className="absolute right-0 top-0 bottom-0 w-5 cursor-e-resize hover:bg-black/10 rounded-r-2xl transition-colors flex items-center justify-center group/handle"
+                    style={{ zIndex: 60 }} // Cực quan trọng để không bị khối khác đè lên
                     onMouseDown={handleResizeStart}
                 >
-                    <div className="w-1 h-4 bg-black/20 rounded-full group-hover/handle:bg-black/40 transition-colors"></div>
+                    <div className="w-1 h-5 bg-black/20 rounded-full group-hover/handle:bg-black/40 transition-colors"></div>
                 </div>
             )}
         </div>

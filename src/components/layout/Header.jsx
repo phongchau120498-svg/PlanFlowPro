@@ -16,21 +16,21 @@ const Header = ({
 
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                e.preventDefault();
-                searchInputRef.current?.focus(); 
-                setShowDropdown(true);
-            }
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); searchInputRef.current?.focus(); setShowDropdown(true); }
         };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        window.addEventListener('keydown', handleKeyDown); return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
+    // --- CẬP NHẬT LOGIC CHẤM ĐỎ: DỰA TRÊN END_DATE ---
     const overdueCount = useMemo(() => {
         if (!tasks || !Array.isArray(tasks)) return 0;
         const todayStr = formatDateKey(new Date());
         const validCategoryIds = new Set(categories.map(c => c.id));
-        return tasks.filter(t => t.date && t.date < todayStr && !t.isCompleted && validCategoryIds.has(t.categoryId)).length;
+        return tasks.filter(t => {
+            if (!validCategoryIds.has(t.categoryId)) return false;
+            const end = t.endDate || t.date; // So sánh với ngày kết thúc
+            return end < todayStr && !t.isCompleted;
+        }).length;
     }, [tasks, categories]);
 
     const searchResults = useMemo(() => {
@@ -39,13 +39,8 @@ const Header = ({
     }, [tasks, searchQuery]);
 
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (searchRef.current && !searchRef.current.contains(event.target)) {
-                setShowDropdown(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
+        const handleClickOutside = (event) => { if (searchRef.current && !searchRef.current.contains(event.target)) setShowDropdown(false); };
+        document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     const buttonBaseClass = "h-9 flex items-center justify-center gap-2 rounded-lg text-sm font-bold transition-all duration-300 px-4";
@@ -53,7 +48,7 @@ const Header = ({
     return (
       <header className="flex items-center justify-between px-6 py-3 bg-white/70 backdrop-blur-2xl border-b border-gray-200/60 sticky top-0 z-50 h-[72px] transition-all supports-[backdrop-filter]:bg-white/60">
         
-        {/* --- TRÁI: Logo & View Switcher --- */}
+        {/* --- TRÁI --- */}
         <div className="flex items-center gap-6 flex-1">
           <div className="flex items-center gap-2.5 group cursor-pointer">
               <div className="p-2 bg-gradient-to-br from-slate-800 to-black rounded-xl shadow-md shadow-slate-200 text-white group-hover:scale-105 transition-transform"><CalendarDays size={18} strokeWidth={2.5} /></div>
@@ -75,24 +70,20 @@ const Header = ({
           </div>
         </div>
 
-        {/* --- GIỮA: Điều hướng --- */}
+        {/* --- GIỮA --- */}
         <div className="flex-1 flex justify-center">
              {viewMode === 'matrix' ? (
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1 shadow-sm hover:shadow-md transition-all duration-300">
                         <button onClick={prevWeek} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-50 text-gray-500 hover:text-black transition-colors"><ChevronLeft size={20} /></button>
-                        
                         <div className="relative group px-2 flex items-center justify-center min-w-[150px]">
                             <span className="font-bold text-gray-800 text-sm cursor-pointer hover:text-black transition-colors flex flex-col items-center leading-tight">
-                                {/* Hiển thị tên tháng chuẩn xác theo View */}
                                 <span>Tháng {calendarView === 'month' ? currentDate.getMonth() + 1 : startOfWeek.getMonth() + 1}, {calendarView === 'month' ? currentDate.getFullYear() : startOfWeek.getFullYear()}</span>
                             </span>
                             <input type="date" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" value={formatDateKey(currentDate)} onChange={(e) => e.target.value && onDateSelect(new Date(e.target.value))} />
                         </div>
-
                         <button onClick={nextWeek} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-50 text-gray-500 hover:text-black transition-colors"><ChevronRight size={20} /></button>
                     </div>
-                    
                     <button onClick={goToToday} className="h-[44px] px-6 bg-slate-900 hover:bg-black text-white text-sm font-bold rounded-xl shadow-lg shadow-slate-200 transition-all transform active:scale-95 flex items-center justify-center" title="Về hôm nay">Hôm nay</button>
                 </div>
              ) : (
@@ -100,10 +91,9 @@ const Header = ({
              )}
         </div>
         
-        {/* --- PHẢI: Search & Switcher --- */}
+        {/* --- PHẢI --- */}
         <div className="flex items-center gap-4 flex-1 justify-end">
             
-            {/* TÙY CHỌN TUẦN / THÁNG (MỚI) */}
             {viewMode === 'matrix' && (
                 <div className="hidden md:flex bg-gray-100/80 p-1 rounded-xl border border-gray-200/50 mr-2">
                     <button onClick={() => setCalendarView('week')} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${calendarView === 'week' ? 'bg-white shadow-sm text-slate-800' : 'text-gray-500 hover:text-gray-700'}`}>Tuần</button>
@@ -136,7 +126,6 @@ const Header = ({
                 )}
             </div>
             
-            {/* Thanh zoom chỉ hiện ở chế độ Tuần */}
             {viewMode === 'matrix' && calendarView === 'week' && (
                 <div className="flex items-center gap-3 pl-4 border-l border-gray-200 hidden lg:flex">
                      <ZoomIn size={18} className="text-gray-400" />

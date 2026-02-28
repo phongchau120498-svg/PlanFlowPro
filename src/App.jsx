@@ -5,7 +5,6 @@ import { COLORS, ZOOM_LEVELS, INITIAL_DATA } from './constants/theme';
 import { formatDateKey, getMonday, getInfiniteWeekWindow, getDayName, formatDateDisplay, getMonthGridDays } from './utils/dateHelpers';
 import { useUndoableState } from './hooks/useUndoableState';
 
-// Components
 import Header from './components/layout/Header';
 import ToastContainer from './components/common/ToastContainer';
 import ConfirmModal from './components/common/ConfirmModal';
@@ -16,6 +15,10 @@ import TaskModal from './components/tasks/TaskModal';
 import AddTaskModal from './components/tasks/AddTaskModal';
 import RecurringUpdateModal from './components/tasks/RecurringUpdateModal';
 import CategoryModal from './components/tasks/CategoryModal';
+
+// Cờ Feature
+const isMultiDayFeatureEnabled = import.meta.env.VITE_ENABLE_MULTIDAY === 'true' || 
+    (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('multiday') === 'true');
 
 export default function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -30,6 +33,7 @@ export default function App() {
   const dayWidth = ZOOM_LEVELS[zoomIndex];
   
   const [draggedTask, setDraggedTask] = useState(null);
+  const [draggedTaskOffset, setDraggedTaskOffset] = useState(0); // MỚI: Tính xem user nắm ở khúc nào của Task
   const [draggedCategoryIndex, setDraggedCategoryIndex] = useState(null); 
   const [copiedTask, setCopiedTask] = useState(null);
 
@@ -59,9 +63,7 @@ export default function App() {
   const lastScrollTimeRef = useRef(0);
 
   const addToast = (message, type = 'info') => {
-      const id = Date.now();
-      setToasts(prev => [...prev, { id, message, type }]);
-      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
+      const id = Date.now(); setToasts(prev => [...prev, { id, message, type }]); setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
   };
 
   useEffect(() => {
@@ -69,21 +71,12 @@ export default function App() {
         const { data: catData, error: catError } = await supabase.from('categories').select('*').order('position', { ascending: true });
         const { data: taskData, error: taskError } = await supabase.from('tasks').select('*');
 
-        if (catError || taskError) {
-            console.error('Lỗi tải dữ liệu:', catError || taskError);
-            addToast('Lỗi tải dữ liệu từ server', 'error');
-        } else {
+        if (catError || taskError) { addToast('Lỗi tải dữ liệu', 'error'); } 
+        else {
             const mappedTasks = (taskData || []).map(t => ({
-                id: t.id, title: t.title, description: t.description, date: t.date, 
-                endDate: t.end_date || t.date, // Đọc EndDate từ DB
-                time: t.time, isCompleted: t.is_completed, categoryId: t.category_id, 
-                repeat: t.repeat, seriesId: t.series_id
+                id: t.id, title: t.title, description: t.description, date: t.date, endDate: t.end_date || t.date, time: t.time, isCompleted: t.is_completed, categoryId: t.category_id, repeat: t.repeat, seriesId: t.series_id
             }));
-
-            const mappedCategories = (catData || []).map(c => ({
-                id: c.id, title: c.title, color: c.color, collapsed: c.collapsed, position: c.position || 0
-            }));
-
+            const mappedCategories = (catData || []).map(c => ({ id: c.id, title: c.title, color: c.color, collapsed: c.collapsed, position: c.position || 0 }));
             setBoardData({ categories: mappedCategories, tasks: mappedTasks });
         }
     };
@@ -94,7 +87,6 @@ export default function App() {
     const handleKeyDown = (e) => {
         if (['INPUT', 'TEXTAREA'].includes(e.target.tagName) || e.target.isContentEditable) return;
         if (showAddTaskModal || showRecurringModal || editingTask || editingCategory || confirmDialog) return;
-
         if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); if (canUndo) { undo(); addToast('Đã hoàn tác ↩️'); } }
         if ((e.ctrlKey || e.metaKey) && e.key === 'y') { e.preventDefault(); if (canRedo) { redo(); addToast('Đã làm lại ↪️'); } }
         if (e.key === 'Delete' && selectedTaskId) { e.preventDefault(); handleDeleteTask(selectedTaskId); }
@@ -110,17 +102,12 @@ export default function App() {
           if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
               if (selectedTaskId) {
                   const taskToCopy = tasks.find(t => t.id === selectedTaskId);
-                  if (taskToCopy) { setCopiedTask(taskToCopy); addToast('Đã sao chép công việc 📋', 'info'); navigator.clipboard.writeText(taskToCopy.title).catch(() => {}); }
+                  if (taskToCopy) { setCopiedTask(taskToCopy); addToast('Đã sao chép 📋', 'info'); navigator.clipboard.writeText(taskToCopy.title).catch(() => {}); }
               }
           }
           if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
               if (!hoveredCell) return; 
-              try {
-                  const text = await navigator.clipboard.readText();
-                  if (text && (text.includes('\n') || (copiedTask && text !== copiedTask.title) || !copiedTask)) {
-                      e.preventDefault(); handleBatchPaste(text, hoveredCell); return;
-                  }
-              } catch (err) {}
+              try { const text = await navigator.clipboard.readText(); if (text && (text.includes('\n') || (copiedTask && text !== copiedTask.title) || !copiedTask)) { e.preventDefault(); handleBatchPaste(text, hoveredCell); return; } } catch (err) {}
               if (copiedTask) { e.preventDefault(); handlePasteInternalTask(copiedTask, hoveredCell); }
           }
       };
@@ -130,13 +117,10 @@ export default function App() {
   const handleBatchPaste = async (text, targetCell) => {
       const lines = text.split(/\r?\n/).filter(line => line.trim() !== ''); if (lines.length === 0) return;
       const newTasks = []; const { categoryId, dateStr } = targetCell;
-      lines.forEach((line, index) => {
-          newTasks.push({ id: `paste-${Date.now()}-${index}`, category_id: categoryId, date: dateStr, end_date: dateStr, title: line.trim(), description: '', time: null, is_completed: false, repeat: 'none', series_id: null });
-      });
+      lines.forEach((line, index) => { newTasks.push({ id: `paste-${Date.now()}-${index}`, category_id: categoryId, date: dateStr, end_date: dateStr, title: line.trim(), description: '', time: null, is_completed: false, repeat: 'none', series_id: null }); });
       const mappedNewTasks = newTasks.map(t => ({ ...t, id: t.id, categoryId: t.category_id, endDate: t.end_date, isCompleted: t.is_completed, seriesId: t.series_id }));
       setBoardData(prev => ({ ...prev, tasks: [...prev.tasks, ...mappedNewTasks] }));
-      const { error } = await supabase.from('tasks').insert(newTasks);
-      if (error) { console.error(error); addToast('Lỗi dán dữ liệu', 'error'); } else { addToast(`Đã dán ${lines.length} công việc mới`, 'success'); }
+      await supabase.from('tasks').insert(newTasks); addToast(`Đã dán ${lines.length} công việc`, 'success');
   };
 
   const handlePasteInternalTask = async (originalTask, targetCell) => {
@@ -257,9 +241,8 @@ export default function App() {
           finalUpdatedTask.seriesId = null;
           setBoardData(prev => ({ ...prev, tasks: prev.tasks.map(t => t.id === finalUpdatedTask.id ? finalUpdatedTask : t) }));
           const dbPayload = { title: finalUpdatedTask.title || '', description: finalUpdatedTask.description || null, date: finalUpdatedTask.date, end_date: finalUpdatedTask.endDate || finalUpdatedTask.date, time: finalUpdatedTask.time || null, is_completed: Boolean(finalUpdatedTask.isCompleted), repeat: finalUpdatedTask.repeat || 'none', category_id: finalUpdatedTask.categoryId, series_id: null };
-          const { error } = await supabase.from('tasks').update(dbPayload).eq('id', finalUpdatedTask.id);
-          if (error) { addToast(`Lỗi: ${error.message}`, 'error'); } else { addToast('Đã cập nhật (Tách riêng)', 'success'); }
-      
+          await supabase.from('tasks').update(dbPayload).eq('id', finalUpdatedTask.id);
+          addToast('Đã cập nhật (Tách riêng)', 'success');
       } else if (mode === 'future') {
           const isStoppingRepeat = finalUpdatedTask.repeat === 'none'; 
           const newSeriesId = isStoppingRepeat ? null : (originalTask.seriesId || `series-${Date.now()}`);
@@ -281,17 +264,10 @@ export default function App() {
           
           try {
               if (originalTask.seriesId) { 
-                  if (isStoppingRepeat) {
-                      const { error: delError } = await supabase.from('tasks').delete().eq('series_id', originalTask.seriesId).neq('id', finalUpdatedTask.id);
-                      if (delError) throw delError;
-                  } else {
-                      const { error: delError } = await supabase.from('tasks').delete().eq('series_id', originalTask.seriesId).gt('date', originalTask.date);
-                      if (delError) throw delError;
-                  }
+                  if (isStoppingRepeat) { await supabase.from('tasks').delete().eq('series_id', originalTask.seriesId).neq('id', finalUpdatedTask.id); } 
+                  else { await supabase.from('tasks').delete().eq('series_id', originalTask.seriesId).gt('date', originalTask.date); }
               }
-              const { error: updError } = await supabase.from('tasks').update(dbPayload).eq('id', finalUpdatedTask.id); 
-              if (updError) throw updError;
-
+              await supabase.from('tasks').update(dbPayload).eq('id', finalUpdatedTask.id); 
               if (!isStoppingRepeat) { await handleGenerateRepeats(finalUpdatedTask, finalUpdatedTask.repeat); } 
               else { addToast('Đã hủy lặp lại & xoá sạch', 'success'); }
           } catch (err) { addToast(`Lỗi DB: ${err.message}`, 'error'); }
@@ -312,34 +288,30 @@ export default function App() {
       try {
           if (newCategoryObj) await supabase.from('categories').insert([newCategoryObj]);
           const dbTask = { id: newId, category_id: finalCategoryId, date: date, end_date: date, title: title || '', description: null, time: null, is_completed: false, repeat: 'none', series_id: null };
-          const { error } = await supabase.from('tasks').insert([dbTask]); if (error) throw error;
-      } catch (error) {
-          setBoardData(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== newId), categories: newCategoryObj ? prev.categories.filter(c => c.id !== newCategoryObj.id) : prev.categories })); addToast(`Lỗi lưu: ${error.message}`, 'error');
-      }
+          await supabase.from('tasks').insert([dbTask]);
+      } catch (error) { addToast(`Lỗi lưu: ${error.message}`, 'error'); }
   };
 
   const handleDeleteTask = async (taskId) => { 
       const originalTasks = [...tasks]; setBoardData(prev => ({ ...prev, tasks: prev.tasks.filter(t => t.id !== taskId) })); setEditingTask(null); addToast('Đã xóa công việc 🗑️');
       const { error } = await supabase.from('tasks').delete().eq('id', taskId);
-      if (error) { setBoardData(prev => ({ ...prev, tasks: originalTasks })); addToast(`Lỗi xóa: ${error.message}`, 'error'); }
+      if (error) { setBoardData(prev => ({ ...prev, tasks: originalTasks })); addToast('Lỗi', 'error'); }
   };
 
   const handleSaveCategory = async () => {
     if (newCategoryName && newCategoryName.trim()) {
         const newCat = { id: `cat-${Date.now()}`, title: newCategoryName.trim(), color: COLORS[Math.floor(Math.random() * COLORS.length)], collapsed: false, position: categories.length };
         setBoardData(prev => ({ ...prev, categories: [...prev.categories, newCat] })); setNewCategoryName(''); setIsCreatingCategory(false); addToast('Đã thêm hạng mục', 'success');
-        const { error } = await supabase.from('categories').insert([newCat]);
-        if (error) { setBoardData(prev => ({ ...prev, categories: prev.categories.filter(c => c.id !== newCat.id) })); addToast('Lỗi server', 'error'); }
+        await supabase.from('categories').insert([newCat]);
     }
   };
 
   const handleDeleteCategory = (catId) => { 
-        const category = categories.find(c => c.id === catId); const title = category ? category.title : 'hạng mục này';
         setConfirmDialog({
             title: "Xóa hạng mục?", message: `Tất cả công việc nằm trong hạng mục này cũng sẽ bị xóa vĩnh viễn!`, confirmLabel: "Xóa vĩnh viễn", isDangerous: true,
             onConfirm: async () => {
                 const originalData = { ...boardData }; setBoardData(prev => ({ tasks: prev.tasks.filter(t => t.categoryId !== catId), categories: prev.categories.filter(c => c.id !== catId) })); setEditingCategory(null); setConfirmDialog(null); addToast('Đã xóa hạng mục');
-                const { error } = await supabase.from('categories').delete().eq('id', catId); if (error) { setBoardData(originalData); addToast(`Lỗi: ${error.message}`, 'error'); }
+                const { error } = await supabase.from('categories').delete().eq('id', catId); if (error) { setBoardData(originalData); addToast('Lỗi', 'error'); }
             }
         });
   };
@@ -352,32 +324,57 @@ export default function App() {
   const handleCategoryDrop = async (e, dropIndex) => {
       e.preventDefault(); if (draggedCategoryIndex === null || draggedCategoryIndex === dropIndex) return;
       const newCategories = [...categories]; const [movedCategory] = newCategories.splice(draggedCategoryIndex, 1); newCategories.splice(dropIndex, 0, movedCategory);
-      const orderedCategories = newCategories.map((cat, index) => ({ ...cat, position: index })); setBoardData(prev => ({ ...prev, categories: orderedCategories })); setDraggedCategoryIndex(null); addToast('Đã sắp xếp lại thứ tự hạng mục', 'success');
+      const orderedCategories = newCategories.map((cat, index) => ({ ...cat, position: index })); setBoardData(prev => ({ ...prev, categories: orderedCategories })); setDraggedCategoryIndex(null); addToast('Đã sắp xếp lại', 'success');
       const updates = orderedCategories.map(c => ({ id: c.id, title: c.title, color: c.color, collapsed: c.collapsed, position: c.position })); await supabase.from('categories').upsert(updates);
   };
 
   const startResizingSidebar = (e) => { e.preventDefault(); const startX = e.clientX; const startWidth = sidebarWidth; const onMouseMove = (ev) => setSidebarWidth(Math.max(150, Math.min(500, startWidth + (ev.clientX - startX)))); const onMouseUp = () => { document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); }; document.addEventListener('mousemove', onMouseMove); document.addEventListener('mouseup', onMouseUp); };
   
-  const handleDragStart = (e, task) => { e.stopPropagation(); setDraggedTask(task); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', JSON.stringify(task)); setTimeout(() => { if (e.target) { e.target.style.opacity = '0.4'; e.target.style.transform = 'scale(0.95)'; e.target.style.filter = 'grayscale(0.5)'; } }, 0); };
+  // --- NÂNG CẤP KÉO THẢ TỪ BẤT KỲ ĐÂU ---
+  const handleDragStart = (e, task) => { 
+      e.stopPropagation(); 
+      setDraggedTask(task); 
+      
+      // Bắt tọa độ chuột để biết user nắm ở đoạn nào của thẻ (Chỉ tính cho thẻ multi-day)
+      if (isMultiDayFeatureEnabled && task.endDate) {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const offsetX = e.clientX - rect.left;
+          const maxDuration = Math.round((new Date(task.endDate) - new Date(task.date)) / 86400000) + 1;
+          let offsetDays = Math.floor(offsetX / dayWidth);
+          offsetDays = Math.max(0, Math.min(offsetDays, maxDuration - 1));
+          setDraggedTaskOffset(offsetDays);
+      } else {
+          setDraggedTaskOffset(0);
+      }
+
+      e.dataTransfer.effectAllowed = 'move'; 
+      e.dataTransfer.setData('text/plain', JSON.stringify(task)); 
+      setTimeout(() => { if (e.target) { e.target.style.opacity = '0.4'; e.target.style.transform = 'scale(0.95)'; e.target.style.filter = 'grayscale(0.5)'; } }, 0); 
+  };
   const handleDragEnd = (e) => { if (e.target) { e.target.style.opacity = '1'; e.target.style.transform = 'none'; e.target.style.filter = 'none'; } setDraggedTask(null); };
   const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
   
-  // TÍNH TOÁN LẠI ĐỘ DÀI KHI KÉO THẢ
   const handleDrop = (e, targetCategoryId, dateStr) => { 
       e.preventDefault();
       if (draggedTask) { const draggedEl = document.querySelector(`[draggable="true"][style*="opacity: 0.4"]`); if (draggedEl) { draggedEl.style.opacity = '1'; draggedEl.style.transform = 'none'; draggedEl.style.filter = 'none'; } }
       if (!draggedTask) return; 
+      
       const finalCategoryId = targetCategoryId || draggedTask.categoryId;
       
+      // TRẢ MỌI THỨ VỀ ĐÚNG VỊ TRÍ (Giữ nguyên form khi kéo)
+      const dropDate = new Date(dateStr);
+      dropDate.setDate(dropDate.getDate() - draggedTaskOffset);
+
       const oldStart = new Date(draggedTask.date);
       const oldEnd = new Date(draggedTask.endDate || draggedTask.date);
       const duration = Math.round((oldEnd - oldStart) / 86400000);
-      const newStart = new Date(dateStr);
-      const newEnd = new Date(newStart);
+
+      const newEnd = new Date(dropDate);
       newEnd.setDate(newEnd.getDate() + duration);
 
-      handleUpdateTask({ ...draggedTask, categoryId: finalCategoryId, date: dateStr, endDate: formatDateKey(newEnd) });
+      handleUpdateTask({ ...draggedTask, categoryId: finalCategoryId, date: formatDateKey(dropDate), endDate: formatDateKey(newEnd) });
       setDraggedTask(null); 
+      setDraggedTaskOffset(0); // Reset
   };
 
   const handleConfirmQuickAdd = (title) => { if (!title || !title.trim()) { setQuickAddCell(null); return; } handleSaveNewTask({ title: title.trim(), date: quickAddCell.dateStr, categoryId: quickAddCell.categoryId }); setQuickAddCell(null); };

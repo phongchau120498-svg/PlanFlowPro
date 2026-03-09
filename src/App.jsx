@@ -503,7 +503,7 @@ export default function App() {
           case 'DELETE': handleDeleteTask(task.id); break;
           case 'TOGGLE_COMPLETE': handleUpdateTask({ ...task, isCompleted: !task.isCompleted }); break;
           case 'DUPLICATE': { const newTask = { ...task, id: `dup-${Date.now()}`, title: `${task.title} (Sao chép)`, seriesId: null, repeat: 'none' }; await handleSaveNewTask({ title: newTask.title, date: newTask.date, categoryId: newTask.categoryId }); break; }
-          case 'MOVE_TODAY': { const todayStr = formatDateKey(new Date()); handleUpdateTask({ ...task, date: todayStr }); addToast('Đã dời sang hôm nay 📅', 'success'); break; }
+          case 'MOVE_TODAY': { const todayStr = formatDateKey(new Date()); handleUpdateTask({ ...task, date: todayStr, endDate: todayStr }); addToast('Đã dời sang hôm nay 📅', 'success'); break; }
           default: break;
       }
   };

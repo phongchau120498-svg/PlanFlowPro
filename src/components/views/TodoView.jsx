@@ -56,7 +56,7 @@ export default function TodoView({ tasks, categories, onUpdateTask, setEditingTa
   }, [dailyTasks, categories]);
 
   const handleToggleComplete = (task) => { onUpdateTask({ ...task, isCompleted: !task.isCompleted }); };
-  const handleMoveToToday = (e, task) => { e.stopPropagation(); onUpdateTask({ ...task, date: todayKey }); };
+  const handleMoveToToday = (e, task) => { e.stopPropagation(); onUpdateTask({ ...task, date: todayKey, endDate: todayKey }); };
 
   const TaskGroup = ({ tasks, categoryInfo }) => {
     if (!tasks || tasks.length === 0) return null;

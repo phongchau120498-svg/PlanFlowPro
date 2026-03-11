@@ -623,8 +623,14 @@ export default function App() {
                         }
 
                         return (
-                            <div key={`${category.id}-${dateStr}`} style={{ width: dayWidth, minWidth: dayWidth }} className={`flex-shrink-0 min-h-[120px] p-2 transition-all duration-300 group/cell relative ${isToday ? 'bg-indigo-50/40' : (isWeekend ? 'bg-slate-50/30' : 'bg-transparent')} hover:bg-gray-50/80 cursor-pointer`} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, category.id, dateStr)} onDoubleClick={(e) => { handleOpenAddTask({ date: dateStr, categoryId: category.id }); }}>
-                                <div className="flex flex-col gap-2 h-full relative">
+<div key={`${category.id}-${dateStr}`} style={{ width: dayWidth, minWidth: dayWidth }} className={`flex-shrink-0 min-h-[120px] p-2 transition-all duration-300 group/cell relative ${isToday ? 'bg-indigo-50/40' : (isWeekend ? 'bg-slate-50/30' : 'bg-transparent')} hover:bg-gray-50/80 cursor-pointer`} 
+    onDragOver={handleDragOver} 
+    onDrop={(e) => handleDrop(e, category.id, dateStr)} 
+    onDoubleClick={(e) => { handleOpenAddTask({ date: dateStr, categoryId: category.id }); }}
+    onMouseEnter={() => setHoveredCell({ categoryId: category.id, dateStr })}
+    onMouseLeave={() => setHoveredCell(null)}
+>
+                                    <div className="flex flex-col gap-2 h-full relative">
                                     {renderItems.map((item, idx) => {
                                         if (item.type === 'task') {
                                             return (

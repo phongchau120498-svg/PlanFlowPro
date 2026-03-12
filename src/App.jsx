@@ -90,8 +90,8 @@ export default function App() {
       const id = Date.now(); setToasts(prev => [...prev, { id, message, type }]); setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
   };
 
-  // 1. Hàm lấy dữ liệu dùng chung (Tách ra để tái sử dụng)
-  const fetchBoardData = useCallback(async () => {
+ // 1. Hàm lấy dữ liệu (Bỏ useCallback để hàm không bị dính dependency gây re-render)
+  const fetchBoardData = async () => {
       const { data: catData, error: catError } = await supabase.from('categories').select('*').order('position', { ascending: true });
       const { data: taskData, error: taskError } = await supabase.from('tasks').select('*');
 
@@ -103,12 +103,13 @@ export default function App() {
           const mappedCategories = (catData || []).map(c => ({ id: c.id, title: c.title, color: c.color, collapsed: c.collapsed, position: c.position || 0 }));
           setBoardData({ categories: mappedCategories, tasks: mappedTasks });
       }
-  }, [setBoardData]);
+  };
 
-  // 2. Gọi dữ liệu lần đầu tiên khi anh mở app lên
+  // 2. Gọi dữ liệu lần đầu tiên (Chỉ chạy đúng 1 lần khi load app)
   useEffect(() => {
       fetchBoardData();
-  }, [fetchBoardData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // 3. Tự động kiểm tra qua ngày và đồng bộ dữ liệu khi anh vào lại tab
   useEffect(() => {
@@ -131,7 +132,8 @@ export default function App() {
 
       document.addEventListener('visibilitychange', handleVisibilityChange);
       return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [fetchBoardData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const handleKeyDown = (e) => {

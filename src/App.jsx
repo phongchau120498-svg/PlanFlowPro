@@ -90,22 +90,48 @@ export default function App() {
       const id = Date.now(); setToasts(prev => [...prev, { id, message, type }]); setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-        const { data: catData, error: catError } = await supabase.from('categories').select('*').order('position', { ascending: true });
-        const { data: taskData, error: taskError } = await supabase.from('tasks').select('*');
+  // 1. Hàm lấy dữ liệu dùng chung (Tách ra để tái sử dụng)
+  const fetchBoardData = useCallback(async () => {
+      const { data: catData, error: catError } = await supabase.from('categories').select('*').order('position', { ascending: true });
+      const { data: taskData, error: taskError } = await supabase.from('tasks').select('*');
 
-        if (catError || taskError) { addToast('Lỗi tải dữ liệu', 'error'); } 
-        else {
-            const mappedTasks = (taskData || []).map(t => ({
-                id: t.id, title: t.title, description: t.description, date: t.date, endDate: t.end_date || t.date, time: t.time, isCompleted: t.is_completed, categoryId: t.category_id, repeat: t.repeat, seriesId: t.series_id
-            }));
-            const mappedCategories = (catData || []).map(c => ({ id: c.id, title: c.title, color: c.color, collapsed: c.collapsed, position: c.position || 0 }));
-            setBoardData({ categories: mappedCategories, tasks: mappedTasks });
-        }
-    };
-    fetchData();
-  }, []);
+      if (catError || taskError) { addToast('Lỗi tải dữ liệu', 'error'); } 
+      else {
+          const mappedTasks = (taskData || []).map(t => ({
+              id: t.id, title: t.title, description: t.description, date: t.date, endDate: t.end_date || t.date, time: t.time, isCompleted: t.is_completed, categoryId: t.category_id, repeat: t.repeat, seriesId: t.series_id
+          }));
+          const mappedCategories = (catData || []).map(c => ({ id: c.id, title: c.title, color: c.color, collapsed: c.collapsed, position: c.position || 0 }));
+          setBoardData({ categories: mappedCategories, tasks: mappedTasks });
+      }
+  }, [setBoardData]);
+
+  // 2. Gọi dữ liệu lần đầu tiên khi anh mở app lên
+  useEffect(() => {
+      fetchBoardData();
+  }, [fetchBoardData]);
+
+  // 3. Tự động kiểm tra qua ngày và đồng bộ dữ liệu khi anh vào lại tab
+  useEffect(() => {
+      const handleVisibilityChange = () => {
+          if (document.visibilityState === 'visible') {
+              const now = new Date();
+              
+              // Nếu qua ngày mới, tự động cập nhật lại ngày cho hệ thống
+              setCurrentDate(prevDate => {
+                  if (formatDateKey(now) !== formatDateKey(prevDate)) {
+                      return now;
+                  }
+                  return prevDate;
+              });
+              
+              // Tự động gọi lại Supabase để kéo công việc mới nhất về
+              fetchBoardData();
+          }
+      };
+
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+      return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [fetchBoardData]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {

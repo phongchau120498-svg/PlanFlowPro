@@ -4,7 +4,32 @@ import { formatDateKey, getDayName } from '../../utils/dateHelpers.js';
 
 export default function TodoView({ tasks, categories, onUpdateTask, setEditingTask, onDeleteTask, onOpenAddTask, searchQuery }) {
   const [today, setToday] = useState(new Date());
-  useEffect(() => { setToday(new Date()); }, []);
+  
+  useEffect(() => {
+    // Hàm kiểm tra nếu đã qua ngày mới thì cập nhật state
+    const checkNewDay = () => {
+        const now = new Date();
+        if (formatDateKey(now) !== formatDateKey(today)) {
+            setToday(now);
+        }
+    };
+
+    // Khi người dùng quay lại tab (hoặc bật màn hình máy tính lên)
+    const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') checkNewDay();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Đặt thêm một bộ đếm ngầm kiểm tra mỗi 1 phút (phòng trường hợp anh treo luôn máy không tắt màn hình)
+    const intervalId = setInterval(checkNewDay, 60000);
+
+    return () => {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        clearInterval(intervalId);
+    };
+  }, [today]);
+
   const todayKey = useMemo(() => formatDateKey(today), [today]);
   
   useEffect(() => {

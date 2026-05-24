@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SỔ TAY KHAI THÁC PLANFLOWPRO - BỘ NÃO THỨ 2 & TRỢ LÝ AI</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+        :root {
+            --primary: #000000;
+            --bg: #ffffff;
+            --text: #1a1a1c;
+            --highlight: #E5FE40;
+            --dimmed: #888888;
+            --border: #eeeeee;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            color: var(--text);
+            background-color: var(--bg);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1, h2, h3, h4 {
+            color: var(--primary);
+            letter-spacing: -0.03em;
+            margin: 0;
+        }
+
+        @page { size: A4; margin: 2cm; }
+        .page-break { page-break-before: always; }
+
+        .highlight {
+            background-color: var(--highlight);
+            color: var(--primary);
+            padding: 0 0.2em;
+            display: inline-block;
+            transform: skewX(-3deg);
+        }
+
+        /* Cover Page */
+        .cover {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background-color: var(--primary);
+            color: white;
+            padding: 6rem 1.5rem;
+            min-height: 90vh;
+            page-break-after: always;
+            position: relative;
+            overflow: hidden;
+            border: 12px solid var(--primary);
+            margin: 1rem;
+        }
+
+        .cover h1 {
+            font-size: clamp(3rem, 6vw, 4.5rem);
+            font-weight: 900;
+            line-height: 0.95;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+            color: white;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: #cccccc;
+            max-width: 600px;
+            margin-top: 2rem;
+            line-height: 1.5;
+        }
+
+        /* Content Layout */
+        .content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 4rem 1.5rem;
+        }
+
+        /* Typography */
+        h2.chapter-title {
+            font-size: 2.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            border-top: 4px solid var(--primary);
+            padding-top: 1rem;
+            margin-top: 4rem;
+            margin-bottom: 2rem;
+            line-height: 1.1;
+        }
+
+        h3 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            display: inline-block;
+            background: var(--highlight);
+            padding: 0.2rem 0.5rem;
+            color: var(--primary);
+            transform: rotate(-1deg);
+        }
+
+        p {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            color: #333;
+        }
+
+        /* UI Elements */
+        .toc-box {
+            background-color: var(--bg);
+            border: 4px solid var(--primary);
+            padding: 2.5rem;
+            border-radius: 16px;
+            margin-bottom: 3rem;
+            box-shadow: 8px 8px 0px var(--primary);
+        }
+        .toc-box h3 { margin-top: 0; transform: none; background: transparent; padding: 0; font-size: 1.8rem; border-bottom: 4px solid var(--primary); padding-bottom: 10px; margin-bottom: 20px;}
+        .toc-box ul { list-style-type: none; padding-left: 0; }
+        .toc-box li { margin-bottom: 12px; font-weight: 700; font-size: 1.1rem; }
+
+        .callout {
+            background-color: #fafafa;
+            border: 3px solid var(--primary);
+            padding: 1.5rem 2rem;
+            margin: 2rem 0;
+            border-radius: 12px;
+            font-weight: 500;
+            box-shadow: 4px 4px 0px var(--dimmed);
+        }
+
+        .pro-tip {
+            background-color: var(--primary);
+            color: white;
+            padding: 2rem;
+            border-radius: 16px;
+            margin: 3rem 0;
+            position: relative;
+        }
+        .pro-tip strong { color: var(--highlight); display: block; margin-bottom: 1rem; text-transform: uppercase; font-size: 1.1rem; letter-spacing: 1px;}
+        .pro-tip p { color: #ccc; font-size: 1rem; margin-bottom: 0; }
+
+        code {
+            background-color: #f1f1f1;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 0.9em;
+            font-weight: bold;
+            color: #d926a9;
+            border: 1px solid #ccc;
+        }
+
+        ul, ol { margin-bottom: 1.5rem; padding-left: 1.5rem; font-size: 1.1rem; }
+        li { margin-bottom: 0.8rem; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Bìa sách -->
+    <div class="cover">
+        <div class="badge">TÀI LIỆU HƯỚNG DẪN ĐỘC QUYỀN</div>
+        <h1>SỔ TAY KHAI THÁC<br><span class="highlight" style="color: black;">PLANFLOW PRO</span></h1>
+        <div class="subtitle">Biến phần mềm thành Bộ Não Thứ 2. Làm chủ hệ thống quản lý công việc và khai thác sức mạnh của Trợ lý AI Ngỗng Đại Ca.</div>
+        <div style="margin-top: 4rem; font-size: 0.9rem; letter-spacing: 2px; text-transform: uppercase; color: #888;">Biên soạn bởi: Anh Phong<br>© 2026 - Lưu hành nội bộ</div>
+    </div>
+
+    <div class="content">
+        
+        <h2 class="chapter-title" style="border-top: none; margin-top: 0;">LỜI MỞ ĐẦU</h2>
+        <p>Chào mừng bạn đến với <strong>PlanFlowPro</strong>. Bạn không chỉ mua một phần mềm. Bạn đang sở hữu một hệ sinh thái trọn vẹn gồm 3 yếu tố cốt lõi: <strong>(1) Công cụ quản lý trực quan</strong>, <strong>(2) Nơi lưu trữ bộ não thứ 2</strong>, và <strong>(3) Trợ lý ảo AI đôn đốc kỷ luật</strong>.</p>
+        <p>Cuốn ebook này được thiết kế để giúp bạn đi từ một người mới bắt đầu đến một chuyên gia làm chủ hoàn toàn thời gian của mình. Chúng ta sẽ bỏ qua những lý thuyết sáo rỗng để đi thẳng vào thao tác thực chiến.</p>
+
+        <div class="toc-box">
+            <h3>MỤC LỤC</h3>
+            <ul>
+                <li>0. CHƯƠNG 0: Hướng Dẫn Cài Đặt (Quan Trọng)</li>
+                <li>1. CHƯƠNG 1: Tổng Quan Về Ứng Dụng</li>
+                <li>2. CHƯƠNG 2: Thực Thi SOP 3 Bước Mỗi Sáng</li>
+                <li>3. CHƯƠNG 3: Quản Lý & Theo Dõi Công Việc Hiệu Quả</li>
+                <li>4. CHƯƠNG 4: Nghệ Thuật Làm Việc Cùng Trợ Lý AI "Ngỗng Đại Ca"</li>
+                <li>5. CHƯƠNG 5: Các Phím Tắt & Mẹo (Pro Tips)</li>
+            </ul>
+        </div>
+
+        <div class="page-break"></div>
+
+        <h2 class="chapter-title">CHƯƠNG 0<br><span class="dimmed" style="font-size: 0.5em; display: block; margin-top: 10px;">HƯỚNG DẪN CÀI ĐẶT HỆ THỐNG</span></h2>
+        <p>Trước khi bắt đầu sử dụng, bạn cần cài đặt hệ thống trên máy tính của mình. Ứng dụng này sử dụng cơ sở dữ liệu riêng tư trên <strong>Supabase</strong> để đảm bảo dữ liệu của bạn không ai khác có thể chạm vào.</p>
+        
+        <h3>Bước 1: Tạo Database Supabase</h3>
+        <ol>
+            <li>Truy cập <a href="https://supabase.com" style="color: var(--primary); font-weight: bold;">Supabase.com</a>, đăng ký tài khoản và tạo một Project mới.</li>
+            <li>Đợi project khởi tạo xong (khoảng 1-2 phút). Sau đó vào mục <strong>Project Settings -> API</strong>.</li>
+            <li>Copy 2 thông số rất quan trọng: <strong>Project URL</strong> và <strong>anon / public Key</strong>.</li>
+            <li>Vào mục <strong>SQL Editor</strong> ở menu bên trái. Mở file <code>db_schema.sql</code> (đã được cấp kèm trong bộ source code) bằng Notepad, copy toàn bộ nội dung dán vào SQL Editor và nhấn <strong>RUN</strong>. Chúc mừng, bạn đã tạo xong cấu trúc dữ liệu!</li>
+        </ol>
+
+        <h3>Bước 2: Kết nối Source Code</h3>
+        <ol>
+            <li>Giải nén file <code>PlanFlowPro-Final.zip</code> ra một thư mục trên máy tính.</li>
+            <li>Mở thư mục code bằng phần mềm lập trình (như Visual Studio Code).</li>
+            <li>Tìm file có tên <code>.env.example</code>, đổi tên nó thành <code>.env</code>.</li>
+            <li>Mở file <code>.env</code> và điền các thông tin bạn vừa copy từ Supabase vào:
+                <br>
+                <code>VITE_SUPABASE_URL=dán_URL_của_bạn_vào_đây</code><br>
+                <code>VITE_SUPABASE_ANON_KEY=dán_KEY_của_bạn_vào_đây</code><br>
+                <code>VITE_GEMINI_API_KEY=dán_API_Key_Gemini_của_bạn_vào_đây</code>
+            </li>
+        </ol>
+
+        <h3>Bước 3: Khởi chạy Ứng dụng</h3>
+        <ol>
+            <li>Trong Visual Studio Code, mở Terminal (<code>Ctrl + ~</code>).</li>
+            <li>Gõ lệnh: <code>npm install</code> (đợi tải các thư viện).</li>
+            <li>Gõ lệnh: <code>npm run dev</code> (khởi chạy ứng dụng).</li>
+            <li>Mở trình duyệt truy cập vào đường link <code>http://localhost:5173</code> để bắt đầu sử dụng PlanFlowPro!</li>
+        </ol>
+
+        <div class="pro-tip">
+            <strong>💡 PRO TIP: TRIỂN KHAI LÊN VERCEL</strong>
+            <p>Nếu bạn muốn truy cập PlanFlowPro trên điện thoại mọi lúc mọi nơi thay vì chỉ dùng ở máy tính, bạn có thể tạo tài khoản GitHub, đẩy source code lên đó và kết nối với Vercel.com để triển khai (deploy) ứng dụng hoàn toàn miễn phí.</p>
+        </div>
+
+        <div class="page-break"></div>
+
+        <h2 class="chapter-title">CHƯƠNG 1<br><span class="dimmed" style="font-size: 0.5em; display: block; margin-top: 10px;">TỔNG QUAN VỀ ỨNG DỤNG PLANFLOWPRO</span></h2>
+        <p>Trước khi đi sâu vào chi tiết, bạn cần hiểu rõ cơ chế hoạt động của phần mềm này.</p>
+        
+        <h3>1.1. Cấu trúc Giao diện chính</h3>
+        <p>PlanFlowPro cung cấp cho bạn 2 góc nhìn (Views) để phù hợp với từng nhu cầu:</p>
+        <ul>
+            <li><strong>Chế độ Bảng Ma Trận (Matrix View):</strong> Dành cho cái nhìn tổng quan. Các công việc được phân bổ theo Hạng mục (Dự án) và hiển thị theo các ngày trong tuần. Phù hợp để lên kế hoạch dài hơi.</li>
+            <li><strong>Chế độ Danh sách (List View / Todo View):</strong> Góc nhìn tập trung vào NGÀY HÔM NAY. Nó hiển thị công việc dạng Checklist, giúp bạn tập trung hoàn thành từng mục một mà không bị phân tâm bởi tương lai.</li>
+        </ul>
+
+        <h3>1.2. Tính năng Cốt lõi</h3>
+        <ul>
+            <li>Quản lý Task (Công việc) bằng thao tác Kéo Thả (Drag & Drop).</li>
+            <li>Thiết lập lặp lại (Recurring) hàng ngày, hàng tuần, hàng tháng.</li>
+            <li>Sao chép, dán hàng loạt (Batch Paste) công việc chỉ trong 1 giây.</li>
+            <li>Đồng bộ thời gian thực và tự động lưu trên Supabase.</li>
+        </ul>
+
+        <div class="page-break"></div>
+
+        <h2 class="chapter-title">CHƯƠNG 2<br><span class="dimmed" style="font-size: 0.5em; display: block; margin-top: 10px;">THỰC THI SOP 3 BƯỚC MỖI SÁNG</span></h2>
+        <p>Để phần mềm không trở thành một mớ hỗn độn, bạn <strong style="background: var(--highlight); padding: 0 4px;">BẮT BUỘC</strong> phải tuân thủ kỷ luật thực thi 3 bước sau đây vào mỗi buổi sáng hoặc tối hôm trước. Đừng sáng tạo thêm, chỉ cần làm đúng 3 bước này.</p>
+
+        <h3>Bước 1: Trút sạch (Brain Dump)</h3>
+        <p>Não bộ của chúng ta sinh ra để SÁNG TẠO, không phải để LƯU TRỮ. Hãy "Đổ" toàn bộ suy nghĩ vào phần mềm:</p>
+        <ol>
+            <li>Bấm phím tắt <code>Cmd + K</code> để gọi Ngỗng Đại Ca, hoặc phím <code>N</code> để mở nhanh cửa sổ tạo task.</li>
+            <li>Trút toàn bộ những gì bạn đang nghĩ ra: <em>"Tạo task gửi báo cáo cho sếp lúc 2h chiều. Tạo task mua thức ăn cho chó"</em>. Ngỗng sẽ tự động bóc tách và tạo danh sách.</li>
+            <li>Hoặc dùng tính năng <strong>Paste hàng loạt</strong>: Nếu có sẵn danh sách trên điện thoại, copy và dán thẳng (<code>Ctrl+V</code>) vào một ô ngày.</li>
+        </ol>
+
+        <h3>Bước 2: Ăn con ếch (Eat The Frog)</h3>
+        <p>Đây là nguyên tắc quan trọng nhất. Hãy nhìn vào danh sách vừa tạo. <strong>Chọn ra MỘT việc duy nhất</strong>, khó nhất, chán nhất nhưng mang lại nhiều kết quả nhất. Kéo thả nó lên ĐẦU danh sách của ngày hôm nay.</p>
+        <p>Trọng tâm của bạn không phải là làm 10 việc lặt vặt. Trọng tâm của bạn là "ăn" xong con ếch to nhất này trước khi làm bất cứ việc gì khác.</p>
+
+        <h3>Bước 3: Đóng cửa và Vanish Mode</h3>
+        <p>Bạn đã có danh sách, bạn đã biết con ếch nào cần ăn. Bước cuối cùng: Tắt mọi tab trình duyệt. Đặt điện thoại ở chế độ im lặng. Chỉ để lại màn hình PlanFlowPro ở chế độ <strong>Todo View (Danh sách ngày)</strong>.</p>
+        <p>Làm cho xong việc số 1, đánh dấu hoàn thành (✅), tận hưởng lượng dopamine tiết ra và chuyển sang việc số 2. Nếu lười, Ngỗng Đại Ca sẽ không ngần ngại gửi những lời mỉa mai đến bạn.</p>
+
+        <div class="callout">
+            <strong>💡 Ghi chú chi tiết:</strong>
+            Đừng chỉ ghi tên Task là "Họp". Hãy bấm vào task đó, mở phần <strong>Mô tả (Description)</strong> và dán toàn bộ đường link Zoom, tài liệu đính kèm, nội dung cần nói vào đó. Khi đến giờ, mọi thứ đã sẵn sàng tại một nơi.
+        </div>
+
+        <div class="page-break"></div>
+
+        <h2 class="chapter-title">CHƯƠNG 3<br><span class="dimmed" style="font-size: 0.5em; display: block; margin-top: 10px;">QUẢN LÝ & THEO DÕI CÔNG VIỆC HIỆU QUẢ</span></h2>
+
+        <h3>3.1. Nghệ thuật Kéo Thả (Drag & Drop)</h3>
+        <p>Bạn không làm kịp việc của ngày hôm nay? Không sao cả. Thay vì để nó tồn đọng và gây áp lực tâm lý, hãy nắm lấy Task đó, <strong>Kéo và Thả</strong> sang cột của ngày mai, hoặc kéo thả sang một Hạng mục khác phù hợp hơn.</p>
+        
+        <h3>3.2. Công việc kéo dài nhiều ngày (Multi-day Tasks)</h3>
+        <p>Với các công việc mang tính dự án (Ví dụ: "Viết bài báo" kéo dài 3 ngày), bạn không cần tạo 3 task rời rạc. Chỉ cần bấm vào Task, chọn ngày kết thúc (End Date). Task đó sẽ tự động hiển thị dàn trải ngang qua nhiều ngày trên giao diện Ma trận.</p>
+
+        <h3>3.3. Tự động hóa với Task Lặp Lại (Recurring Tasks)</h3>
+        <p>Đừng bao giờ phải tạo lại một task mà bạn làm hàng ngày. Trong chi tiết công việc, hãy tìm mục <strong>"Lặp lại"</strong>.</p>
+        <ul>
+            <li><strong>Hàng ngày:</strong> Tập thể dục, Uống nước, Đọc 10 trang sách.</li>
+            <li><strong>Hàng tuần:</strong> Viết báo cáo tuần vào Thứ 6, Đi siêu thị vào Chủ nhật.</li>
+            <li><strong>Hàng tháng:</strong> Đóng tiền điện, Review tài chính cá nhân.</li>
+        </ul>
+        <p>Hệ thống sẽ tự động sinh ra chuỗi các công việc tiếp nối trong tương lai. Bạn sửa một cái, hệ thống sẽ hỏi bạn muốn sửa riêng nó hay sửa toàn bộ chuỗi.</p>
+
+        <div class="page-break"></div>
+
+        <h2 class="chapter-title">CHƯƠNG 4<br><span class="dimmed" style="font-size: 0.5em; display: block; margin-top: 10px;">LÀM VIỆC CÙNG TRỢ LÝ AI "NGỖNG ĐẠI CA"</span></h2>
+        <p>Đây là điểm tạo nên sự khác biệt hoàn toàn của PlanFlowPro. Chúng tôi tích hợp AI không phải để bạn hỏi "Hôm nay thời tiết thế nào?". Trợ lý AI ở đây được huấn luyện với tính cách đặc biệt: <strong>Ngỗng Đại Ca</strong>.</p>
+        
+        <h3>4.1. Ngỗng Đại Ca là ai?</h3>
+        <p>Đây là một gã giang hồ, xéo xắt, không bao giờ nói lời hoa mỹ. Sứ mệnh của hắn là đôn đốc, dùng áp lực và mỉa mai để ép bạn phải kỷ luật. Hắn đóng vai trò như một người quản đốc khắt khe, không chấp nhận sự ngụy biện.</p>
+
+        <h3>4.2. Cách gọi Ngỗng Đại Ca</h3>
+        <p>Trên giao diện App, bạn hãy bấm vào Icon con Ngỗng, hoặc dùng phím tắt <strong><code>Cmd + K</code></strong> (Mac) / <strong><code>Ctrl + K</code></strong> (Windows) để bật khung Chat.</p>
+
+        <h3>4.3. Cách giao việc cho AI (Giao diện Vibe Coding)</h3>
+        <p>Hãy ra lệnh cho AI thay vì thao tác bằng tay. Hãy nhập vào khung chat theo ngôn ngữ tự nhiên, Ngỗng Đại Ca sẽ tự động hiểu, trích xuất dữ liệu và tương tác trực tiếp lên giao diện của bạn.</p>
+        
+        <div class="callout" style="background-color: var(--primary); color: white;">
+            <strong style="color: var(--highlight);">VÍ DỤ CÁC CÂU LỆNH NÊN DÙNG:</strong>
+            <ul style="margin-top: 1rem; border: none;">
+                <li>🦆 <em>"Tạo cho tao cái task: Viết kịch bản Tiktok vào thứ 5 tuần này, bỏ vào mục Content"</em></li>
+                <li>🦆 <em>"Xóa giúp cái task Chạy bộ hôm nay đi, lười quá"</em></li>
+                <li>🦆 <em>"Đổi tên cái task số 2 thành 'Đi gặp khách hàng VIP'"</em></li>
+            </ul>
+        </div>
+
+        <p><strong>Lưu ý:</strong> Nếu bạn ra lệnh mập mờ (VD: <em>"Tạo một task mới đi"</em>), Ngỗng Đại Ca sẽ từ chối thao tác và chửi thẳng vào mặt bạn bắt bạn phải cung cấp đủ thông tin (Tên task, ngày tháng). Đó là cách hệ thống ép bạn phải tư duy rõ ràng trước khi hành động.</p>
+
+        <div class="page-break"></div>
+
+        <h2 class="chapter-title">CHƯƠNG 5<br><span class="dimmed" style="font-size: 0.5em; display: block; margin-top: 10px;">CÁC PHÍM TẮT & MẸO (PRO TIPS)</span></h2>
+        <p>Để trở thành một người làm việc với tốc độ "bàn thờ", hãy ghi nhớ các phím tắt sau:</p>
+
+        <ul style="line-height: 2;">
+            <li><code>N</code> : Mở cửa sổ Tạo công việc nhanh ở bất cứ đâu.</li>
+            <li><code>Cmd + Z</code> (Ctrl + Z): Hoàn tác (Undo) nếu bạn lỡ xóa nhầm một task hay kéo sai chỗ.</li>
+            <li><code>Cmd + Y</code> (Ctrl + Y): Làm lại (Redo) thao tác vừa hoàn tác.</li>
+            <li><code>Cmd + C</code> (Ctrl + C): Di chuột vào một task, bấm phím tắt này để copy task đó.</li>
+            <li><code>Cmd + V</code> (Ctrl + V): Rê chuột vào một ô ngày trống, bấm để dán task vừa copy ra. Tuyệt vời để nhân bản công việc.</li>
+            <li><code>Click Chuột Phải</code>: Hiện Menu ngữ cảnh (Context Menu) cho phép bạn Nhân bản, Xóa, Đánh dấu hoàn thành hoặc Dời ngay sang Hôm nay chỉ bằng 1 click.</li>
+            <li><code>Double Click</code> (Nhấp đúp chuột): Nhấp đúp vào tiêu đề của một Hạng mục để đổi màu và đổi tên nhanh.</li>
+        </ul>
+
+        <div class="pro-tip">
+            <strong>💡 PRO TIP TỐI THƯỢNG: VANISH MODE (CHẾ ĐỘ TÀNG HÌNH)</strong>
+            <p>Hãy thử nguyên tắc này: Nhấn vào Chế độ Danh sách (Todo View). Kéo công việc quan trọng nhất lên đầu tiên. Tắt toàn bộ các tab trình duyệt khác, ẩn luôn điện thoại đi. Nhìn thẳng vào cái task đó và làm cho đến khi xong thì tick (✅). Cảm giác dopamin tiết ra khi hoàn thành task bằng PlanFlowPro sẽ khiến bạn nghiện làm việc!</p>
+        </div>
+
+        <div style="text-align: center; margin-top: 5rem; padding: 3rem; background: var(--highlight); border: 4px solid var(--primary); border-radius: 16px; box-shadow: 8px 8px 0px var(--primary);">
+            <h2 style="margin: 0; font-size: 2rem; text-transform: uppercase;">CHÚC BẠN X5 NĂNG SUẤT CÙNG PLANFLOWPRO!</h2>
+            <p style="margin-top: 1rem; font-weight: 700; color: var(--primary);">--- HẾT ---</p>
+        </div>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOP 3 BƯỚC DỌN DẸP NÃO BỘ & X5 NĂNG SUẤT</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+        :root {
+            --primary: #000000;
+            --bg: #ffffff;
+            --text: #1a1a1c;
+            --highlight: #E5FE40;
+            /* Neon Yellow/Green typical in modern SaaS */
+            --dimmed: #888888;
+            --border: #eeeeee;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            color: var(--text);
+            background-color: var(--bg);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            color: var(--primary);
+            letter-spacing: -0.03em;
+            margin: 0;
+        }
+
+        /* Print Specifics */
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+
+        .page-break {
+            page-break-before: always;
+        }
+
+        /* Typography Utilities */
+        .mega-text {
+            font-size: clamp(3.5rem, 8vw, 6rem);
+            font-weight: 900;
+            line-height: 0.95;
+            text-transform: uppercase;
+            margin-bottom: 1.5rem;
+            letter-spacing: -0.04em;
+        }
+
+        .highlight {
+            background-color: var(--highlight);
+            color: var(--primary);
+            padding: 0 0.2em;
+            display: inline-block;
+            transform: skewX(-3deg);
+        }
+
+        .highlight-dark {
+            background-color: var(--primary);
+            color: white;
+            padding: 0 0.2em;
+            display: inline-block;
+        }
+
+        .lead {
+            font-size: 1.5rem;
+            font-weight: 600;
+            line-height: 1.4;
+            letter-spacing: -0.02em;
+            margin-bottom: 2rem;
+            color: var(--primary);
+        }
+
+        .dimmed {
+            color: var(--dimmed);
+            font-weight: 400;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        /* Cover Page */
+        .cover {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background-color: var(--primary);
+            color: white;
+            padding: 6rem 1.5rem;
+            min-height: 90vh;
+            page-break-after: always;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cover::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at center, rgba(229, 254, 64, 0.15) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .cover h1 {
+            color: white;
+            position: relative;
+            z-index: 2;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 100px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 3rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .subtitle {
+            font-size: 1.4rem;
+            font-weight: 500;
+            color: #cccccc;
+            max-width: 600px;
+            margin-top: 2rem;
+            line-height: 1.5;
+        }
+
+        /* Content Pages */
+        .content {
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 4rem 1.5rem;
+        }
+
+        .hero-image {
+            width: 100%;
+            border-radius: 16px;
+            margin-bottom: 3rem;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--border);
+        }
+
+        .chapter-title {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 2rem;
+            border-top: 4px solid var(--primary);
+            padding-top: 2rem;
+            margin-top: 4rem;
+        }
+
+        h3 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            text-transform: uppercase;
+        }
+
+        p {
+            font-size: 1.15rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Impact Boxes */
+        .pain-box {
+            background-color: var(--primary);
+            color: white;
+            padding: 3rem 2.5rem;
+            border-radius: 20px;
+            margin: 3rem 0;
+            transform: rotate(-1deg);
+            box-shadow: 10px 10px 0px var(--highlight);
+        }
+
+        .pain-box h3 {
+            color: var(--highlight);
+            margin-top: 0;
+            font-size: 1.2rem;
+            letter-spacing: 2px;
+        }
+
+        .pain-box .huge-pain {
+            font-size: 1.8rem;
+            font-weight: 800;
+            line-height: 1.3;
+            margin-bottom: 1.5rem;
+            color: white;
+        }
+
+        .pain-box p {
+            color: #dddddd;
+            font-size: 1.1rem;
+        }
+
+        .pain-box strong {
+            color: white;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0 5px;
+        }
+
+        .takeaway-list {
+            margin: 2rem 0;
+            padding-left: 0;
+            list-style: none;
+        }
+
+        .takeaway-list li {
+            position: relative;
+            padding-left: 2rem;
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+            font-weight: 500;
+        }
+
+        .takeaway-list li::before {
+            content: '👉';
+            position: absolute;
+            left: 0;
+            top: 2px;
+        }
+
+        /* Call To Action */
+        .cta-box {
+            background: var(--bg);
+            border: 4px solid var(--primary);
+            padding: 4rem 2rem;
+            border-radius: 24px;
+            margin-top: 6rem;
+            text-align: center;
+            box-shadow: 12px 12px 0px var(--primary);
+            position: relative;
+        }
+
+        .cta-box::before {
+            content: 'FINAL STEP';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 100px;
+            font-weight: 800;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .cta-box h2 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 900;
+            margin-bottom: 1rem;
+            line-height: 1.1;
+        }
+
+        .cta-box p {
+            font-size: 1.2rem;
+            color: #555;
+            max-width: 500px;
+            margin: 0 auto 2.5rem auto;
+            font-weight: 500;
+        }
+
+        .cta-btn {
+            background: var(--primary);
+            color: var(--highlight);
+            padding: 1.2rem 3rem;
+            text-decoration: none;
+            font-weight: 900;
+            border-radius: 100px;
+            font-size: 1.3rem;
+            display: inline-block;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .cta-btn:active {
+            transform: translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .content {
+                padding: 2.5rem 1.2rem;
+            }
+
+            .lead {
+                font-size: 1.3rem;
+            }
+
+            .pain-box {
+                padding: 2rem 1.5rem;
+                transform: none;
+                box-shadow: 6px 6px 0px var(--highlight);
+            }
+
+            .pain-box .huge-pain {
+                font-size: 1.5rem;
+            }
+
+            .cta-box {
+                padding: 3rem 1.2rem;
+                box-shadow: 8px 8px 0px var(--primary);
+            }
+
+            .cta-btn {
+                width: 100%;
+                padding: 1.2rem 1rem;
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Bìa sách -->
+    <div class="cover">
+        <div class="badge">Sổ tay lưu hành nội bộ</div>
+        <h1 class="mega-text">SOP 3 BƯỚC<br><span class="highlight" style="color: black;">DỌN DẸP</span><br>NÃO BỘ</h1>
+        <div class="subtitle">"Đừng dùng AI chỉ để Chat. Ở đây chúng tôi ép bạn dùng AI để đẻ ra kết quả thật."</div>
+    </div>
+
+    <div class="content">
+        <img src="public/shutterstock_1899874207-1.jpg" alt="Làm việc tối ưu" class="hero-image">
+
+        <p class="lead">Bạn lướt mạng mỗi ngày. Bạn nghe người ta chém gió rần rần về Quản lý thời gian, Notion, AI
+            Agent... <span class="dimmed">lùng bùng hết cả lỗ tai.</span></p>
+
+        <p>Cuốn sổ tay này không phải để dạy bạn lý thuyết. Nó lôi những thuật ngữ "ảo ma" xuống đất và <span
+                class="highlight-dark">ép bạn vào khuôn khổ</span>. Kết hợp sức mạnh của một công cụ tinh gọn
+            (PlanFlowPro) và sự tàn nhẫn của Ngỗng Đại Ca (AI Assistant), chúng tôi sẽ tiêu diệt vĩnh viễn căn bệnh lười
+            biếng của bạn.</p>
+
+        <div class="page-break"></div>
+
+        <h2 class="chapter-title">CHƯƠNG 1<br><span class="dimmed"
+                style="font-size: 0.6em; display: block; margin-top: 10px;">NHÌN THẲNG VÀO THỰC TẾ ĐI! TẠI SAO BẠN THẤT
+                BẠI?</span></h2>
+
+        <p>Công việc thì cứ chồng chất, bạn lãng phí thời gian mỗi ngày ngồi nhìn màn hình nhưng rốt cuộc vẫn không làm
+            gì cả. Khi hạ quyết tâm bắt tay vào làm thì ngẩng lên đã hết giờ.</p>
+
+        <p>Bạn tải hàng chục cái Template Notion xịn xò share free trên mạng về máy rồi... để đó cho mạng nhện giăng. Hì
+            hục setup 3 ngày 3 đêm cho đẹp cái Trello, rồi bỏ xó sau đúng 1 tuần.</p>
+
+        <div class="pain-box">
+            <h3>NỖI ĐAU SỰ THẬT:</h3>
+            <p class="huge-pain">Bạn đang sống một cuộc sống <span class="highlight" style="color: black;">KHÔNG CÓ THỜI
+                    GIAN</span> cho bất cứ việc gì.</p>
+            <p>Tối đến người khác đi chơi thư giãn, bạn phải nhốt mình ở nhà để chạy task. <strong>Không phải vì bạn
+                    chăm chỉ hơn người khác!</strong> Mà là vì bạn làm việc quá thiếu tối ưu, nên buổi tối phải tiếp tục
+                gồng gánh đống hỗn độn từ ban ngày.</p>
+        </div>
+
+        <h3 style="margin-top: 4rem;">NHÌN LẠI THỰC TẾ ĐI:</h3>
+        <ul class="takeaway-list">
+            <li><strong>Đốt tiền vô lý:</strong> Bạn đều đặn cúng tiền mua bản Pro mỗi tháng cho các app quản lý hay
+                ChatGPT Plus, nhưng chỉ xài được đúng cái bề nổi. 80% sức mạnh cốt lõi bị bạn vứt xó vì... không biết
+                dùng.</li>
+            <li><strong>Nghiện "Setup" thay vì "Làm":</strong> Bạn tốn 1 tiếng để phân loại màu sắc cho cái task, trong
+                khi đồng nghiệp giải quyết xong cái task đó trong đúng 5 phút.</li>
+            <li><strong>Ảo tưởng về AI:</strong> Hỏi AI mỏi tay mà nó vẫn nhả ra mớ "văn mẫu" vô hồn. Bạn vẫn phải xắn
+                tay áo lên tự sửa lại bằng cơm mất cả buổi.</li>
+        </ul>
+
+        <div class="page-break"></div>
+
+        <h2 class="chapter-title">CHƯƠNG 2<br><span class="dimmed"
+                style="font-size: 0.6em; display: block; margin-top: 10px;">BẠN SẼ BỊ "ÉP" LÀM GÌ MỖI SÁNG? (SOP 3
+                BƯỚC)</span></h2>
+
+        <p class="lead">Công cụ sinh ra để hầu hạ bạn, không phải để bạn hầu hạ nó. Dưới đây là 3 bước bạn <span
+                class="highlight-dark">BỊ ÉP</span> phải làm mỗi sáng với PlanFlowPro:</p>
+
+        <h3>Bước 1: Trút sạch (Brain Dump)</h3>
+        <p>Đừng click chuột mỏi tay nữa. Bấm phím tắt <code>Cmd + K</code> để gọi Ngỗng Đại Ca. Gõ tất cả mớ bòng bong
+            trong đầu bạn: <em>"Tạo task gửi báo cáo cho sếp lúc 2h chiều. Tạo task mua thức ăn cho chó"</em>.</p>
+        <p>Ngỗng sẽ tự động bóc tách và ném vào danh sách. Nhanh, bén ngót, không tốn đến 5 giây.</p>
+
+        <h3>Bước 2: Ăn con ếch (Eat The Frog)</h3>
+        <p>Nhìn vào danh sách vừa tạo. Chọn ra MỘT việc duy nhất, khó nhất, chán nhất. Kéo thả nó lên đầu danh sách.
+            Trọng tâm của ngày hôm nay chỉ là nó.</p>
+
+        <h3>Bước 3: Đóng cửa và Vanish</h3>
+        <p>Tắt mọi tab trình duyệt. Dẹp cái ảo tưởng "đa nhiệm" (multitasking) đi. Chỉ để lại màn hình PlanFlowPro. Làm
+            cho xong, hoặc chuẩn bị tinh thần nghe AI chửi.</p>
+
+        <div class="page-break"></div>
+
+        <h2 class="chapter-title">CHƯƠNG 3<br><span class="dimmed"
+                style="font-size: 0.6em; display: block; margin-top: 10px;">NGHỆ THUẬT LÀM VIỆC CÙNG "NGỖNG ĐẠI
+                CA"</span></h2>
+
+        <p>Đừng mong đợi sự vỗ về ở đây. Ngỗng Đại Ca không phải là con chatbot "dạ vâng ngoan ngoãn" thông thường. Nó
+            là một thực thể AI được tinh chỉnh để tạo ra sự kỷ luật thép.</p>
+
+        <ul class="takeaway-list">
+            <li><strong>Đừng dùng AI để tán gẫu:</strong> Giao việc trực tiếp <em>"Sửa task X thành hoàn thành"</em>.
+                Dùng AI để thao tác lên giao diện (Vibe Coding/Agent UI), không phải để hỏi đáp linh tinh.</li>
+            <li><strong>Sự sòng phẳng & Kỷ luật:</strong> Khi bạn trễ deadline, nó sẽ mỉa mai và tế bạn không trượt phát
+                nào. Kỷ luật thì bạn được x5 hiệu suất. Còn lười thì... bạn sẽ thấy sự kinh khủng của nó.</li>
+        </ul>
+
+        <div class="page-break"></div>
+
+        <div class="author-section" style="margin: 4rem 0 3rem; background: #fafafa; border: 4px solid var(--primary); border-radius: 20px; padding: 3rem 2rem; position: relative; box-shadow: 8px 8px 0px var(--primary);">
+            <div style="position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: var(--highlight); color: var(--primary); padding: 5px 20px; border-radius: 100px; font-weight: 900; font-size: 0.9rem; border: 2px solid var(--primary); letter-spacing: 1px;">NGƯỜI ĐỨNG SAU HỆ THỐNG</div>
+            <div style="display: flex; flex-direction: column; align-items: center; text-align: center;">
+                <div style="width: 120px; height: 120px; border-radius: 50%; border: 4px solid var(--primary); margin-bottom: 1.5rem; display: flex; align-items: center; justify-content: center; box-shadow: 4px 4px 0px #ccc; overflow: hidden; background: #fff;">
+                    <img src="public/avatar-phong.jpg" alt="Châu Thanh Phong" style="width: 100%; height: 100%; object-fit: cover;" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=Châu+Thanh+Phong&background=000&color=E5FE40&size=200&bold=true';">
+                </div>
+                <h3 style="margin: 0; font-size: 2rem; text-transform: uppercase; font-weight: 900; letter-spacing: -1px;">Châu Thanh Phong</h3>
+                <h4 style="margin: 0.5rem 0 1rem; color: var(--text); font-weight: 700; font-size: 1.2rem;">Brand Manager @ Moaw Moaws</h4>
+                <p style="margin-bottom: 1.5rem; font-weight: 500; color: var(--dimmed);">Thương hiệu dầu dưỡng chăm sóc body Top 1 TikTok</p>
+                
+                <ul style="text-align: left; max-width: 600px; margin: 0 auto; list-style-type: none; padding: 0; background: white; padding: 1.5rem; border-radius: 12px; border: 2px dashed #ccc;">
+                    <li style="margin-bottom: 1rem; display: flex; align-items: flex-start;"><span style="color: var(--primary); margin-right: 12px; font-weight: 900;">✓</span> <span style="font-weight: 500; line-height: 1.5;">Kinh nghiệm thực chiến trong việc <strong>training và quản lý nhân sự</strong>, thiết lập quy trình để đội ngũ làm việc tự động hoá.</span></li>
+                    <li style="display: flex; align-items: flex-start;"><span style="color: var(--primary); margin-right: 12px; font-weight: 900;">✓</span> <span style="font-weight: 500; line-height: 1.5;">Chuyên gia <strong>training và tối ưu hiệu suất công việc</strong> (Productivity Optimization) cho các Doanh nghiệp SMEs.</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="trust-section" style="margin-bottom: 5rem; text-align: center;">
+            <h2 style="font-size: 2rem; font-weight: 900; text-transform: uppercase; margin-bottom: 2rem; letter-spacing: -1px;">BẠN KHÔNG CÓ RỦI RO NÀO CẢ</h2>
+            <div style="display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px; padding: 1.5rem; border: 2px solid var(--border); border-radius: 16px; background: white;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🛡️</div>
+                    <h4 style="margin: 0 0 0.5rem; font-weight: 800; font-size: 1.1rem; text-transform: uppercase;">ĐẢM BẢO HIỆU QUẢ</h4>
+                    <p style="font-size: 0.95rem; color: var(--dimmed); margin: 0; font-weight: 500; line-height: 1.5;">Hệ thống đã được kiểm chứng thực tế tại doanh nghiệp. Cam kết x2 năng suất nếu bạn làm đúng SOP.</p>
+                </div>
+                <div style="flex: 1; min-width: 200px; padding: 1.5rem; border: 2px solid var(--border); border-radius: 16px; background: white;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+                    <h4 style="margin: 0 0 0.5rem; font-weight: 800; font-size: 1.1rem; text-transform: uppercase;">BẢO MẬT DỮ LIỆU</h4>
+                    <p style="font-size: 0.95rem; color: var(--dimmed); margin: 0; font-weight: 500; line-height: 1.5;">Mọi công việc, ý tưởng của bạn được lưu trữ an toàn. Không ai khác có thể truy cập.</p>
+                </div>
+                <div style="flex: 1; min-width: 200px; padding: 1.5rem; border: 2px solid var(--border); border-radius: 16px; background: white;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">⚡</div>
+                    <h4 style="margin: 0 0 0.5rem; font-weight: 800; font-size: 1.1rem; text-transform: uppercase;">NHẬN FILE TỨC THÌ</h4>
+                    <p style="font-size: 0.95rem; color: var(--dimmed); margin: 0; font-weight: 500; line-height: 1.5;">Xử lý thanh toán tự động 24/7. Nhận phần mềm qua email ngay lập tức trong 3 giây.</p>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin: 5rem 0 3rem; text-align: center; padding: 0 1rem;">
+            <p style="font-size: 1.8rem; font-weight: 900; line-height: 1.5; color: var(--primary); margin: 0;">
+                Đọc xong rồi để đó thì thà <span class="highlight" style="padding: 0.2rem 0.8rem; background: var(--highlight); display: inline-block; transform: rotate(-2deg);">ĐỪNG ĐỌC NỮA!</span>
+                <br>
+                <span style="font-size: 1.2rem; font-weight: 600; color: #555; display: block; margin-top: 1rem;">Lý thuyết là vô nghĩa nếu thiếu vắng sự thực thi. Đã đến lúc trang bị vũ khí và bắt đầu <span style="border-bottom: 3px solid var(--primary); color: var(--primary);">KỶ LUẬT NGAY BÂY GIỜ</span> 👇</span>
+            </p>
+        </div>
+
+        <div class="pain-box" style="margin-bottom: 4rem; background-color: var(--primary); color: white; border-radius: 20px; padding: 2.5rem; position: relative;">
+            <div style="position: absolute; top: -15px; left: 20px; background: var(--highlight); color: var(--primary); padding: 5px 15px; border-radius: 100px; font-weight: 900; font-size: 0.9rem; border: 2px solid var(--primary); letter-spacing: 1px;">THÔNG TIN SẢN PHẨM</div>
+            
+            <h2 style="color: white; margin-top: 0.5rem; font-size: 2.4rem; margin-bottom: 0.5rem; letter-spacing: -1px;">PlanFlowPro <span style="font-size: 1.1rem; background: var(--highlight); color: var(--primary); padding: 4px 10px; border-radius: 8px; vertical-align: middle; margin-left: 10px; font-weight: 800; letter-spacing: 0;">TRỌN ĐỜI</span></h2>
+            <p style="font-size: 1.1rem; color: #ccc; margin-bottom: 1.5rem; line-height: 1.5; font-weight: 500;">Hệ thống "kỷ luật thép" làm bộ não thứ 2 giúp bạn X5 hiệu suất và lấy lại những buổi tối tự do.</p>
+            
+            <div style="font-size: 3rem; font-weight: 900; color: var(--highlight); margin-bottom: 2rem; border-bottom: 2px dashed #444; padding-bottom: 1rem;">179.000₫</div>
+            
+            <div style="margin-bottom: 2rem;">
+                <p style="font-weight: 900; font-size: 1.1rem; margin-bottom: 1rem; color: var(--highlight); text-transform: uppercase; letter-spacing: 1px;">👉 BẠN SẼ NHẬN ĐƯỢC:</p>
+                <ul style="list-style: none; padding-left: 0; margin: 0; line-height: 1.8; font-size: 1.05rem;">
+                    <li style="margin-bottom: 0.8rem; display: flex; align-items: flex-start;"><span style="color: var(--highlight); margin-right: 12px; font-weight: 900;">✔</span> <span><strong>App quản lý công việc và thói quen</strong> hoàn chỉnh (Mã nguồn & File chạy).</span></li>
+                    <li style="margin-bottom: 0.8rem; display: flex; align-items: flex-start;"><span style="color: var(--highlight); margin-right: 12px; font-weight: 900;">✔</span> <span><strong>Trợ lý AI "Ngỗng Đại Ca"</strong> siêu gắt gao giám sát deadline và hành vi.</span></li>
+                    <li style="margin-bottom: 0.8rem; display: flex; align-items: flex-start;"><span style="color: var(--highlight); margin-right: 12px; font-weight: 900;">✔</span> <span><strong>Ebook SOP Hướng dẫn sử dụng</strong> bí quyết làm việc hiệu quả 4 giờ/ngày.</span></li>
+                </ul>
+            </div>
+            
+            <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 12px; border-left: 4px solid var(--highlight);">
+                <p style="margin: 0; font-size: 1rem; line-height: 1.6; color: #eee;"><strong>🎯 Dành cho ai:</strong> Những người làm việc tự do, dân văn phòng đang bị ngập trong task, hay trì hoãn, dễ xao nhãng và cần một hệ thống quản lý có sự chấn chỉnh nghiêm khắc để hoàn thành mục tiêu.</p>
+            </div>
+        </div>
+
+        <div class="cta-box">
+            <h2>SẴN SÀNG LẤY LẠI<br><span class="highlight">BUỔI TỐI</span> CỦA BẠN?</h2>
+            <p>PlanFlowPro không bán cho bạn thêm một "công cụ trống rỗng" nào nữa. Chúng tôi bán cho bạn <strong>Sự Kỷ
+                    Luật</strong> và <strong>Kết Quả Thực Tế</strong>.</p>
+            <a href="checkout.html" class="cta-btn">👉 ĐĂNG KÝ MUA NGAY</a>
+        </div>
+
+        <div style="text-align: center; margin-top: 4rem; color: #888; font-size: 0.9rem; font-weight: 500;">
+            © 2026 PlanFlowPro
+        </div>
+    </div>
+
+</body>
+
+</html>

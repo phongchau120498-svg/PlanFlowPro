@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thanh toán | PlanFlowPro</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&display=swap');
+
+        :root {
+            --primary: #000000;
+            --bg: #ffffff;
+            --text: #1a1a1c;
+            --highlight: #E5FE40;
+            --dimmed: #888888;
+            --border: #eeeeee;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            color: var(--text);
+            background-color: var(--bg);
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            padding: 2rem;
+        }
+
+        .cta-box {
+            background: var(--bg);
+            border: 4px solid var(--primary);
+            padding: 3rem 2rem;
+            border-radius: 24px;
+            box-shadow: 10px 10px 0px var(--primary);
+            position: relative;
+        }
+
+        .cta-box::before {
+            content: 'CHECKOUT';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 100px;
+            font-weight: 800;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        h2 {
+            font-size: 2.2rem;
+            font-weight: 900;
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            line-height: 1.1;
+            text-align: center;
+            letter-spacing: -0.03em;
+        }
+
+        p.subtitle {
+            text-align: center;
+            font-size: 1.1rem;
+            color: var(--dimmed);
+            margin-bottom: 2rem;
+            font-weight: 500;
+        }
+
+        .highlight {
+            background-color: var(--highlight);
+            color: var(--primary);
+            padding: 0 0.2em;
+            display: inline-block;
+            transform: skewX(-3deg);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        input {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1rem;
+            font-family: inherit;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            outline: none;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 4px 4px 0px var(--highlight);
+        }
+
+        .cta-btn {
+            background: var(--primary);
+            color: var(--highlight);
+            padding: 1.2rem;
+            width: 100%;
+            border: none;
+            cursor: pointer;
+            font-weight: 900;
+            border-radius: 100px;
+            font-size: 1.2rem;
+            display: block;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        .cta-btn:hover:not(:disabled) {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .cta-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .cta-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .qr-section {
+            display: none;
+            text-align: center;
+        }
+
+        .qr-section.active {
+            display: block;
+        }
+
+        .qr-box {
+            background: white;
+            border: 3px dashed var(--border);
+            padding: 1rem;
+            border-radius: 16px;
+            margin: 0 auto 1.5rem;
+            width: max-content;
+        }
+
+        .qr-box img {
+            width: 200px;
+            height: 200px;
+            display: block;
+        }
+
+        .transfer-info {
+            background: #fafafa;
+            border: 2px solid var(--border);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+        }
+
+        .transfer-info span {
+            display: block;
+            color: var(--dimmed);
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .transfer-info strong {
+            display: block;
+            font-size: 1.3rem;
+            font-weight: 900;
+        }
+
+        .status-msg {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--dimmed);
+            margin-top: 1rem;
+        }
+        
+        .error-msg {
+            color: #e74c3c;
+            font-weight: 600;
+            text-align: center;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .cta-box {
+                padding: 2.5rem 1.5rem;
+                box-shadow: 6px 6px 0px var(--primary);
+                border-width: 3px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="cta-box">
+            <div id="formSection">
+                <h2>THANH TOÁN<br><span class="highlight" style="color: black;">BẢN QUYỀN</span></h2>
+                <p class="subtitle">PlanFlowPro Trọn Đời • 179.000₫</p>
+                
+                <form id="checkoutForm">
+                    <div class="form-group">
+                        <label>Họ và tên</label>
+                        <input type="text" id="coName" required placeholder="Nguyễn Văn A">
+                    </div>
+                    <div class="form-group">
+                        <label>Số điện thoại</label>
+                        <input type="tel" id="coPhone" required placeholder="09xxxxxxxxx">
+                    </div>
+                    <div class="form-group">
+                        <label>Email nhận mã</label>
+                        <input type="email" id="coEmail" required placeholder="name@email.com">
+                    </div>
+                    <button type="submit" id="coSubmitBtn" class="cta-btn">THANH TOÁN NGAY</button>
+                    <div id="coFormMsg" class="error-msg"></div>
+                </form>
+            </div>
+
+            <div id="qrSection" class="qr-section">
+                <h2>QUÉT MÃ<br><span class="highlight" style="color: black;">THANH TOÁN</span></h2>
+                <p class="subtitle">Hệ thống duyệt tự động trong 5 giây</p>
+                
+                <div class="qr-box">
+                    <img id="qrImage" src="" alt="QR Code">
+                </div>
+                
+                <div class="transfer-info">
+                    <span>Số tiền:</span>
+                    <strong>179.000₫</strong>
+                    <span style="margin-top: 10px;">Nội dung chuyển khoản (bắt buộc):</span>
+                    <strong style="font-family: monospace; letter-spacing: 1px;" id="qrContent">...</strong>
+                </div>
+                
+                <div class="status-msg" id="statusMsg">⏳ Đang chờ nhận tiền...</div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="PlanFlowPro-Guide.html" style="color: var(--dimmed); text-decoration: none; font-weight: 600; font-size: 0.9rem;">← Quay lại trang chủ</a>
+        </div>
+    </div>
+
+    <script>
+        const SUPABASE_URL = "https://kivzurhuxsxwvdugujjg.supabase.co";
+        const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imtpdnp1cmh1eHN4d3ZkdWd1ampnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc2NzQ5NzcsImV4cCI6MjA4MzI1MDk3N30.uF3VHSmpa8HJRs2XT98ZmgrZE7rpE2m9VakUHD64Lpg";
+        
+        const BANK_ID = "BIDV";
+        const ACCOUNT_NO = "96247TESTMOAW123";
+        const ACCOUNT_NAME = "CHAU THANH PHONG";
+
+        const headers = {
+            'apikey': SUPABASE_KEY,
+            'Authorization': `Bearer ${SUPABASE_KEY}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+        };
+
+        const form = document.getElementById('checkoutForm');
+        const submitBtn = document.getElementById('coSubmitBtn');
+        const formSection = document.getElementById('formSection');
+        const qrSection = document.getElementById('qrSection');
+        const qrImage = document.getElementById('qrImage');
+        const transferContent = document.getElementById('qrContent');
+        const statusMsg = document.getElementById('statusMsg');
+        const errorMsg = document.getElementById('coFormMsg');
+
+        let pollingInterval = null;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('coName').value.trim();
+            const phone = document.getElementById('coPhone').value.trim();
+            const email = document.getElementById('coEmail').value.trim();
+            
+            submitBtn.textContent = 'ĐANG TẠO ĐƠN...';
+            submitBtn.disabled = true;
+            errorMsg.style.display = 'none';
+
+            const orderCode = 'PFP' + Date.now().toString().slice(-6);
+            const amount = 179000;
+
+            const orderData = {
+                name: name,
+                phone: phone,
+                email: email,
+                product_name: 'PlanFlowPro',
+                product_size: 'Bản quyền trọn đời',
+                quantity: 1,
+                total_price: amount,
+                payment_method: 'qr',
+                status: 'pending',
+                order_code: orderCode
+            };
+
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/orders`, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify(orderData)
+                });
+
+                if (!res.ok) throw new Error('Cannot create order');
+                const [saved] = await res.json();
+                const savedId = saved?.id || orderCode;
+
+                // Render QR
+                const contentStr = encodeURIComponent('MOAW ' + orderCode);
+                qrImage.src = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.png?amount=${amount}&addInfo=${contentStr}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
+                transferContent.textContent = 'MOAW ' + orderCode;
+
+                formSection.style.display = 'none';
+                qrSection.classList.add('active');
+
+                // Polling
+                let attempts = 0;
+                pollingInterval = setInterval(async () => {
+                    attempts++;
+                    if (attempts > 120) { clearInterval(pollingInterval); return; }
+                    try {
+                        const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/orders?id=eq.${savedId}&select=status`, {
+                            headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+                        });
+                        const [order] = await checkRes.json();
+                        
+                        if (order?.status === 'success' || order?.status === 'confirmed' || order?.status === 'paid') {
+                            clearInterval(pollingInterval);
+                            statusMsg.innerHTML = `✅ Thanh toán thành công!`;
+                            statusMsg.style.color = '#2ecc71';
+                            setTimeout(() => {
+                                window.location.href = `thankyou.html?order=${orderCode}`;
+                            }, 1500);
+                        } else {
+                            statusMsg.innerHTML = attempts % 2 === 0 ? `⏳ Đang chờ nhận tiền...` : `⏳ Đang kiểm tra...`;
+                        }
+                    } catch(err) {}
+                }, 5000);
+
+            } catch (err) {
+                errorMsg.textContent = 'Lỗi kết nối. Vui lòng thử lại sau.';
+                errorMsg.style.display = 'block';
+                submitBtn.textContent = 'THANH TOÁN NGAY';
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

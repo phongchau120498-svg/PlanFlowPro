@@ -1,25 +1,15 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { LayoutGrid, ListTodo, ChevronLeft, ChevronRight, Search, X, ZoomIn, CalendarDays } from 'lucide-react';
+import { LayoutGrid, ListTodo, ChevronLeft, ChevronRight, Settings, Search, X, ZoomIn, CalendarDays } from 'lucide-react';
 import { getMonday, formatDateKey } from '../../utils/dateHelpers';
 import { ZOOM_LEVELS } from '../../constants/theme';
 
 const Header = ({ 
     currentDate, prevWeek, nextWeek, goToToday, onDateSelect, zoomIndex, onZoomChange, 
     viewMode, setViewMode, calendarView, setCalendarView, onOpenAddTask, 
-    searchQuery, setSearchQuery, tasks, onNavigateToTask,
-    categories 
+    tasks, categories, onOpenSettings
 }) => {
     const startOfWeek = getMonday(currentDate);
-    const [showDropdown, setShowDropdown] = useState(false);
-    const searchRef = useRef(null);
-    const searchInputRef = useRef(null); 
 
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); searchInputRef.current?.focus(); setShowDropdown(true); }
-        };
-        window.addEventListener('keydown', handleKeyDown); return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
 
     // --- CẬP NHẬT LOGIC CHẤM ĐỎ: DỰA TRÊN END_DATE ---
     const overdueCount = useMemo(() => {
@@ -33,15 +23,7 @@ const Header = ({
         }).length;
     }, [tasks, categories]);
 
-    const searchResults = useMemo(() => {
-        if (!searchQuery.trim() || !tasks) return [];
-        return tasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
-    }, [tasks, searchQuery]);
 
-    useEffect(() => {
-        const handleClickOutside = (event) => { if (searchRef.current && !searchRef.current.contains(event.target)) setShowDropdown(false); };
-        document.addEventListener('mousedown', handleClickOutside); return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
 
     const buttonBaseClass = "h-9 flex items-center justify-center gap-2 rounded-lg text-sm font-bold transition-all duration-300 px-4";
 
@@ -70,7 +52,7 @@ const Header = ({
           </div>
         </div>
 
-        {/* --- GIỮA --- */}
+         {/* --- GIỮA --- */}
         <div className="flex-1 flex justify-center">
              {viewMode === 'matrix' ? (
                 <div className="flex items-center gap-3">
@@ -100,38 +82,23 @@ const Header = ({
                     <button onClick={() => setCalendarView('month')} className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${calendarView === 'month' ? 'bg-white shadow-sm text-slate-800' : 'text-gray-500 hover:text-gray-700'}`}>Tháng</button>
                 </div>
             )}
-
-            <div className="relative group z-[60]" ref={searchRef}>
-                <div className={`flex items-center bg-gray-100 hover:bg-white border border-transparent hover:border-gray-200 rounded-xl px-3 h-[44px] transition-all w-48 focus-within:w-64 focus-within:bg-white focus-within:border-slate-300 focus-within:ring-2 focus-within:ring-slate-100`}>
-                    <Search size={18} className="text-gray-400 group-focus-within:text-slate-800 mr-2 transition-colors" />
-                    <input ref={searchInputRef} type="text" placeholder="Tìm kiếm..." value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setShowDropdown(true); }} onFocus={() => setShowDropdown(true)} className="bg-transparent text-sm outline-none w-full placeholder-gray-400 text-gray-700 font-medium" />
-                    {!searchQuery && <div className="text-[10px] text-gray-400 border border-gray-200 rounded px-1.5 py-0.5 ml-2 hidden lg:block">⌘K</div>}
-                    {searchQuery && (<button onClick={() => { setSearchQuery(''); setShowDropdown(false); }} className="text-gray-300 hover:text-gray-500"><X size={16} /></button>)}
-                </div>
-                
-                {showDropdown && searchQuery && (
-                    <div className="absolute top-full right-0 mt-3 w-80 bg-white/95 backdrop-blur-xl border border-gray-100 rounded-2xl shadow-2xl max-h-96 overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2 duration-200 p-2">
-                        {searchResults.length > 0 ? (
-                            searchResults.map(task => (
-                                <div key={task.id} onClick={() => { onNavigateToTask(task); setShowDropdown(false); }} className="px-3 py-3 hover:bg-slate-50 rounded-xl cursor-pointer transition-colors group/item border-b border-gray-50 last:border-0">
-                                    <div className="font-semibold text-sm text-gray-800 group-hover/item:text-black truncate">{task.title}</div>
-                                    <div className="text-xs text-gray-400 flex items-center gap-2 mt-1">
-                                        <span className={`w-2 h-2 rounded-full ${categories.find(c => c.id === task.categoryId)?.color?.value.split(' ')[0] || 'bg-gray-300'}`}></span>
-                                        <span>{task.date.split('-').reverse().join('/')}</span>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (<div className="px-4 py-8 text-center text-gray-400 text-sm">Không tìm thấy kết quả</div>)}
-                     </div>
-                )}
-            </div>
             
             {viewMode === 'matrix' && calendarView === 'week' && (
-                <div className="flex items-center gap-3 pl-4 border-l border-gray-200 hidden lg:flex">
+                <div className="flex items-center gap-3 pl-4 border-l border-gray-200 hidden lg:flex mr-4">
                      <ZoomIn size={18} className="text-gray-400" />
                     <input type="range" min="0" max={ZOOM_LEVELS.length - 1} step="1" value={zoomIndex} onChange={onZoomChange} className="w-20 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-slate-800 hover:accent-black" />
                 </div>
             )}
+
+            <div className="flex items-center gap-2 pl-4 border-l border-gray-200">
+                <button 
+                    onClick={onOpenSettings} 
+                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                    title="Cài đặt hệ thống (API Key, v.v.)"
+                >
+                    <Settings size={18} />
+                </button>
+            </div>
         </div>
       </header>
     );

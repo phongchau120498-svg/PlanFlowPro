@@ -1,0 +1,29 @@
+moawmoaws.beauty {
+    # Proxy standalone MCP server on port 3001
+    handle_path /standalone-mcp* {
+        reverse_proxy 127.0.0.1:3001
+    }
+
+    # Proxy main web app on port 3000
+    handle {
+        reverse_proxy 127.0.0.1:3000
+    }
+}
+
+www.moawmoaws.beauty {
+    redir https://moawmoaws.beauty{uri} permanent
+}
+
+app.moawmoaws.beauty, agent.moawmoaws.beauty {
+    reverse_proxy 127.0.0.1:18790
+}
+
+planpro.moawmoaws.beauty {
+    handle /api/* {
+        reverse_proxy 127.0.0.1:3002
+    }
+    handle {
+        root * /var/www/planpro
+        file_server
+    }
+}

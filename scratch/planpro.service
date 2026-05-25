@@ -1,0 +1,17 @@
+[Unit]
+Description=PlanFlowPro Webhook Server
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/node /var/www/planpro/my-first-web/server.js
+WorkingDirectory=/var/www/planpro/my-first-web
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=planpro
+User=root
+EnvironmentFile=/var/www/planpro/my-first-web/.env
+
+[Install]
+WantedBy=multi-user.target

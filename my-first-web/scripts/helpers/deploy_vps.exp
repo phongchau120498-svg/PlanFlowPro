@@ -1,0 +1,38 @@
+#!/usr/bin/expect -f
+set timeout 60
+spawn ssh -p 2018 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@103.97.126.131
+
+expect {
+    "*assword:*" {
+        send "5w4lAW78nd\r"
+    }
+    timeout {
+        puts "Timeout waiting for password prompt"
+        exit 1
+    }
+}
+
+expect "*# "
+
+# Tìm thư mục chứa mcp-server.js nếu /opt/my-website không tồn tại
+send "if \[ -d /opt/my-website \]; then cd /opt/my-website; else cd \$(dirname \$(find / -name mcp-server.js 2>/dev/null | head -n 1)); fi\r"
+expect "*# "
+
+send "pwd\r"
+expect "*# "
+
+send "git pull\r"
+expect "*# "
+
+send "npm install\r"
+expect "*# "
+
+send "npm run build:config\r"
+expect "*# "
+
+# Thử restart service (tên có thể là mcp-server hoặc pm2)
+send "if systemctl list-unit-files | grep -q mcp-server; then systemctl restart mcp-server; systemctl status mcp-server --no-pager; else pm2 restart all; pm2 status; fi\r"
+expect "*# "
+
+send "exit\r"
+expect eof

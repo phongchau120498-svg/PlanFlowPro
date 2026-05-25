@@ -1,0 +1,20 @@
+#!/usr/bin/expect -f
+set timeout 15
+spawn ssh -p 2018 -o StrictHostKeyChecking=no root@103.97.126.131
+
+expect {
+    "*assword:*" {
+        send "5w4lAW78nd\r"
+    }
+    timeout { exit 1 }
+}
+
+expect "*# "
+send "docker exec goclaw-postgres-1 psql -U goclaw -d goclaw -c \"SELECT column_name FROM information_schema.columns WHERE table_name='memory_chunks';\"\r"
+expect "*# "
+
+send "docker exec goclaw-postgres-1 psql -U goclaw -d goclaw -c \"SELECT column_name FROM information_schema.columns WHERE table_name='episodic_summaries';\"\r"
+expect "*# "
+
+send "exit\r"
+expect eof

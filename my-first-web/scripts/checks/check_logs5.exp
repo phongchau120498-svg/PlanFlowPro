@@ -1,0 +1,23 @@
+#!/usr/bin/expect -f
+set timeout 15
+spawn ssh -p 2018 -o StrictHostKeyChecking=no root@103.97.126.131
+
+expect {
+    "*assword:*" {
+        send "5w4lAW78nd\r"
+    }
+    timeout {
+        puts "Timeout waiting for password prompt"
+        exit 1
+    }
+}
+
+expect "*# "
+send "journalctl -u mcp-server.service -n 50 --no-pager | grep -E '\\[MCP\\] Executing|Input payload'\r"
+expect "*# "
+
+send "docker logs --tail 50 goclaw-goclaw-1 | grep -i 'tool call'\r"
+expect "*# "
+
+send "exit\r"
+expect eof

@@ -1,0 +1,29 @@
+#!/usr/bin/expect -f
+set timeout 15
+spawn ssh -p 2018 -o StrictHostKeyChecking=no root@103.97.126.131
+
+expect {
+    "*assword:*" {
+        send "5w4lAW78nd\r"
+    }
+    timeout {
+        puts "Timeout waiting for password prompt"
+        exit 1
+    }
+}
+
+expect "*# "
+send "cd /opt/my-website\r"
+expect "*# "
+
+send "git pull\r"
+expect "*# "
+
+send "systemctl restart mcp-server\r"
+expect "*# "
+
+send "docker restart goclaw-goclaw-1\r"
+expect "*# "
+
+send "exit\r"
+expect eof

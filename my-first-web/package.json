@@ -1,0 +1,21 @@
+{
+  "name": "moaw-moaws",
+  "private": true,
+  "description": "MOAW MOAWS — static storefront + Express API",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build:config": "node scripts/build-config.mjs",
+    "prestart": "npm run build:config",
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "better-sqlite3": "^11.10.0",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.2"
+  }
+}

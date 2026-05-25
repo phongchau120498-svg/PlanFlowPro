@@ -1,0 +1,53 @@
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Databases & local configs
+*.db
+*.db-journal
+*.sqlite3
+brain.db
+my-brain/brain.db
+.env
+js/config.js
+resend_config.txt
+
+# Python bytecode & cache
+__pycache__/
+*.pyc
+
+# Skill output & logs
+moaws-skills/tao-creative-fb/output/
+
+# Node
+node_modules/
+
+# Generated reports & build outputs
+repomix-output.xml
+scratch/
+
+# IDE files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+.venv/
+scratch/
+moaws-skills.zip
+*.zip
+.env*
+!*.example

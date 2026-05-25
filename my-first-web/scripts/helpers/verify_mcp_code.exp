@@ -1,0 +1,26 @@
+#!/usr/bin/expect -f
+set timeout 15
+spawn ssh -p 2018 -o StrictHostKeyChecking=no root@103.97.126.131
+
+expect {
+    "*assword:*" {
+        send "5w4lAW78nd\r"
+    }
+    timeout { exit 1 }
+}
+
+expect "*# "
+send "grep -n 'add_brain_knowledge' /opt/my-website/mcp-server.js | wc -l\r"
+expect "*# "
+
+send "cat /proc/\$(systemctl show -p MainPID --value mcp-server)/cmdline | tr '\\0' ' '\r"
+expect "*# "
+
+send "ls -la /opt/my-website/mcp-server.js\r"
+expect "*# "
+
+send "git -C /opt/my-website log --oneline -5\r"
+expect "*# "
+
+send "exit\r"
+expect eof

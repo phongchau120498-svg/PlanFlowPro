@@ -1,0 +1,26 @@
+#!/usr/bin/expect -f
+set timeout 15
+spawn ssh -p 2018 -o StrictHostKeyChecking=no root@103.97.126.131
+
+expect {
+    "*assword:*" {
+        send "5w4lAW78nd\r"
+    }
+    timeout { exit 1 }
+}
+
+expect "*# "
+# Xóa episodic summaries có nhắc đến add_brain_knowledge
+send "docker exec goclaw-postgres-1 psql -U goclaw -d goclaw -c \"DELETE FROM episodic_summaries WHERE summary ILIKE '%add_brain_knowledge%';\"\r"
+expect "*# "
+
+# Xóa memory chunks tương tự
+send "docker exec goclaw-postgres-1 psql -U goclaw -d goclaw -c \"DELETE FROM memory_chunks WHERE text ILIKE '%add_brain_knowledge%';\"\r"
+expect "*# "
+
+# Xóa memory documents liên quan
+send "docker exec goclaw-postgres-1 psql -U goclaw -d goclaw -c \"SELECT COUNT(*) FROM memory_chunks WHERE text ILIKE '%brain_knowledge%';\"\r"
+expect "*# "
+
+send "exit\r"
+expect eof

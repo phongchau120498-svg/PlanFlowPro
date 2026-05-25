@@ -1,0 +1,23 @@
+#!/usr/bin/expect -f
+set timeout 15
+spawn ssh -p 2018 -o StrictHostKeyChecking=no root@103.97.126.131
+
+expect {
+    "*assword:*" {
+        send "5w4lAW78nd\r"
+    }
+    timeout {
+        puts "Timeout waiting for password prompt"
+        exit 1
+    }
+}
+
+expect "*# "
+send "export \$(cat /opt/my-website/.env | grep -v '^#')\r"
+expect "*# "
+
+send "curl -i -X PATCH -H \"apikey: \${SUPABASE_ANON_KEY}\" -H \"Authorization: Bearer \${SUPABASE_ANON_KEY}\" -H \"Content-Type: application/json\" -H \"Prefer: return=representation\" -d '{\"eyebrow\": \"TEST PATCH\"}' \"\${SUPABASE_URL}/rest/v1/popups?is_active=eq.true\"\r"
+expect "*# "
+
+send "exit\r"
+expect eof

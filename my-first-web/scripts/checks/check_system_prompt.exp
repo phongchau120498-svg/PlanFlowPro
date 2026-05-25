@@ -1,0 +1,20 @@
+#!/usr/bin/expect -f
+set timeout 15
+spawn ssh -p 2018 -o StrictHostKeyChecking=no root@103.97.126.131
+
+expect {
+    "*assword:*" {
+        send "5w4lAW78nd\r"
+    }
+    timeout { exit 1 }
+}
+
+expect "*# "
+send "find /opt/my-website -name 'USER_PREDEFINED.md' -o -name 'BOOTSTRAP.md' -o -name 'USER.md' 2>/dev/null\r"
+expect "*# "
+
+send "find / -name 'USER_PREDEFINED.md' 2>/dev/null | head -5\r"
+expect "*# "
+
+send "exit\r"
+expect eof

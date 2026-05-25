@@ -1,0 +1,23 @@
+#!/usr/bin/expect -f
+set timeout 15
+spawn ssh -p 2018 -o StrictHostKeyChecking=no root@103.97.126.131
+
+expect {
+    "*assword:*" {
+        send "5w4lAW78nd\r"
+    }
+    timeout {
+        puts "Timeout waiting for password prompt"
+        exit 1
+    }
+}
+
+expect "*# "
+send "curl -s http://127.0.0.1:3001/mcp | grep add_brain_knowledge\r"
+expect "*# "
+
+send "docker exec goclaw-goclaw-1 wget -qO- http://127.0.0.1:3001/mcp | grep add_brain_knowledge\r"
+expect "*# "
+
+send "exit\r"
+expect eof

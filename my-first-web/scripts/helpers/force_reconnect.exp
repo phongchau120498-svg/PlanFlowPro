@@ -1,0 +1,25 @@
+#!/usr/bin/expect -f
+set timeout 30
+spawn ssh -p 2018 -o StrictHostKeyChecking=no root@103.97.126.131
+
+expect {
+    "*assword:*" {
+        send "5w4lAW78nd\r"
+    }
+    timeout { exit 1 }
+}
+
+expect "*# "
+# Xóa cache MCP trong GoClaw DB - reset lại pool connection
+send "docker exec goclaw-postgres-1 psql -U goclaw -d goclaw -c \"SELECT id, name, url FROM mcp_servers;\"\r"
+expect "*# "
+
+# Buộc GoClaw disconnect hoàn toàn khỏi MCP pool bằng cách restart
+send "docker restart goclaw-goclaw-1\r"
+expect "*# "
+
+send "sleep 5 && docker logs --tail 15 goclaw-goclaw-1 2>&1 | tail -15\r"
+expect "*# "
+
+send "exit\r"
+expect eof
